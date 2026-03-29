@@ -94,7 +94,7 @@ function destroyCharts() {
 }
 
 function buildChartDefaults() {
-  const border = getCssVar("--border");
+  const border = getCssVar("--chart-grid") || getCssVar("--border");
   const tick = getCssVar("--text-muted");
   const text = getCssVar("--text");
   const tooltipBg = getCssVar("--surface-solid");
@@ -108,21 +108,49 @@ function buildChartDefaults() {
         backgroundColor: tooltipBg,
         titleColor: text,
         bodyColor: text,
-        borderColor: border,
+        borderColor: getCssVar("--border"),
         borderWidth: 1,
         padding: 12,
-        cornerRadius: 10,
-        displayColors: false,
+        cornerRadius: 12,
+        boxPadding: 4,
+        usePointStyle: true,
+        callbacks: {
+          label(context) {
+            const value = context.parsed.y;
+            const chartId = context.chart.canvas.id;
+            if (chartId === "chartVerbrauch") {
+              return `${context.dataset.label}: ${fmt(value)} kWh`;
+            }
+            return `${context.dataset.label}: ${fmtE(value)} €`;
+          },
+        },
       },
     },
     scales: {
       x: {
-        grid: { color: border, drawBorder: false },
-        ticks: { color: tick, font: { family: "Inter", size: 11 } },
+        grid: { display: false, drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: tick,
+          font: { family: "Inter", size: 11, weight: 600 },
+          padding: 8,
+        },
       },
       y: {
         grid: { color: border, drawBorder: false },
-        ticks: { color: tick, font: { family: "Inter", size: 11 } },
+        border: { display: false },
+        ticks: {
+          color: tick,
+          font: { family: "Inter", size: 11, weight: 600 },
+          padding: 10,
+        },
+      },
+    },
+    elements: {
+      bar: {
+        borderSkipped: false,
+        borderRadius: 8,
+        borderWidth: 0,
       },
     },
   };
@@ -138,6 +166,13 @@ function createBarChart(id, labels, datasets) {
       scales: {
         x: { ...defaults.scales.x },
         y: { ...defaults.scales.y },
+      },
+      datasets: {
+        bar: {
+          categoryPercentage: 0.68,
+          barPercentage: 0.84,
+          maxBarThickness: id === "chartVerbrauch" ? 34 : 28,
+        },
       },
     },
   });

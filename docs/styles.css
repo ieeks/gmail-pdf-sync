@@ -20,6 +20,8 @@
   --neutral: #45474a;
   --shadow: 0 12px 28px rgba(25, 44, 79, 0.08);
   --shadow-strong: 0 18px 36px rgba(25, 44, 79, 0.12);
+  --chart-grid: rgba(69, 71, 74, 0.08);
+  --chart-surface: rgba(255, 255, 255, 0.46);
   --radius-xl: 24px;
   --radius-lg: 18px;
   --radius-md: 14px;
@@ -52,6 +54,8 @@
   --neutral: #90959a;
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.34);
   --shadow-strong: 0 16px 40px rgba(0, 0, 0, 0.42);
+  --chart-grid: rgba(173, 184, 197, 0.1);
+  --chart-surface: rgba(255, 255, 255, 0.03);
   --hero-bg: linear-gradient(135deg, #00539f, #003f79);
   --hero-border: rgba(109, 172, 237, 0.16);
   --hero-text: #f5f9ff;
@@ -274,8 +278,8 @@ body {
 .eyebrow,
 .panel-kicker,
 .summary-label {
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -286,15 +290,16 @@ body {
 
 .hero h1 {
   font-family: "Manrope", sans-serif;
-  font-size: clamp(1.95rem, 4vw, 3rem);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
+  font-size: clamp(2.15rem, 4vw, 3.15rem);
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+  max-width: 11ch;
 }
 
 .subtitle {
   max-width: 640px;
-  font-size: 0.96rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.68;
   color: var(--hero-text-soft);
 }
 
@@ -383,11 +388,11 @@ body {
 }
 
 .summary-value {
-  margin-top: 8px;
+  margin-top: 10px;
   font-family: "Manrope", sans-serif;
-  font-size: clamp(1.55rem, 3vw, 2.05rem);
-  line-height: 1;
-  letter-spacing: -0.05em;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
   font-weight: 800;
   color: var(--text);
 }
@@ -401,10 +406,10 @@ body {
 }
 
 .summary-sub {
-  margin-top: 8px;
-  font-size: 0.78rem;
+  margin-top: 10px;
+  font-size: 0.79rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
@@ -481,11 +486,11 @@ body {
 }
 
 .panel h2 {
-  margin-top: 4px;
+  margin-top: 6px;
   font-family: "Manrope", sans-serif;
-  font-size: 1.15rem;
-  line-height: 1.1;
-  letter-spacing: -0.04em;
+  font-size: 1.22rem;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
 }
 
 .unit-mark {
@@ -506,8 +511,9 @@ body {
 }
 
 .panel-meta-soft {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-secondary);
+  line-height: 1.55;
 }
 
 .panel-badge {
@@ -525,6 +531,10 @@ body {
 .chart-wrap {
   position: relative;
   height: 220px;
+  padding: 10px 10px 2px;
+  border-radius: calc(var(--radius-lg) - 2px);
+  background: linear-gradient(180deg, var(--chart-surface), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .chart-wrap-lg {
@@ -533,6 +543,9 @@ body {
 
 .table-wrap {
   overflow-x: auto;
+  border-radius: calc(var(--radius-lg) - 2px);
+  border: 1px solid rgba(69, 71, 74, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12));
 }
 
 table {
@@ -542,14 +555,15 @@ table {
 }
 
 thead th {
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--border);
   text-align: right;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.58);
 }
 
 thead th:first-child,
@@ -557,16 +571,34 @@ tbody td:first-child {
   text-align: left;
 }
 
+thead th:nth-child(3),
+thead th:nth-child(4),
+thead th:nth-child(5),
+thead th:nth-child(6),
+thead th:nth-child(7) {
+  font-variant-numeric: tabular-nums;
+}
+
 tbody td {
-  padding: 11px 12px;
+  padding: 12px 12px;
   border-bottom: 1px solid var(--border);
   text-align: right;
-  font-size: 0.84rem;
+  font-size: 0.83rem;
   color: var(--text-secondary);
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
 
 tbody tr:last-child td {
   border-bottom: none;
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+tbody tr:hover {
+  background: rgba(0, 95, 184, 0.05);
 }
 
 tbody td:first-child {
@@ -574,9 +606,23 @@ tbody td:first-child {
   font-weight: 600;
 }
 
+tbody td:nth-child(3),
+tbody td:nth-child(4),
+tbody td:nth-child(5),
+tbody td:nth-child(7) {
+  color: var(--neutral);
+}
+
+tbody td:nth-child(4),
+tbody td:nth-child(5) {
+  letter-spacing: -0.01em;
+}
+
 .table-badge {
   padding: 5px 9px;
   border: 1px solid var(--border);
+  font-size: 0.71rem;
+  letter-spacing: 0.01em;
 }
 
 .household-rennweg,
@@ -587,6 +633,9 @@ tbody td:first-child {
 .total-cell {
   color: var(--text);
   font-weight: 700;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
 }
 
 @media (max-width: 900px) {
