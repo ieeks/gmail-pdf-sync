@@ -1,425 +1,142 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stromkosten Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap');
-
-  :root {
-    --bg: #0d0f14;
-    --surface: #13161e;
-    --border: #1e2330;
-    --rennweg: #00d4aa;
-    --aspang: #ff6b35;
-    --muted: #4a5168;
-    --text: #e8eaf0;
-    --text-dim: #7a8099;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    min-height: 100vh;
-    padding: 2rem 1.5rem 4rem;
-  }
-
-  /* Header */
-  header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 3rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 1.4rem;
-    letter-spacing: -0.02em;
-  }
-  .logo span { color: var(--muted); font-weight: 400; }
-
-  .last-update {
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    text-align: right;
-  }
-
-  /* Legend pills */
-  .legend {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-  }
-  .pill {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.4rem 0.9rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 1px solid;
-  }
-  .pill.rennweg { color: var(--rennweg); border-color: var(--rennweg); }
-  .pill.aspang  { color: var(--aspang);  border-color: var(--aspang);  }
-  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-  /* Summary cards */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 2rem;
-  }
-  .card {
-    background: var(--surface);
-    padding: 1.4rem 1.2rem;
-  }
-  .card-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-dim);
-    margin-bottom: 0.6rem;
-  }
-  .card-value {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 1.6rem;
-    letter-spacing: -0.03em;
-  }
-  .card-value.r { color: var(--rennweg); }
-  .card-value.a { color: var(--aspang); }
-  .card-sub {
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    margin-top: 0.3rem;
-  }
-
-  /* Two-column layout */
-  .cols {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
-
-  /* Chart panels */
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.4rem;
-  }
-  .panel-title {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-dim);
-    margin-bottom: 1.2rem;
-  }
-  .panel-title strong {
-    font-size: 0.75rem;
-    color: var(--text);
-    font-weight: 500;
-  }
-
-  .chart-wrap { position: relative; height: 180px; }
-
-  /* Full-width panel */
-  .panel-full {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.4rem;
-    margin-bottom: 1rem;
-  }
-  .chart-wrap-lg { position: relative; height: 220px; }
-
-  /* Table */
-  .table-wrap { overflow-x: auto; margin-top: 1rem; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
-  th {
-    color: var(--text-dim);
-    font-weight: 400;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.62rem;
-    padding: 0.5rem 0.8rem;
-    border-bottom: 1px solid var(--border);
-    text-align: right;
-  }
-  th:first-child { text-align: left; }
-  td {
-    padding: 0.55rem 0.8rem;
-    border-bottom: 1px solid var(--border);
-    text-align: right;
-    color: var(--text-dim);
-  }
-  td:first-child { text-align: left; color: var(--text); }
-  tr:last-child td { border-bottom: none; }
-  .dot-r { color: var(--rennweg); }
-  .dot-a { color: var(--aspang); }
-
-  /* No data state */
-  .empty {
-    text-align: center;
-    padding: 3rem;
-    color: var(--text-dim);
-    font-size: 0.8rem;
-    line-height: 1.8;
-  }
-  .empty code {
-    display: block;
-    margin-top: 1rem;
-    font-size: 0.7rem;
-    color: var(--muted);
-    background: var(--bg);
-    padding: 0.8rem 1rem;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Stromkosten Dashboard</title>
+  <meta name="description" content="Verbund-Rechnungen, Verbrauch und Kosten im Überblick.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
+  <div class="page-shell">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
 
-<header>
-  <div class="logo">⚡ Strom<span>kosten</span></div>
-  <div class="last-update" id="lastUpdate">—</div>
-</header>
+    <header class="topbar">
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-copy">
+          <div class="logo-title">Stromkosten</div>
+          <div class="logo-sub">Verbund Rechnungen</div>
+        </div>
+      </div>
+      <label class="theme-switch" for="themeToggle" aria-label="Hellmodus umschalten">
+        <input class="theme-switch-input" id="themeToggle" type="checkbox" role="switch" aria-label="Hellmodus umschalten">
+        <span class="theme-switch-track">
+          <span class="theme-switch-thumb"></span>
+        </span>
+      </label>
+    </header>
 
-<div class="legend">
-  <div class="pill rennweg"><span class="pill-dot"></span>Rennweg</div>
-  <div class="pill aspang"><span class="pill-dot"></span>Aspangstraße</div>
-</div>
+    <main class="container">
+      <section class="hero card">
+        <div class="hero-copy">
+          <p class="eyebrow">Invoice Overview</p>
+          <h1>Stromkosten Dashboard</h1>
+          <p class="subtitle">Verbund-Rechnungen, Verbrauch, Netzkosten und Jahresverlauf für Rennweg und Aspangstraße in einem ruhigen, mobilen Dashboard.</p>
+        </div>
+        <div class="hero-meta">
+          <div class="status-badge" id="dataModeBadge">Lade Daten…</div>
+          <div class="hero-update" id="lastUpdate">—</div>
+        </div>
+      </section>
 
-<div class="cards" id="summaryCards">
-  <div class="card empty" style="grid-column:1/-1">Lade Daten…</div>
-</div>
+      <section class="legend" aria-label="Haushalte">
+        <div class="legend-pill legend-pill-rennweg"><span class="legend-dot"></span>Rennweg</div>
+        <div class="legend-pill legend-pill-aspang"><span class="legend-dot"></span>Aspangstraße</div>
+      </section>
 
-<div id="mainContent" style="display:none">
+      <section class="summary-grid" id="summaryCards">
+        <article class="summary-card summary-card-empty">
+          <div class="summary-label">Initialisierung</div>
+          <div class="summary-value">Daten werden geladen</div>
+        </article>
+      </section>
 
-  <div class="panel-full">
-    <div class="panel-title">Verbrauch kWh — <strong>Jahresvergleich</strong></div>
-    <div class="chart-wrap-lg"><canvas id="chartVerbrauch"></canvas></div>
+      <section class="dashboard" id="mainContent" hidden>
+        <article class="panel panel-wide">
+          <div class="panel-head">
+            <div>
+              <div class="panel-kicker">Verbrauch</div>
+              <h2>Jahresvergleich kWh</h2>
+              <div class="panel-meta">
+                <span class="panel-badge panel-badge-rennweg">Rennweg</span>
+                <span class="panel-badge panel-badge-aspang">Aspangstraße</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrap chart-wrap-lg">
+            <canvas id="chartVerbrauch"></canvas>
+          </div>
+        </article>
+
+        <div class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Kosten</div>
+                <h2>Rennweg <span class="unit-mark">€</span></h2>
+                <div class="panel-meta">
+                  <span class="panel-badge panel-badge-rennweg">Haushalt Rennweg</span>
+                  <span class="panel-badge panel-badge-neutral">Beträge in Euro</span>
+                </div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartKostenR"></canvas>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-kicker">Kosten</div>
+                <h2>Aspangstraße <span class="unit-mark">€</span></h2>
+                <div class="panel-meta">
+                  <span class="panel-badge panel-badge-aspang">Haushalt Aspangstraße</span>
+                  <span class="panel-badge panel-badge-neutral">Beträge in Euro</span>
+                </div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartKostenA"></canvas>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel panel-wide">
+          <div class="panel-head">
+            <div>
+              <div class="panel-kicker">Historie</div>
+              <h2>Alle Abrechnungen</h2>
+              <div class="panel-meta panel-meta-soft">Beide Haushalte in absteigender Rechnungsreihenfolge</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="historyTable">
+              <thead>
+                <tr>
+                  <th>Zeitraum</th>
+                  <th>Haushalt</th>
+                  <th>kWh</th>
+                  <th>Energie €</th>
+                  <th>Netz €</th>
+                  <th>Gesamt €</th>
+                  <th>ct/kWh</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
   </div>
 
-  <div class="cols">
-    <div class="panel">
-      <div class="panel-title">Kosten € — <strong>Rennweg</strong></div>
-      <div class="chart-wrap"><canvas id="chartKostenR"></canvas></div>
-    </div>
-    <div class="panel">
-      <div class="panel-title">Kosten € — <strong>Aspangstraße</strong></div>
-      <div class="chart-wrap"><canvas id="chartKostenA"></canvas></div>
-    </div>
-  </div>
-
-  <div class="panel-full">
-    <div class="panel-title">Alle Abrechnungen — <strong>Verlauf</strong></div>
-    <div class="table-wrap">
-      <table id="historyTable">
-        <thead>
-          <tr>
-            <th>Zeitraum</th>
-            <th>Haushalt</th>
-            <th>kWh</th>
-            <th>Energie €</th>
-            <th>Netz €</th>
-            <th>Gesamt €</th>
-            <th>ct/kWh</th>
-          </tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
-
-<script>
-// ── Demo-Daten (werden durch echte data/*.json ersetzt) ──────────────────────
-// Format identisch mit dem was extract_verbund.py schreibt
-const DEMO = {
-  rennweg: [
-    { zeitraum_von:"2023-02-01", zeitraum_bis:"2024-01-31", rechnungsdatum:"2024-02-05", kwh:1820, energiekosten:148.50, netzgebuehren:138.20, steuern:78.10, gesamt_inkl_ust:437.60 },
-    { zeitraum_von:"2024-02-01", zeitraum_bis:"2025-01-31", rechnungsdatum:"2025-02-03", kwh:1950, energiekosten:162.30, netzgebuehren:144.80, steuern:82.40, gesamt_inkl_ust:469.50 },
-    { zeitraum_von:"2025-02-01", zeitraum_bis:"2026-01-31", rechnungsdatum:"2026-02-04", kwh:1780, energiekosten:155.00, netzgebuehren:141.00, steuern:80.20, gesamt_inkl_ust:450.00 },
-  ],
-  aspangstrasse: [
-    { zeitraum_von:"2023-02-01", zeitraum_bis:"2024-01-31", rechnungsdatum:"2024-02-05", kwh:3240, energiekosten:272.10, netzgebuehren:198.40, steuern:112.30, gesamt_inkl_ust:700.50 },
-    { zeitraum_von:"2024-02-01", zeitraum_bis:"2025-01-31", rechnungsdatum:"2025-02-03", kwh:3580, energiekosten:298.20, netzgebuehren:210.60, steuern:121.80, gesamt_inkl_ust:758.40 },
-    { zeitraum_von:"2025-02-01", zeitraum_bis:"2026-01-31", rechnungsdatum:"2026-02-04", kwh:3410, energiekosten:285.50, netzgebuehren:205.30, steuern:118.60, gesamt_inkl_ust:730.20 },
-  ]
-};
-
-// ── Daten laden ──────────────────────────────────────────────────────────────
-async function loadData() {
-  try {
-    const [r, a] = await Promise.all([
-      fetch('data/rennweg.json').then(x => x.json()),
-      fetch('data/aspangstrasse.json').then(x => x.json()),
-    ]);
-    return { rennweg: r, aspangstrasse: a, demo: false };
-  } catch {
-    console.warn('data/*.json nicht gefunden — zeige Demo-Daten');
-    return { ...DEMO, demo: true };
-  }
-}
-
-// ── Hilfsfunktionen ──────────────────────────────────────────────────────────
-const fmt  = (n, d=0) => n.toLocaleString('de-AT', { minimumFractionDigits: d, maximumFractionDigits: d });
-const fmtE = (n)      => n.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const label = (e)     => {
-  const d = new Date(e.rechnungsdatum);
-  return d.toLocaleDateString('de-AT', { month:'short', year:'2-digit' });
-};
-
-const CHART_DEFAULTS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: {
-    backgroundColor: '#1e2330',
-    titleColor: '#7a8099',
-    bodyColor: '#e8eaf0',
-    borderColor: '#2a3040',
-    borderWidth: 1,
-    padding: 10,
-    cornerRadius: 6,
-  }},
-  scales: {
-    x: { grid: { color: '#1e2330' }, ticks: { color: '#4a5168', font: { family: 'DM Mono', size: 10 } } },
-    y: { grid: { color: '#1e2330' }, ticks: { color: '#4a5168', font: { family: 'DM Mono', size: 10 } } },
-  }
-};
-
-function barChart(id, labels, datasets) {
-  new Chart(document.getElementById(id), {
-    type: 'bar',
-    data: { labels, datasets },
-    options: { ...CHART_DEFAULTS, scales: {
-      ...CHART_DEFAULTS.scales,
-      x: { ...CHART_DEFAULTS.scales.x, stacked: false },
-      y: { ...CHART_DEFAULTS.scales.y, stacked: false },
-    }}
-  });
-}
-
-function lineChart(id, labels, datasets) {
-  new Chart(document.getElementById(id), {
-    type: 'line',
-    data: { labels, datasets },
-    options: { ...CHART_DEFAULTS }
-  });
-}
-
-// ── Render ───────────────────────────────────────────────────────────────────
-async function render() {
-  const data = await loadData();
-  const { rennweg: R, aspangstrasse: A, demo } = data;
-
-  // Last update
-  const dates = [...R, ...A].map(e => e.rechnungsdatum).sort().reverse();
-  document.getElementById('lastUpdate').innerHTML =
-    (demo ? '⚠ Demo-Daten&nbsp;·&nbsp;' : '') +
-    'Stand: ' + new Date(dates[0]).toLocaleDateString('de-AT');
-
-  // Summary cards
-  const lastR = R[R.length - 1];
-  const lastA = A[A.length - 1];
-  const totalKwhR = R.reduce((s,e) => s + e.kwh, 0);
-  const totalKwhA = A.reduce((s,e) => s + e.kwh, 0);
-  const ctR = (lastR.gesamt_inkl_ust / lastR.kwh * 100).toFixed(1);
-  const ctA = (lastA.gesamt_inkl_ust / lastA.kwh * 100).toFixed(1);
-
-  document.getElementById('summaryCards').innerHTML = `
-    <div class="card">
-      <div class="card-label">Letzte Rechnung · Rennweg</div>
-      <div class="card-value r">${fmtE(lastR.gesamt_inkl_ust)} €</div>
-      <div class="card-sub">${fmt(lastR.kwh)} kWh · ${ctR} ct/kWh</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Letzte Rechnung · Aspangstraße</div>
-      <div class="card-value a">${fmtE(lastA.gesamt_inkl_ust)} €</div>
-      <div class="card-sub">${fmt(lastA.kwh)} kWh · ${ctA} ct/kWh</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Gesamt kWh · Rennweg</div>
-      <div class="card-value r">${fmt(totalKwhR)}</div>
-      <div class="card-sub">${R.length} Abrechnungen</div>
-    </div>
-    <div class="card">
-      <div class="card-label">Gesamt kWh · Aspangstraße</div>
-      <div class="card-value a">${fmt(totalKwhA)}</div>
-      <div class="card-sub">${A.length} Abrechnungen inkl. Wallbox</div>
-    </div>
-  `;
-
-  document.getElementById('mainContent').style.display = '';
-
-  // Chart: Verbrauch kWh (beide Haushalte nebeneinander)
-  const labelsV = R.map(label);
-  barChart('chartVerbrauch', labelsV, [
-    { label: 'Rennweg kWh',      data: R.map(e=>e.kwh), backgroundColor: '#00d4aa33', borderColor: '#00d4aa', borderWidth: 2, borderRadius: 4 },
-    { label: 'Aspangstraße kWh', data: A.map(e=>e.kwh), backgroundColor: '#ff6b3533', borderColor: '#ff6b35', borderWidth: 2, borderRadius: 4 },
-  ]);
-
-  // Chart: Kosten Rennweg (gestapelt Energie/Netz/Steuern)
-  barChart('chartKostenR', R.map(label), [
-    { label: 'Energiekosten', data: R.map(e=>e.energiekosten), backgroundColor: '#00d4aa99', borderRadius: 3 },
-    { label: 'Netzgebühren',  data: R.map(e=>e.netzgebuehren), backgroundColor: '#00d4aa44', borderRadius: 3 },
-    { label: 'Steuern',       data: R.map(e=>e.steuern),       backgroundColor: '#00d4aa22', borderRadius: 3 },
-  ]);
-
-  // Chart: Kosten Aspangstraße
-  barChart('chartKostenA', A.map(label), [
-    { label: 'Energiekosten', data: A.map(e=>e.energiekosten), backgroundColor: '#ff6b3599', borderRadius: 3 },
-    { label: 'Netzgebühren',  data: A.map(e=>e.netzgebuehren), backgroundColor: '#ff6b3544', borderRadius: 3 },
-    { label: 'Steuern',       data: A.map(e=>e.steuern),       backgroundColor: '#ff6b3522', borderRadius: 3 },
-  ]);
-
-  // History table
-  const allEntries = [
-    ...R.map(e=>({...e, haushalt:'rennweg'})),
-    ...A.map(e=>({...e, haushalt:'aspangstrasse'})),
-  ].sort((a,b) => b.rechnungsdatum.localeCompare(a.rechnungsdatum));
-
-  document.getElementById('historyBody').innerHTML = allEntries.map(e => {
-    const ct = (e.gesamt_inkl_ust / e.kwh * 100).toFixed(1);
-    const cls = e.haushalt === 'rennweg' ? 'dot-r' : 'dot-a';
-    const name = e.haushalt === 'rennweg' ? 'Rennweg' : 'Aspangstr.';
-    const von = new Date(e.zeitraum_von).toLocaleDateString('de-AT', {month:'2-digit',year:'2-digit'});
-    const bis = new Date(e.zeitraum_bis).toLocaleDateString('de-AT', {month:'2-digit',year:'2-digit'});
-    return `<tr>
-      <td>${von} – ${bis}</td>
-      <td class="${cls}">${name}</td>
-      <td>${fmt(e.kwh)}</td>
-      <td>${fmtE(e.energiekosten)}</td>
-      <td>${fmtE(e.netzgebuehren)}</td>
-      <td><strong>${fmtE(e.gesamt_inkl_ust)}</strong></td>
-      <td>${ct}</td>
-    </tr>`;
-  }).join('');
-}
-
-render();
-</script>
+  <script src="./script.js"></script>
 </body>
 </html>
