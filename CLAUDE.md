@@ -20,7 +20,9 @@ in einem GitHub Pages Dashboard an.
 │   ├── rennweg.json           ← nur Zahlen, kein Datenschutz-relevantes Material
 │   └── aspangstrasse.json
 ├── docs/
-│   └── index.html             ← GitHub Pages Dashboard
+│   ├── index.html             ← GitHub Pages Dashboard
+│   ├── styles.css             ← Dashboard-Styling
+│   └── script.js              ← Dashboard-Logik + Chart.js
 └── .gitignore
 ```
 
@@ -166,13 +168,25 @@ Die JSON-Dateien sind Arrays, neueste Einträge werden angehängt:
 
 ---
 
-## docs/index.html — GitHub Pages Dashboard
+## docs/ — GitHub Pages Dashboard
 
-- Bereits fertig, keine Änderungen nötig
+- Frontend ist in `index.html`, `styles.css` und `script.js` aufgeteilt
 - Liest `../data/rennweg.json` und `../data/aspangstrasse.json`
 - Fällt bei fehlenden Daten automatisch auf Demo-Daten zurück
-- Rennweg = Grün (#00d4aa), Aspangstraße = Orange (#ff6b35)
-- Zeigt: Summary-Cards, Verbrauch-Chart, Kosten-Charts, Historien-Tabelle
+- Aktuelle Farbpalette:
+  - Primary = `#005FB8`
+  - Rennweg = `#008080`
+  - Hinweis-/Steuer-Akzent = `#F59E0B`
+  - Neutral = `#45474A`
+- Zeigt aktuell:
+  - Summary-Cards
+  - Verbrauchsvergleich
+  - Kosten-Charts pro Haushalt
+  - Historien-Tabelle
+- Designrichtung:
+  - leichtes, editorielles Dashboard
+  - kühler `Volt & Grid`-Look statt warmem Utility-Look
+  - mobile und GitHub-Pages-kompatibel
 
 **GitHub Pages aktivieren:**
 → GitHub Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
