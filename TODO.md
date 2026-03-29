@@ -23,8 +23,8 @@
   0 8 * * * /usr/bin/python3 /Users/manuel/Developer/gmail-pdf-sync/gmail_invoices.py >> /Users/manuel/Developer/gmail-pdf-sync/gmail_invoices.log 2>&1
   ```
 
-- [ ] **GitHub Repo** erstellen und pushen
-- [ ] **GitHub Pages** aktivieren: Repo → Settings → Pages → Branch `main`, Folder `/docs`
+- [x] **GitHub Repo** erstellen und pushen → https://github.com/ieeks/gmail-pdf-sync
+- [x] **GitHub Pages** aktivieren → http://manuel-app.dev/gmail-pdf-sync/
 
 ## Erster Test (nach Zählpunkten)
 
