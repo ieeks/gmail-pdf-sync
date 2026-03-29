@@ -255,14 +255,14 @@ async function render() {
 
   createBarChart("chartKostenR", rennweg.map(label), [
     { label: "Energiekosten", data: rennweg.map((entry) => entry.energiekosten), backgroundColor: rennwegColor, borderRadius: 5 },
-    { label: "Netzgebühren", data: rennweg.map((entry) => entry.netzgebuehren), backgroundColor: "rgba(44, 165, 141, 0.38)", borderRadius: 5 },
-    { label: "Steuern", data: rennweg.map((entry) => entry.steuern), backgroundColor: "rgba(44, 165, 141, 0.18)", borderRadius: 5 },
+    { label: "Netzgebühren", data: rennweg.map((entry) => entry.netzgebuehren), backgroundColor: "rgba(0, 95, 184, 0.24)", borderRadius: 5 },
+    { label: "Steuern", data: rennweg.map((entry) => entry.steuern), backgroundColor: "rgba(245, 158, 11, 0.26)", borderRadius: 5 },
   ]);
 
   createBarChart("chartKostenA", aspangstrasse.map(label), [
     { label: "Energiekosten", data: aspangstrasse.map((entry) => entry.energiekosten), backgroundColor: aspangColor, borderRadius: 5 },
-    { label: "Netzgebühren", data: aspangstrasse.map((entry) => entry.netzgebuehren), backgroundColor: "rgba(217, 107, 59, 0.36)", borderRadius: 5 },
-    { label: "Steuern", data: aspangstrasse.map((entry) => entry.steuern), backgroundColor: "rgba(217, 107, 59, 0.16)", borderRadius: 5 },
+    { label: "Netzgebühren", data: aspangstrasse.map((entry) => entry.netzgebuehren), backgroundColor: "rgba(0, 128, 128, 0.24)", borderRadius: 5 },
+    { label: "Steuern", data: aspangstrasse.map((entry) => entry.steuern), backgroundColor: "rgba(245, 158, 11, 0.26)", borderRadius: 5 },
   ]);
 
   const entries = [
