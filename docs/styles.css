@@ -46,21 +46,19 @@ body {
 
 .panel-surface {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 252, 255, 0.82));
-  box-shadow: var(--shadow-panel);
-  box-shadow: var(--shadow-panel), var(--ring-soft);
+  box-shadow: 0 12px 32px -4px rgba(0, 72, 141, 0.07), var(--ring-soft);
 }
 
 .panel-soft {
   background: linear-gradient(180deg, rgba(244, 248, 252, 0.94), rgba(236, 243, 249, 0.8));
-  box-shadow: var(--shadow-soft), var(--ring-soft);
+  box-shadow: 0 12px 32px -4px rgba(0, 72, 141, 0.07);
 }
 
 .hero-panel {
   position: relative;
   background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
-    radial-gradient(circle at bottom left, rgba(0, 223, 201, 0.12), transparent 24%),
-    linear-gradient(135deg, #00488d, #005fb8 54%, #1d78d4);
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 32%),
+    linear-gradient(135deg, #00488d 0%, #005fb8 100%);
   box-shadow: 0 26px 60px -28px rgba(0, 95, 184, 0.52);
 }
 
@@ -118,9 +116,9 @@ body {
 }
 
 .nav-pill-active {
-  background: rgba(255, 255, 255, 0.92);
+  background: #ffffff;
   color: var(--primary);
-  box-shadow: 0 14px 34px -24px rgba(0, 95, 184, 0.48);
+  box-shadow: 0 4px 16px -4px rgba(0, 72, 141, 0.14), 0 12px 32px -4px rgba(0, 72, 141, 0.07);
 }
 
 .mobile-nav {
@@ -229,7 +227,7 @@ body {
   border-radius: 1.55rem;
   background: rgba(255, 255, 255, 0.82);
   padding: 1rem 1.1rem;
-  box-shadow: var(--ring-soft);
+  box-shadow: 0 12px 32px -4px rgba(0, 72, 141, 0.07);
 }
 
 .metric-card strong,
@@ -237,6 +235,39 @@ body {
   font-family: "Plus Jakarta Sans", sans-serif;
   letter-spacing: -0.04em;
 }
+
+/* Teal/Amber status-chip modifiers (No-Line, unit pills) */
+.status-chip.teal {
+  background: #e1f5ee;
+  color: #0f6e56;
+}
+
+.status-chip.amber {
+  background: #faeeda;
+  color: #854f0b;
+}
+
+/* Big number for KPI cards */
+.big-num {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.big-num-unit {
+  font-family: "Inter", sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #8a9ab0;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
+/* Semantic color helpers */
+.val-teal { color: #0f6e56; }
+.val-amber { color: #854f0b; }
 
 .screen {
   display: none;

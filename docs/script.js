@@ -711,15 +711,15 @@ function renderOverview() {
   const summary = getSummary(state.data);
 
   document.getElementById("overviewHeroStats").innerHTML = `
-    <div class="metric-card bg-white/12 text-white ring-1 ring-white/14">
+    <div class="metric-card bg-white/12 text-white">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Total cost</p>
       <strong class="mt-2 block text-3xl font-extrabold">${formatCompactCurrency(summary.totalCost)}</strong>
     </div>
-    <div class="metric-card bg-white/12 text-white ring-1 ring-white/14">
+    <div class="metric-card bg-white/12 text-white">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Total kWh</p>
       <strong class="mt-2 block text-3xl font-extrabold">${formatNumber(summary.totalKwh)}</strong>
     </div>
-    <div class="metric-card bg-white/12 text-white ring-1 ring-white/14">
+    <div class="metric-card bg-white/12 text-white">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Latest invoice</p>
       <strong class="mt-2 block text-2xl font-extrabold">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "-"}</strong>
     </div>
@@ -730,48 +730,65 @@ function renderOverview() {
       <div class="flex items-center justify-between gap-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Rennweg</p>
-          <strong class="mt-2 block text-3xl font-extrabold text-ink">${formatCurrency(summary.latestRennweg.gesamt_inkl_ust)}</strong>
-          <p class="mt-2 text-sm text-slate">${formatNumber(summary.latestRennweg.kwh)} kWh · ${formatNumber(summary.latestRennweg.centsPerKwh, 1)} ct/kWh</p>
+          <strong class="mt-2 block font-display text-3xl font-bold val-teal">${formatNumber(summary.latestRennweg.kwh)} <span class="text-base font-semibold">kWh</span></strong>
+          <p class="mt-1 text-sm font-semibold val-amber">${formatCurrency(summary.latestRennweg.gesamt_inkl_ust)}</p>
         </div>
-        <span class="status-chip bg-secondary/14 text-secondary">Stable</span>
+        <span class="status-chip teal">kWh</span>
       </div>
     </div>
     <div class="snapshot-card">
       <div class="flex items-center justify-between gap-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Aspangstrasse</p>
-          <strong class="mt-2 block text-3xl font-extrabold text-ink">${formatCurrency(summary.latestAspang.gesamt_inkl_ust)}</strong>
-          <p class="mt-2 text-sm text-slate">${formatNumber(summary.latestAspang.kwh)} kWh · ${formatNumber(summary.latestAspang.centsPerKwh, 1)} ct/kWh</p>
+          <strong class="mt-2 block font-display text-3xl font-bold val-teal">${formatNumber(summary.latestAspang.kwh)} <span class="text-base font-semibold">kWh</span></strong>
+          <p class="mt-1 text-sm font-semibold val-amber">${formatCurrency(summary.latestAspang.gesamt_inkl_ust)}</p>
         </div>
-        <span class="status-chip bg-accent/16 text-[#8A5A00]">Wallbox</span>
+        <span class="status-chip teal">kWh</span>
       </div>
     </div>
-    <div class="snapshot-card bg-gradient-to-br from-slate-950 to-slate-800 text-white">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Cost structure</p>
-      <strong class="mt-2 block text-3xl font-extrabold">${formatCurrency(summary.totalTaxes + summary.totalNetwork)}</strong>
-      <p class="mt-2 text-sm text-white/70">${formatCurrency(summary.totalNetwork)} network · ${formatCurrency(summary.totalTaxes)} taxes</p>
+    <div class="snapshot-card">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Cost structure</p>
+          <strong class="mt-2 block font-display text-3xl font-bold val-amber">${formatNumber(summary.totalTaxes + summary.totalNetwork, 2)} EUR</strong>
+          <p class="mt-2 text-sm text-slate">${formatCurrency(summary.totalNetwork)} network · ${formatCurrency(summary.totalTaxes)} taxes</p>
+        </div>
+        <span class="status-chip amber">Tax aware</span>
+      </div>
     </div>
   `;
 
   document.getElementById("kpiGrid").innerHTML = `
     <article class="panel-surface metric-card">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Portfolio kWh</p>
-      <strong class="mt-3 block text-4xl font-extrabold text-ink">${formatNumber(summary.totalKwh)}</strong>
+      <div class="mt-3 flex items-baseline gap-2">
+        <strong class="big-num val-teal">${formatNumber(summary.totalKwh)}</strong>
+        <span class="status-chip teal">kWh</span>
+      </div>
       <p class="mt-2 text-sm text-slate">Kumuliert ueber beide Standorte</p>
     </article>
     <article class="panel-surface metric-card">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Portfolio cost</p>
-      <strong class="mt-3 block text-4xl font-extrabold text-ink">${formatCompactCurrency(summary.totalCost)}</strong>
+      <div class="mt-3 flex items-baseline gap-2">
+        <strong class="big-num val-amber">${formatNumber(summary.totalCost, 0)}</strong>
+        <span class="status-chip amber">EUR</span>
+      </div>
       <p class="mt-2 text-sm text-slate">Gesamt inklusive Netz und Steuer</p>
     </article>
     <article class="panel-surface metric-card">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Rennweg avg</p>
-      <strong class="mt-3 block text-4xl font-extrabold text-secondary">${formatNumber(summary.avgRennweg, 1)}</strong>
+      <div class="mt-3 flex items-baseline gap-2">
+        <strong class="big-num val-teal">${formatNumber(summary.avgRennweg, 1)}</strong>
+        <span class="big-num-unit">ct/kWh</span>
+      </div>
       <p class="mt-2 text-sm text-slate">ct/kWh auf letzter Rechnung</p>
     </article>
     <article class="panel-surface metric-card">
       <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Aspang avg</p>
-      <strong class="mt-3 block text-4xl font-extrabold text-primary">${formatNumber(summary.avgAspang, 1)}</strong>
+      <div class="mt-3 flex items-baseline gap-2">
+        <strong class="big-num val-amber">${formatNumber(summary.avgAspang, 1)}</strong>
+        <span class="big-num-unit">ct/kWh</span>
+      </div>
       <p class="mt-2 text-sm text-slate">ct/kWh mit Wallbox-Profil</p>
     </article>
   `;
