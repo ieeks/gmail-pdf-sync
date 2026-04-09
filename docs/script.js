@@ -1070,6 +1070,8 @@ function activateScreen(screen) {
     button.classList.toggle("nav-pill-active", active && button.classList.contains("nav-pill"));
     button.classList.toggle("mobile-nav-pill-active", active && button.classList.contains("mobile-nav-pill"));
   });
+  // Mobile Glance: switch between glance view (overview) and desktop screens
+  document.body.classList.toggle("m-desktop-screen", screen !== "overview");
   setHeaderMeta();
   requestAnimationFrame(() => renderChartsForActiveScreen());
 }
@@ -1255,9 +1257,111 @@ function attachEvents() {
   });
 }
 
+function renderMobileGlance() {
+  const summary = getSummary(state.data);
+  const now = new Date();
+  const monthLabel = now.toLocaleDateString("de-AT", { month: "short", year: "numeric" });
+
+  // Top bar sub
+  const mTopSub = document.getElementById("mTopSub");
+  if (mTopSub) mTopSub.textContent = `${monthLabel} · beide Standorte`;
+
+  // Hero: combined latest billing period totals
+  const combinedKwh = summary.latestRennweg.kwh + summary.latestAspang.kwh;
+  const combinedCost = summary.latestRennweg.gesamt_inkl_ust + summary.latestAspang.gesamt_inkl_ust;
+
+  // Delta vs previous year
+  const yearly = buildYearBuckets(state.data.entries);
+  let deltaChip = "";
+  if (yearly.length >= 2) {
+    const ly = yearly[yearly.length - 1];
+    const py = yearly[yearly.length - 2];
+    const lyTotal = ly.rennwegKwh + ly.aspangKwh;
+    const pyTotal = py.rennwegKwh + py.aspangKwh;
+    if (pyTotal > 0) {
+      const delta = Math.round(((lyTotal - pyTotal) / pyTotal) * 100);
+      deltaChip = `<div class="m-hero-chip">${delta > 0 ? "+" : ""}${delta}% vs. Vorjahr</div>`;
+    }
+  }
+
+  const mHeroCard = document.getElementById("mHeroCard");
+  if (mHeroCard) {
+    mHeroCard.innerHTML = `
+      <div class="m-hero-eyebrow">Gesamtverbrauch · ${monthLabel}</div>
+      <div class="m-hero-big">${formatNumber(combinedKwh)}<span class="m-hero-unit">kWh</span></div>
+      <div class="m-hero-cost">Kosten gesamt <strong>${formatNumber(combinedCost, 2)} EUR</strong></div>
+      <div class="m-hero-meta">
+        <div class="m-hero-chip">Rennweg</div>
+        <div class="m-hero-chip">Aspangstr.</div>
+        ${deltaChip}
+      </div>`;
+  }
+
+  // Pills grid
+  const mPillsRow = document.getElementById("mPillsRow");
+  if (mPillsRow) {
+    mPillsRow.innerHTML = `
+      <div class="m-metric-pill">
+        <div class="m-pill-label">Rennweg</div>
+        <div class="m-pill-num">${formatNumber(summary.latestRennweg.kwh)}<span class="m-pill-unit"> kWh</span></div>
+        <div class="m-pill-sub">${formatNumber(summary.latestRennweg.gesamt_inkl_ust, 2)} EUR</div>
+      </div>
+      <div class="m-metric-pill">
+        <div class="m-pill-label">Aspangstr.</div>
+        <div class="m-pill-num">${formatNumber(summary.latestAspang.kwh)}<span class="m-pill-unit"> kWh</span></div>
+        <div class="m-pill-sub">${formatNumber(summary.latestAspang.gesamt_inkl_ust, 2)} EUR</div>
+      </div>`;
+  }
+
+  // Wallbox card
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
+  const mWallboxCard = document.getElementById("mWallboxCard");
+  if (mWallboxCard) {
+    if (wallboxKwh > 0) {
+      const monthlyAvg = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh / 12 : 1;
+      const pct = Math.min(100, Math.round((wallboxKwh / monthlyAvg) * 100));
+      mWallboxCard.style.display = "";
+      mWallboxCard.innerHTML = `
+        <div class="m-wallbox-header">
+          <span class="m-wallbox-title">Wallbox · Aspangstr.</span>
+          <span class="m-wallbox-badge">⚡ ${formatNumber(wallboxKwh, 1)} kWh</span>
+        </div>
+        <div class="m-progress-track">
+          <div class="m-progress-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="m-progress-labels">
+          <span class="m-prog-label">${pct}% des Monatsverbrauchs</span>
+          <span class="m-prog-val">BYD Seal U</span>
+        </div>`;
+    } else {
+      mWallboxCard.style.display = "none";
+    }
+  }
+
+  // Log list — 3 most recent entries
+  const mLogList = document.getElementById("mLogList");
+  if (mLogList) {
+    mLogList.innerHTML = state.data.entries.slice(0, 3).map((entry) => {
+      const dotClass = "m-log-dot-teal"; // all Verbund entries = teal
+      const amount = formatNumber(entry.gesamt_inkl_ust, 2) + " EUR";
+      return `
+        <div class="m-log-row">
+          <span class="m-log-dot ${dotClass}"></span>
+          <div class="m-log-info">
+            <div class="m-log-name">Verbund · ${entry.locationLabel}</div>
+            <div class="m-log-date">${formatDate(entry.rechnungsdatum)}</div>
+          </div>
+          <span class="m-log-amount">${amount}</span>
+        </div>`;
+    }).join("");
+  }
+}
+
 function renderApp() {
   renderStatus();
   renderOverview();
+  renderMobileGlance();
   renderDetail();
   renderArchiveFilters();
   renderArchiveTable();

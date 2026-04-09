@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltMetric Mobile Mockup</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: #1a1f2e; display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; gap: 40px; min-height: 100vh; }
+
+.phone { width: 320px; background: #f0f2f5; border-radius: 36px; overflow: hidden; box-shadow: 0 0 0 8px #0d1218, 0 24px 64px rgba(0,0,0,.5); position: relative; flex-shrink: 0; }
+.phone-notch { height: 28px; background: #0d1218; display: flex; align-items: center; justify-content: center; }
+.notch-pill { width: 80px; height: 10px; background: #060a10; border-radius: 10px; }
+.phone-screen { background: #f0f2f5; min-height: 620px; display: flex; flex-direction: column; position: relative; }
+.phone-home { height: 22px; background: #f0f2f5; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 100px; height: 4px; background: #c0c8d4; border-radius: 4px; }
+
+.scroll-area { flex: 1; overflow: hidden; padding-bottom: 68px; }
+
+.top-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; }
+.top-title { font-size: 18px; font-weight: 700; color: #0d1b2e; letter-spacing: -0.3px; }
+.top-sub { font-size: 11px; color: #8a9ab0; margin-top: 1px; }
+.live-dot { display: flex; align-items: center; gap: 5px; background: #e1f5ee; border-radius: 20px; padding: 4px 10px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #1d9e75; }
+.live-text { font-size: 10px; font-weight: 600; color: #0f6e56; }
+
+.hero-num-card { margin: 0 12px 12px; background: linear-gradient(135deg, #00488d 0%, #005fb8 100%); border-radius: 16px; padding: 20px; color: #fff; }
+.hero-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; opacity: .6; margin-bottom: 8px; }
+.hero-big { font-size: 42px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+.hero-unit { font-size: 16px; font-weight: 400; opacity: .7; margin-left: 4px; }
+.hero-cost { font-size: 14px; opacity: .75; margin-top: 8px; }
+.hero-cost span { font-weight: 600; opacity: 1; }
+.hero-meta { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.hero-chip { font-size: 10px; font-weight: 600; background: rgba(255,255,255,.15); border-radius: 20px; padding: 3px 10px; }
+
+.pills-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 12px 12px; }
+.metric-pill { background: #fff; border-radius: 12px; padding: 12px 14px; box-shadow: 0 4px 12px rgba(0,72,141,.07); }
+.pill-label { font-size: 10px; font-weight: 600; color: #8a9ab0; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+.pill-num { font-size: 20px; font-weight: 700; color: #0d1b2e; letter-spacing: -0.5px; }
+.pill-unit { font-size: 11px; color: #8a9ab0; font-weight: 400; }
+.pill-sub { font-size: 10px; color: #8a9ab0; margin-top: 3px; }
+
+.wallbox-card { margin: 0 12px 12px; background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(0,72,141,.07); }
+.wallbox-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.wallbox-title { font-size: 12px; font-weight: 600; color: #0d1b2e; }
+.wallbox-badge { font-size: 10px; font-weight: 600; background: #e1f5ee; color: #0f6e56; padding: 2px 8px; border-radius: 20px; }
+.progress-track { height: 8px; background: #e8ecf2; border-radius: 8px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #5dcaa5, #1d9e75); border-radius: 8px; width: 34%; }
+.progress-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+.prog-label { font-size: 10px; color: #8a9ab0; }
+.prog-val { font-size: 10px; font-weight: 600; color: #0f6e56; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 16px 8px; }
+.section-title { font-size: 12px; font-weight: 600; color: #0d1b2e; }
+.section-link { font-size: 11px; color: #00488d; font-weight: 500; }
+
+.log-list { margin: 0 12px 12px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,72,141,.07); }
+.log-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.log-row + .log-row { border-top: 0.5px solid #e8ecf2; }
+.log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.log-dot.teal { background: #1d9e75; }
+.log-dot.blue { background: #185fa5; }
+.log-info { flex: 1; }
+.log-name { font-size: 12px; font-weight: 500; color: #0d1b2e; }
+.log-date { font-size: 10px; color: #8a9ab0; margin-top: 1px; }
+.log-amount { font-size: 13px; font-weight: 600; color: #185fa5; }
+
+.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: rgba(255,255,255,.97); display: flex; align-items: center; border-top: 0.5px solid #d8e2ee; }
+.nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 0; }
+.nav-tab svg { width: 18px; height: 18px; color: #8a9ab0; }
+.nav-tab-label { font-size: 9px; font-weight: 600; color: #8a9ab0; letter-spacing: .04em; }
+.nav-tab.active svg { color: #00488d; }
+.nav-tab.active .nav-tab-label { color: #00488d; }
+
+.caption { color: #8a9ab0; font-size: 12px; text-align: center; margin-top: 16px; font-family: sans-serif; }
+</style>
+</head>
+<body>
+
+<div>
+<div class="phone">
+  <div class="phone-notch"><div class="notch-pill"></div></div>
+  <div class="phone-screen">
+    <div class="scroll-area">
+
+      <div class="top-bar">
+        <div>
+          <div class="top-title">Overview</div>
+          <div class="top-sub">Apr 2026 · beide Standorte</div>
+        </div>
+        <div class="live-dot">
+          <div class="dot"></div>
+          <div class="live-text">Live</div>
+        </div>
+      </div>
+
+      <div class="hero-num-card">
+        <div class="hero-eyebrow">Gesamtverbrauch · April</div>
+        <div class="hero-big">3.500<span class="hero-unit">kWh</span></div>
+        <div class="hero-cost">Kosten gesamt <span>€ 892.40</span></div>
+        <div class="hero-meta">
+          <div class="hero-chip">Rennweg</div>
+          <div class="hero-chip">Aspangstr.</div>
+          <div class="hero-chip">+4% vs. Vorjahr</div>
+        </div>
+      </div>
+
+      <div class="pills-row">
+        <div class="metric-pill">
+          <div class="pill-label">Rennweg</div>
+          <div class="pill-num">1.842<span class="pill-unit"> kWh</span></div>
+          <div class="pill-sub">€ 442.10</div>
+        </div>
+        <div class="metric-pill">
+          <div class="pill-label">Aspangstr.</div>
+          <div class="pill-num">1.658<span class="pill-unit"> kWh</span></div>
+          <div class="pill-sub">€ 450.30</div>
+        </div>
+      </div>
+
+      <div class="wallbox-card">
+        <div class="wallbox-header">
+          <div class="wallbox-title">Wallbox · Aspangstr.</div>
+          <div class="wallbox-badge">⚡ 184 kWh</div>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="progress-labels">
+          <div class="prog-label">34% des Monatsverbrauchs</div>
+          <div class="prog-val">BYD Seal U</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Letzte Aktivität</div>
+        <div class="section-link">Alle →</div>
+      </div>
+
+      <div class="log-list">
+        <div class="log-row">
+          <div class="log-dot teal"></div>
+          <div class="log-info">
+            <div class="log-name">Verbund · Rennweg</div>
+            <div class="log-date">09.04.2026 · 22:48</div>
+          </div>
+          <div class="log-amount">€ 184.20</div>
+        </div>
+        <div class="log-row">
+          <div class="log-dot teal"></div>
+          <div class="log-info">
+            <div class="log-name">Verbund · Aspangstr.</div>
+            <div class="log-date">08.04.2026 · 14:12</div>
+          </div>
+          <div class="log-amount">€ 162.40</div>
+        </div>
+        <div class="log-row">
+          <div class="log-dot blue"></div>
+          <div class="log-info">
+            <div class="log-name">Manual sync</div>
+            <div class="log-date">07.04.2026 · 09:03</div>
+          </div>
+          <div class="log-amount">3.500 kWh</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-tab active">
+        <svg viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor"/></svg>
+        <div class="nav-tab-label">Overview</div>
+      </div>
+      <div class="nav-tab">
+        <svg viewBox="0 0 18 18" fill="none"><polyline points="1,14 5,8 9,10 14,4 17,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="nav-tab-label">Insights</div>
+      </div>
+      <div class="nav-tab">
+        <svg viewBox="0 0 18 18" fill="none"><rect x="2" y="1" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.3"/><line x1="5" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1"/><line x1="5" y1="9" x2="13" y2="9" stroke="currentColor" stroke-width="1"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1"/></svg>
+        <div class="nav-tab-label">Archive</div>
+      </div>
+      <div class="nav-tab">
+        <svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.3"/></svg>
+        <div class="nav-tab-label">Settings</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-home"><div class="home-bar"></div></div>
+</div>
+<div class="caption">Mobile Glance Mode · VoltMetric Pro</div>
+</div>
+
+</body>
+</html>

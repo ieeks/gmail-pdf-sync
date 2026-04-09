@@ -472,3 +472,344 @@ body {
     bottom: 6.5rem;
   }
 }
+
+/* ================================================================
+   MOBILE GLANCE MODE — max-width: 767px
+   Desktop layout unverändert. Alles hier ist mobile-only.
+   ================================================================ */
+
+/* Mobile elements hidden by default (desktop) */
+#mobileGlance { display: none; }
+#mobileBottomNav { display: none; }
+
+@media (max-width: 767px) {
+  /* -- Layout switches ------------------------------------------ */
+  body { background: #f0f2f5; }
+
+  /* Hide desktop layout on overview (mobile glance shown instead) */
+  #mainWrapper { display: none !important; }
+
+  /* On non-overview screens: show desktop content, hide glance */
+  body.m-desktop-screen #mainWrapper { display: flex !important; }
+  body.m-desktop-screen #mobileGlance { display: none !important; }
+
+  /* Desktop adjustments when shown on mobile */
+  body.m-desktop-screen aside { display: none !important; }
+  body.m-desktop-screen header.sticky { display: none !important; }
+  body.m-desktop-screen .flex-1.lg\:pl-72 { padding-left: 0 !important; }
+  body.m-desktop-screen main { padding-left: 1rem !important; padding-right: 1rem !important; padding-bottom: 5rem !important; }
+  body.m-desktop-screen canvas { display: none !important; }
+
+  /* -- Mobile Glance: shown on overview by default -------------- */
+  #mobileGlance {
+    display: block;
+    background: #f0f2f5;
+    min-height: 100svh;
+    padding-bottom: 72px;
+  }
+
+  /* -- Top Bar -------------------------------------------------- */
+  .m-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+  }
+
+  .m-top-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0d1b2e;
+    letter-spacing: -0.3px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+
+  .m-top-sub {
+    font-size: 11px;
+    color: #8a9ab0;
+    margin-top: 1px;
+  }
+
+  .m-live-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #e1f5ee;
+    border-radius: 20px;
+    padding: 4px 10px;
+  }
+
+  .m-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1d9e75;
+    animation: pulse 2s infinite;
+  }
+
+  .m-live-text {
+    font-size: 10px;
+    font-weight: 600;
+    color: #0f6e56;
+  }
+
+  /* -- Hero Number Card ----------------------------------------- */
+  .m-hero-card {
+    margin: 0 12px 12px;
+    background: linear-gradient(135deg, #00488d 0%, #005fb8 100%);
+    border-radius: 16px;
+    padding: 20px;
+    color: #fff;
+  }
+
+  .m-hero-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+
+  .m-hero-big {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+
+  .m-hero-unit {
+    font-size: 16px;
+    font-weight: 400;
+    opacity: 0.7;
+    margin-left: 4px;
+  }
+
+  .m-hero-cost {
+    font-size: 14px;
+    opacity: 0.75;
+    margin-top: 8px;
+  }
+
+  .m-hero-cost strong {
+    font-weight: 600;
+    opacity: 1;
+  }
+
+  .m-hero-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .m-hero-chip {
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  /* -- 2-Column Pill Grid --------------------------------------- */
+  .m-pills-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 0 12px 12px;
+  }
+
+  .m-metric-pill {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 4px 12px rgba(0, 72, 141, 0.07);
+  }
+
+  .m-pill-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #8a9ab0;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .m-pill-num {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0d1b2e;
+    letter-spacing: -0.5px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+
+  .m-pill-unit {
+    font-size: 11px;
+    color: #8a9ab0;
+    font-weight: 400;
+  }
+
+  .m-pill-sub {
+    font-size: 10px;
+    color: #8a9ab0;
+    margin-top: 3px;
+  }
+
+  /* -- Wallbox Card --------------------------------------------- */
+  .m-wallbox-card {
+    margin: 0 12px 12px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 4px 12px rgba(0, 72, 141, 0.07);
+  }
+
+  .m-wallbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .m-wallbox-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0d1b2e;
+  }
+
+  .m-wallbox-badge {
+    font-size: 10px;
+    font-weight: 600;
+    background: #e1f5ee;
+    color: #0f6e56;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .m-progress-track {
+    height: 8px;
+    background: #e8ecf2;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .m-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #5dcaa5, #1d9e75);
+    border-radius: 8px;
+    transition: width 600ms ease;
+  }
+
+  .m-progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+
+  .m-prog-label { font-size: 10px; color: #8a9ab0; }
+  .m-prog-val   { font-size: 10px; font-weight: 600; color: #0f6e56; }
+
+  /* -- Section Header ------------------------------------------- */
+  .m-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 8px;
+  }
+
+  .m-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0d1b2e;
+  }
+
+  .m-section-link {
+    font-size: 11px;
+    color: #00488d;
+    font-weight: 500;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  /* -- Log List ------------------------------------------------- */
+  .m-log-list {
+    margin: 0 12px 12px;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 72, 141, 0.07);
+  }
+
+  .m-log-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .m-log-row + .m-log-row {
+    border-top: 0.5px solid #e8ecf2;
+  }
+
+  .m-log-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .m-log-dot-teal { background: #1d9e75; }
+  .m-log-dot-blue { background: #185fa5; }
+
+  .m-log-info { flex: 1; min-width: 0; }
+  .m-log-name { font-size: 12px; font-weight: 500; color: #0d1b2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m-log-date { font-size: 10px; color: #8a9ab0; margin-top: 1px; }
+  .m-log-amount { font-size: 13px; font-weight: 600; color: #185fa5; white-space: nowrap; }
+
+  /* -- Bottom Tab Bar ------------------------------------------- */
+  #mobileBottomNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.97);
+    border-top: 0.5px solid #d8e2ee;
+    z-index: 50;
+  }
+
+  .m-nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #8a9ab0;
+    transition: color 150ms ease;
+  }
+
+  .m-nav-tab svg { width: 18px; height: 18px; color: inherit; }
+  .m-tab-label { font-size: 9px; font-weight: 600; color: inherit; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* Active state — override mobile-nav-pill-active gradient */
+  #mobileBottomNav .mobile-nav-pill-active {
+    color: #00488d;
+    background: none;
+    box-shadow: none;
+  }
+
+  /* Charts, billing table hidden on all mobile screens */
+  canvas { display: none !important; }
+
+  /* Toast position on mobile */
+  .toast { bottom: 72px; }
+}
