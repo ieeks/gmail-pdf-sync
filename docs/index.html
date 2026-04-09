@@ -199,6 +199,7 @@
                 <div class="mt-6 h-[21rem]">
                   <canvas id="overviewConsumptionChart"></canvas>
                 </div>
+                <div class="mt-4 hidden" id="wallboxKennzahl"></div>
               </article>
 
               <article class="panel-surface rounded-[2rem] p-5 md:p-6">
@@ -481,6 +482,8 @@
 
   <div class="toast hidden" id="toast"></div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="./script.js" defer></script>
 </body>
 </html>

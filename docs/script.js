@@ -137,10 +137,20 @@ function getStoredActiveScreen() {
   }
 }
 
+const WALLBOX_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDkCyR1nFg38VvJi6POYzfVblRuV5OIvwM",
+  authDomain: "wallbox-manuel.firebaseapp.com",
+  projectId: "wallbox-manuel",
+  storageBucket: "wallbox-manuel.firebasestorage.app",
+  messagingSenderId: "547824093655",
+  appId: "1:547824093655:web:05c57f3e9a810edcce6392",
+};
+
 const state = {
   activeScreen: getStoredActiveScreen(),
   charts: [],
   data: null,
+  wallbox: { byMonth: {}, byYear: {} },
   archive: {
     search: "",
     year: "all",
@@ -277,6 +287,30 @@ async function loadData() {
     entries,
     demo: rennweg.demo || aspang.demo,
   };
+}
+
+async function loadWallboxData() {
+  try {
+    if (typeof firebase === "undefined") return { byMonth: {}, byYear: {} };
+    const existing = firebase.apps.find((a) => a.name === "voltmetric-wallbox");
+    const app = existing || firebase.initializeApp(WALLBOX_FIREBASE_CONFIG, "voltmetric-wallbox");
+    const db = firebase.firestore(app);
+    const doc = await db.collection("haushalte").doc("haushalt").get();
+    if (!doc.exists) return { byMonth: {}, byYear: {} };
+    const charges = doc.data().charges || [];
+    const byMonth = {};
+    const byYear = {};
+    charges.forEach((c) => {
+      if (!c.date || !c.kwh) return;
+      const month = c.date.substring(0, 7);
+      const year = Number(c.date.substring(0, 4));
+      byMonth[month] = (byMonth[month] || 0) + Number(c.kwh);
+      byYear[year] = (byYear[year] || 0) + Number(c.kwh);
+    });
+    return { byMonth, byYear };
+  } catch (_err) {
+    return { byMonth: {}, byYear: {} };
+  }
 }
 
 function sumEntries(entries, key) {
@@ -455,6 +489,23 @@ function baseChartOptions() {
   };
 }
 
+function renderWallboxKennzahl() {
+  const el = document.getElementById("wallboxKennzahl");
+  if (!el) return;
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
+  if (wallboxKwh === 0) {
+    el.classList.add("hidden");
+    return;
+  }
+  const latestAspang = state.data.aspangstrasse[state.data.aspangstrasse.length - 1];
+  const monthlyAvg = latestAspang ? latestAspang.kwh / 12 : 0;
+  const pct = monthlyAvg > 0 ? Math.round((wallboxKwh / monthlyAvg) * 100) : 0;
+  el.classList.remove("hidden");
+  el.innerHTML = `<span class="status-chip teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Monatsverbrauchs` : ""}</span>`;
+}
+
 function renderOverviewCharts() {
   const yearly = buildYearBuckets(state.data.entries);
   const options = baseChartOptions();
@@ -467,15 +518,22 @@ function renderOverviewCharts() {
           label: "Rennweg",
           data: yearly.map((bucket) => bucket.rennwegKwh),
           backgroundColor: "#008080",
-          borderRadius: 12,
-          stack: "consumption",
+          borderRadius: 6,
+          stack: "rennweg",
         },
         {
-          label: "Aspangstrasse",
-          data: yearly.map((bucket) => bucket.aspangKwh),
-          backgroundColor: "#005FB8",
-          borderRadius: 12,
-          stack: "consumption",
+          label: "Aspangstr. Haushalt",
+          data: yearly.map((bucket) => Math.max(0, bucket.aspangKwh - (state.wallbox.byYear[bucket.year] || 0))),
+          backgroundColor: "#5dcaa5",
+          borderRadius: 0,
+          stack: "aspang",
+        },
+        {
+          label: "Aspangstr. Wallbox",
+          data: yearly.map((bucket) => state.wallbox.byYear[bucket.year] || 0),
+          backgroundColor: "#0f6e56",
+          borderRadius: 6,
+          stack: "aspang",
         },
       ],
     },
@@ -485,8 +543,20 @@ function renderOverviewCharts() {
         ...options.plugins,
         tooltip: {
           ...options.plugins.tooltip,
+          filter(item) {
+            return item.dataset.label !== "Aspangstr. Haushalt";
+          },
           callbacks: {
             label(context) {
+              if (context.dataset.label === "Aspangstr. Wallbox") {
+                const bucket = yearly[context.dataIndex];
+                const wbKwh = state.wallbox.byYear[bucket.year] || 0;
+                const hausKwh = Math.max(0, bucket.aspangKwh - wbKwh);
+                if (wbKwh > 0) {
+                  return `Aspangstr.: ${formatNumber(wbKwh)} kWh Wallbox · ${formatNumber(hausKwh)} kWh Haushalt · ${formatNumber(bucket.aspangKwh)} kWh gesamt`;
+                }
+                return `Aspangstrasse: ${formatNumber(bucket.aspangKwh)} kWh`;
+              }
               return `${context.dataset.label}: ${formatNumber(context.parsed.y)} kWh`;
             },
           },
@@ -511,6 +581,7 @@ function renderOverviewCharts() {
       },
     },
   });
+  renderWallboxKennzahl();
 
   createChart("overviewCostChart", {
     type: "bar",
@@ -572,29 +643,40 @@ function renderDetailCharts() {
   const options = baseChartOptions();
 
   createChart("detailTrendChart", {
-    type: "line",
+    type: "bar",
     data: {
       labels: monthly.map((bucket) => formatMonthLabel(bucket.label)),
       datasets: [
         {
+          type: "line",
           label: "Rennweg",
           data: monthly.map((bucket) => bucket.rennwegKwh),
           borderColor: "#008080",
-          backgroundColor: "rgba(0, 128, 128, 0.16)",
+          backgroundColor: "rgba(0, 128, 128, 0.14)",
           fill: true,
           tension: 0.38,
           pointRadius: 0,
           pointHoverRadius: 4,
+          order: 0,
         },
         {
-          label: "Aspangstrasse",
-          data: monthly.map((bucket) => bucket.aspangKwh),
-          borderColor: "#005FB8",
-          backgroundColor: "rgba(0, 95, 184, 0.12)",
-          fill: true,
-          tension: 0.38,
-          pointRadius: 0,
-          pointHoverRadius: 4,
+          label: "Aspangstr. Haushalt",
+          data: monthly.map((bucket) => {
+            const wbKwh = state.wallbox.byMonth[monthKey(bucket.label)] || 0;
+            return Math.max(0, bucket.aspangKwh - wbKwh);
+          }),
+          backgroundColor: "#5dcaa5",
+          borderRadius: 0,
+          stack: "aspang",
+          order: 1,
+        },
+        {
+          label: "Aspangstr. Wallbox",
+          data: monthly.map((bucket) => state.wallbox.byMonth[monthKey(bucket.label)] || 0),
+          backgroundColor: "#0f6e56",
+          borderRadius: 4,
+          stack: "aspang",
+          order: 1,
         },
       ],
     },
@@ -604,8 +686,21 @@ function renderDetailCharts() {
         ...options.plugins,
         tooltip: {
           ...options.plugins.tooltip,
+          filter(item) {
+            return item.dataset.label !== "Aspangstr. Haushalt";
+          },
           callbacks: {
             label(context) {
+              if (context.dataset.label === "Aspangstr. Wallbox") {
+                const bucket = monthly[context.dataIndex];
+                const mk = monthKey(bucket.label);
+                const wbKwh = state.wallbox.byMonth[mk] || 0;
+                const hausKwh = Math.max(0, bucket.aspangKwh - wbKwh);
+                if (wbKwh > 0) {
+                  return `Aspangstr.: ${formatNumber(wbKwh)} kWh Wallbox · ${formatNumber(hausKwh)} kWh Haushalt · ${formatNumber(bucket.aspangKwh)} kWh gesamt`;
+                }
+                return `Aspangstrasse: ${formatNumber(bucket.aspangKwh)} kWh`;
+              }
               return `${context.dataset.label}: ${formatNumber(context.parsed.y, 0)} kWh`;
             },
           },
@@ -613,8 +708,10 @@ function renderDetailCharts() {
       },
       scales: {
         ...options.scales,
+        x: { ...options.scales.x, stacked: true },
         y: {
           ...options.scales.y,
+          stacked: true,
           ticks: {
             ...options.scales.y.ticks,
             callback(value) {
@@ -746,6 +843,23 @@ function renderOverview() {
         <span class="status-chip teal">kWh</span>
       </div>
     </div>
+    ${(function() {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
+      if (wallboxKwh === 0) return "";
+      return `
+    <div class="snapshot-card">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Wallbox · Aspangstr.</p>
+          <strong class="mt-2 block font-display text-3xl font-bold val-teal">${formatNumber(wallboxKwh, 1)} <span class="text-base font-semibold">kWh</span></strong>
+          <p class="mt-1 text-sm text-slate">aktueller Monat</p>
+        </div>
+        <span class="status-chip teal">EV</span>
+      </div>
+    </div>`;
+    })()}
     <div class="snapshot-card">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -1152,7 +1266,7 @@ function renderApp() {
 }
 
 async function init() {
-  state.data = await loadData();
+  [state.data, state.wallbox] = await Promise.all([loadData(), loadWallboxData()]);
   attachEvents();
   renderApp();
 }
