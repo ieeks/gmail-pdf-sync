@@ -1,320 +1,1143 @@
-const DEMO = {
+const DEMO_DATA = {
   rennweg: [
-    { zeitraum_von: "2023-02-01", zeitraum_bis: "2024-01-31", rechnungsdatum: "2024-02-05", kwh: 1820, energiekosten: 148.5, netzgebuehren: 138.2, steuern: 78.1, gesamt_inkl_ust: 437.6 },
-    { zeitraum_von: "2024-02-01", zeitraum_bis: "2025-01-31", rechnungsdatum: "2025-02-03", kwh: 1950, energiekosten: 162.3, netzgebuehren: 144.8, steuern: 82.4, gesamt_inkl_ust: 469.5 },
-    { zeitraum_von: "2025-02-01", zeitraum_bis: "2026-01-31", rechnungsdatum: "2026-02-04", kwh: 1780, energiekosten: 155, netzgebuehren: 141, steuern: 80.2, gesamt_inkl_ust: 450 },
+    {
+      rechnungsdatum: "2023-02-05",
+      zeitraum_von: "2022-02-01",
+      zeitraum_bis: "2023-01-31",
+      kwh: 1680,
+      energiekosten: 211.42,
+      netzgebuehren: 136.5,
+      steuern: 74.22,
+      gesamt_inkl_ust: 422.14,
+      rechnungsnummer: "VR-RW-2023-0205",
+    },
+    {
+      rechnungsdatum: "2024-02-05",
+      zeitraum_von: "2023-02-01",
+      zeitraum_bis: "2024-01-31",
+      kwh: 1820,
+      energiekosten: 238.6,
+      netzgebuehren: 144.15,
+      steuern: 85.1,
+      gesamt_inkl_ust: 467.85,
+      rechnungsnummer: "VR-RW-2024-0205",
+    },
+    {
+      rechnungsdatum: "2025-02-03",
+      zeitraum_von: "2024-02-01",
+      zeitraum_bis: "2025-01-31",
+      kwh: 1950,
+      energiekosten: 255.1,
+      netzgebuehren: 148.9,
+      steuern: 92.4,
+      gesamt_inkl_ust: 496.4,
+      rechnungsnummer: "VR-RW-2025-0203",
+    },
+    {
+      rechnungsdatum: "2026-02-04",
+      zeitraum_von: "2025-02-01",
+      zeitraum_bis: "2026-01-31",
+      kwh: 1780,
+      energiekosten: 242.2,
+      netzgebuehren: 141.7,
+      steuern: 86.6,
+      gesamt_inkl_ust: 470.5,
+      rechnungsnummer: "VR-RW-2026-0204",
+    },
   ],
   aspangstrasse: [
-    { zeitraum_von: "2023-02-01", zeitraum_bis: "2024-01-31", rechnungsdatum: "2024-02-05", kwh: 3240, energiekosten: 272.1, netzgebuehren: 198.4, steuern: 112.3, gesamt_inkl_ust: 700.5 },
-    { zeitraum_von: "2024-02-01", zeitraum_bis: "2025-01-31", rechnungsdatum: "2025-02-03", kwh: 3580, energiekosten: 298.2, netzgebuehren: 210.6, steuern: 121.8, gesamt_inkl_ust: 758.4 },
-    { zeitraum_von: "2025-02-01", zeitraum_bis: "2026-01-31", rechnungsdatum: "2026-02-04", kwh: 3410, energiekosten: 285.5, netzgebuehren: 205.3, steuern: 118.6, gesamt_inkl_ust: 730.2 },
+    {
+      rechnungsdatum: "2023-02-05",
+      zeitraum_von: "2022-02-01",
+      zeitraum_bis: "2023-01-31",
+      kwh: 3120,
+      energiekosten: 378.4,
+      netzgebuehren: 206.8,
+      steuern: 118.1,
+      gesamt_inkl_ust: 703.3,
+      rechnungsnummer: "VR-AS-2023-0205",
+    },
+    {
+      rechnungsdatum: "2024-02-05",
+      zeitraum_von: "2023-02-01",
+      zeitraum_bis: "2024-01-31",
+      kwh: 3240,
+      energiekosten: 392.3,
+      netzgebuehren: 214.4,
+      steuern: 126.5,
+      gesamt_inkl_ust: 733.2,
+      rechnungsnummer: "VR-AS-2024-0205",
+    },
+    {
+      rechnungsdatum: "2025-02-03",
+      zeitraum_von: "2024-02-01",
+      zeitraum_bis: "2025-01-31",
+      kwh: 3580,
+      energiekosten: 436.2,
+      netzgebuehren: 221.8,
+      steuern: 138.6,
+      gesamt_inkl_ust: 796.6,
+      rechnungsnummer: "VR-AS-2025-0203",
+    },
+    {
+      rechnungsdatum: "2026-02-04",
+      zeitraum_von: "2025-02-01",
+      zeitraum_bis: "2026-01-31",
+      kwh: 3410,
+      energiekosten: 424.1,
+      netzgebuehren: 217.2,
+      steuern: 134.8,
+      gesamt_inkl_ust: 776.1,
+      rechnungsnummer: "VR-AS-2026-0204",
+    },
   ],
 };
 
-const THEME_STORAGE_KEY = "gmail-pdf-sync-theme";
-const chartRegistry = [];
-
-const fmt = (n, d = 0) => n.toLocaleString("de-AT", {
-  minimumFractionDigits: d,
-  maximumFractionDigits: d,
-});
-
-const fmtE = (n) => n.toLocaleString("de-AT", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-const label = (entry) => {
-  const date = new Date(entry.rechnungsdatum);
-  return date.toLocaleDateString("de-AT", { month: "short", year: "2-digit" });
+const STORAGE_KEYS = {
+  activeScreen: "voltmetric-active-screen",
+  settings: "voltmetric-prototype-settings",
 };
 
-function getStoredTheme() {
+const SCREEN_META = {
+  overview: {
+    title: "Overview",
+    subtitle: "Kuratiertes Billing-Overview fuer Rennweg und Aspangstrasse.",
+  },
+  detail: {
+    title: "Insights",
+    subtitle: "Monatlich normalisierte Trends, Kostenkurven und Standortvergleich.",
+  },
+  archive: {
+    title: "Billing Archive",
+    subtitle: "Filterbares Rechnungsarchiv mit modalem Preview-Prototyp.",
+  },
+  settings: {
+    title: "Settings",
+    subtitle: "Gmail-Labels, Meter Points und Dashboard-Defaults als UI-Prototyp.",
+  },
+};
+
+const DEFAULT_SETTINGS = {
+  gmailAccount: "manuel.rechnungen@gmail.com",
+  gmailLabel: "Rechnungen",
+  syncFrequency: "daily",
+  currency: "EUR",
+  meterRennweg: "AT002000000000000000123456789",
+  meterAspang: "AT0020000000000000987654321",
+  baseDirectory: "/iCloud/Drive/Energy_Sync/Invoices",
+  outputTarget: "/VoltMetric/Output/JSON",
+  livePulse: true,
+};
+
+function getStoredActiveScreen() {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY);
-  } catch (error) {
-    return null;
+    return localStorage.getItem(STORAGE_KEYS.activeScreen) || "overview";
+  } catch (_error) {
+    return "overview";
   }
 }
 
-function getPreferredTheme() {
-  const stored = getStoredTheme();
-  if (stored === "light" || stored === "dark") return stored;
-  return "light";
-}
+const state = {
+  activeScreen: getStoredActiveScreen(),
+  charts: [],
+  data: null,
+  archive: {
+    search: "",
+    year: "all",
+    location: "all",
+  },
+  settings: loadStoredSettings(),
+  modalEntryId: null,
+};
 
-function setTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  const toggle = document.getElementById("themeToggle");
-  if (toggle) {
-    toggle.checked = theme === "dark";
-    toggle.setAttribute("aria-checked", theme === "dark" ? "true" : "false");
-  }
+function loadStoredSettings() {
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch (error) {
-    // Ignore storage failures.
+    const raw = localStorage.getItem(STORAGE_KEYS.settings);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch (_error) {
+    return { ...DEFAULT_SETTINGS };
   }
 }
 
-function toggleTheme() {
-  const current = document.documentElement.getAttribute("data-theme") || "light";
-  setTheme(current === "dark" ? "light" : "dark");
-  void render();
+function saveStoredSettings(settings) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+  } catch (_error) {
+    // Ignore storage failures in restricted contexts.
+  }
 }
 
-function getCssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function formatNumber(value, digits = 0) {
+  return Number(value || 0).toLocaleString("de-AT", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function formatCurrency(value) {
+  return `${formatNumber(value, 2)} EUR`;
+}
+
+function formatCompactCurrency(value) {
+  return `${formatNumber(value, 0)} EUR`;
+}
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("de-AT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatMonthLabel(value) {
+  return new Date(value).toLocaleDateString("de-AT", {
+    month: "short",
+    year: "2-digit",
+  });
+}
+
+function formatPeriod(entry) {
+  return `${formatDate(entry.zeitraumVon)} - ${formatDate(entry.zeitraumBis)}`;
+}
+
+function locationLabel(location) {
+  return location === "rennweg" ? "Rennweg" : "Aspangstrasse";
+}
+
+function toNumber(value) {
+  if (typeof value === "number") return value;
+  return Number(String(value || "0").replace(",", "."));
+}
+
+function parseDate(dateString) {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return new Date();
+  return date;
+}
+
+function normalizeEntries(entries, location) {
+  return entries
+    .map((entry, index) => {
+      const invoiceDate = parseDate(entry.rechnungsdatum);
+      const fromDate = parseDate(entry.zeitraum_von || entry.rechnungsdatum);
+      const toDate = parseDate(entry.zeitraum_bis || entry.rechnungsdatum);
+      const total = toNumber(entry.gesamt_inkl_ust);
+      const kwh = toNumber(entry.kwh);
+      return {
+        id: `${location}-${entry.rechnungsnummer || invoiceDate.toISOString() || index}`,
+        location,
+        locationLabel: locationLabel(location),
+        rechnungsdatum: entry.rechnungsdatum,
+        rechnungsnummer: entry.rechnungsnummer || `${location.toUpperCase()}-${invoiceDate.getFullYear()}-${index + 1}`,
+        zeitraumVon: entry.zeitraum_von || entry.rechnungsdatum,
+        zeitraumBis: entry.zeitraum_bis || entry.rechnungsdatum,
+        invoiceDate,
+        fromDate,
+        toDate,
+        year: invoiceDate.getFullYear(),
+        kwh,
+        energiekosten: toNumber(entry.energiekosten),
+        netzgebuehren: toNumber(entry.netzgebuehren),
+        steuern: toNumber(entry.steuern),
+        gesamt_inkl_ust: total,
+        centsPerKwh: kwh > 0 ? (total / kwh) * 100 : 0,
+      };
+    })
+    .sort((a, b) => a.invoiceDate - b.invoiceDate);
+}
+
+async function loadLocationFile(path, fallback, location) {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) {
+      throw new Error(`Fetch failed for ${path}`);
+    }
+    const payload = await response.json();
+    if (!Array.isArray(payload) || payload.length === 0) {
+      throw new Error(`Empty payload for ${path}`);
+    }
+    return { entries: normalizeEntries(payload, location), demo: false };
+  } catch (_error) {
+    return { entries: normalizeEntries(fallback, location), demo: true };
+  }
 }
 
 async function loadData() {
-  try {
-    const [rennweg, aspangstrasse] = await Promise.all([
-      fetch("../data/rennweg.json").then((response) => {
-        if (!response.ok) throw new Error("rennweg.json missing");
-        return response.json();
-      }),
-      fetch("../data/aspangstrasse.json").then((response) => {
-        if (!response.ok) throw new Error("aspangstrasse.json missing");
-        return response.json();
-      }),
-    ]);
-    return { rennweg, aspangstrasse, demo: false };
-  } catch (error) {
-    console.warn("data/*.json nicht gefunden — zeige Demo-Daten");
-    return { ...DEMO, demo: true };
+  const [rennweg, aspang] = await Promise.all([
+    loadLocationFile("../data/rennweg.json", DEMO_DATA.rennweg, "rennweg"),
+    loadLocationFile("../data/aspangstrasse.json", DEMO_DATA.aspangstrasse, "aspangstrasse"),
+  ]);
+
+  const entries = [...rennweg.entries, ...aspang.entries].sort((a, b) => b.invoiceDate - a.invoiceDate);
+  return {
+    rennweg: rennweg.entries,
+    aspangstrasse: aspang.entries,
+    entries,
+    demo: rennweg.demo || aspang.demo,
+  };
+}
+
+function sumEntries(entries, key) {
+  return entries.reduce((sum, entry) => sum + entry[key], 0);
+}
+
+function getLatestEntry(entries) {
+  return [...entries].sort((a, b) => b.invoiceDate - a.invoiceDate)[0];
+}
+
+function buildYearBuckets(entries) {
+  const map = new Map();
+  entries.forEach((entry) => {
+    if (!map.has(entry.year)) {
+      map.set(entry.year, {
+        year: entry.year,
+        rennwegKwh: 0,
+        aspangKwh: 0,
+        rennwegCost: 0,
+        aspangCost: 0,
+      });
+    }
+    const bucket = map.get(entry.year);
+    const costKey = entry.location === "rennweg" ? "rennwegCost" : "aspangCost";
+    const kwhKey = entry.location === "rennweg" ? "rennwegKwh" : "aspangKwh";
+    bucket[costKey] += entry.gesamt_inkl_ust;
+    bucket[kwhKey] += entry.kwh;
+  });
+  return [...map.values()].sort((a, b) => a.year - b.year);
+}
+
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function eachMonthBetween(startDate, endDate) {
+  const months = [];
+  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+  while (cursor <= end) {
+    months.push(new Date(cursor));
+    cursor.setMonth(cursor.getMonth() + 1);
   }
+  return months.length ? months : [new Date(startDate)];
+}
+
+function buildMonthlySeries(data) {
+  const map = new Map();
+  data.entries.forEach((entry) => {
+    const months = eachMonthBetween(entry.fromDate, entry.toDate);
+    const kwhPerMonth = entry.kwh / months.length;
+    const costPerMonth = entry.gesamt_inkl_ust / months.length;
+    months.forEach((month) => {
+      const key = monthKey(month);
+      if (!map.has(key)) {
+        map.set(key, {
+          label: new Date(month),
+          rennwegKwh: 0,
+          aspangKwh: 0,
+          rennwegCost: 0,
+          aspangCost: 0,
+        });
+      }
+      const bucket = map.get(key);
+      const prefix = entry.location === "rennweg" ? "rennweg" : "aspang";
+      bucket[`${prefix}Kwh`] += kwhPerMonth;
+      bucket[`${prefix}Cost`] += costPerMonth;
+    });
+  });
+
+  return [...map.values()]
+    .sort((a, b) => a.label - b.label)
+    .slice(-18);
+}
+
+function getSummary(data) {
+  const latestRennweg = getLatestEntry(data.rennweg);
+  const latestAspang = getLatestEntry(data.aspangstrasse);
+  return {
+    totalKwh: sumEntries(data.entries, "kwh"),
+    totalCost: sumEntries(data.entries, "gesamt_inkl_ust"),
+    avgRennweg: latestRennweg.centsPerKwh,
+    avgAspang: latestAspang.centsPerKwh,
+    totalTaxes: sumEntries(data.entries, "steuern"),
+    totalNetwork: sumEntries(data.entries, "netzgebuehren"),
+    latestInvoice: data.entries[0],
+    latestRennweg,
+    latestAspang,
+  };
 }
 
 function destroyCharts() {
-  while (chartRegistry.length) {
-    const chart = chartRegistry.pop();
+  while (state.charts.length) {
+    const chart = state.charts.pop();
     chart.destroy();
   }
 }
 
-function buildChartDefaults() {
-  const border = getCssVar("--chart-grid") || getCssVar("--border");
-  const tick = getCssVar("--text-muted");
-  const text = getCssVar("--text");
-  const tooltipBg = getCssVar("--surface-solid");
+function getCssValue(variable) {
+  return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+}
 
+function createChart(canvasId, config) {
+  if (!window.Chart) return;
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const chart = new Chart(canvas, config);
+  state.charts.push(chart);
+}
+
+function baseChartOptions() {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: "index",
+      intersect: false,
+    },
     plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: tooltipBg,
-        titleColor: text,
-        bodyColor: text,
-        borderColor: getCssVar("--border"),
-        borderWidth: 1,
-        padding: 12,
-        cornerRadius: 12,
-        boxPadding: 4,
-        usePointStyle: true,
-        callbacks: {
-          label(context) {
-            const value = context.parsed.y;
-            const chartId = context.chart.canvas.id;
-            if (chartId === "chartVerbrauch") {
-              return `${context.dataset.label}: ${fmt(value)} kWh`;
-            }
-            return `${context.dataset.label}: ${fmtE(value)} €`;
+      legend: {
+        labels: {
+          color: "#334155",
+          boxWidth: 10,
+          boxHeight: 10,
+          usePointStyle: true,
+          pointStyle: "circle",
+          padding: 18,
+          font: {
+            family: "Inter",
+            weight: 600,
           },
         },
+      },
+      tooltip: {
+        backgroundColor: "#ffffff",
+        titleColor: "#0f172a",
+        bodyColor: "#0f172a",
+        borderColor: "rgba(148, 163, 184, 0.20)",
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 14,
       },
     },
     scales: {
       x: {
-        grid: { display: false, drawBorder: false },
-        border: { display: false },
+        grid: {
+          display: false,
+        },
+        border: {
+          display: false,
+        },
         ticks: {
-          color: tick,
-          font: { family: "Inter", size: 11, weight: 600 },
-          padding: 8,
+          color: "#64748b",
+          font: {
+            family: "Inter",
+            weight: 600,
+          },
         },
       },
       y: {
-        grid: { color: border, drawBorder: false },
-        border: { display: false },
-        ticks: {
-          color: tick,
-          font: { family: "Inter", size: 11, weight: 600 },
-          padding: 10,
+        grid: {
+          color: "rgba(148, 163, 184, 0.16)",
         },
-      },
-    },
-    elements: {
-      bar: {
-        borderSkipped: false,
-        borderRadius: 8,
-        borderWidth: 0,
+        border: {
+          display: false,
+        },
+        ticks: {
+          color: "#64748b",
+          font: {
+            family: "Inter",
+            weight: 600,
+          },
+        },
       },
     },
   };
 }
 
-function createBarChart(id, labels, datasets) {
-  const defaults = buildChartDefaults();
-  const chart = new Chart(document.getElementById(id), {
+function renderOverviewCharts() {
+  const yearly = buildYearBuckets(state.data.entries);
+  const options = baseChartOptions();
+  createChart("overviewConsumptionChart", {
     type: "bar",
-    data: { labels, datasets },
+    data: {
+      labels: yearly.map((bucket) => String(bucket.year)),
+      datasets: [
+        {
+          label: "Rennweg",
+          data: yearly.map((bucket) => bucket.rennwegKwh),
+          backgroundColor: "#008080",
+          borderRadius: 12,
+          stack: "consumption",
+        },
+        {
+          label: "Aspangstrasse",
+          data: yearly.map((bucket) => bucket.aspangKwh),
+          backgroundColor: "#005FB8",
+          borderRadius: 12,
+          stack: "consumption",
+        },
+      ],
+    },
     options: {
-      ...defaults,
-      scales: {
-        x: { ...defaults.scales.x },
-        y: { ...defaults.scales.y },
+      ...options,
+      plugins: {
+        ...options.plugins,
+        tooltip: {
+          ...options.plugins.tooltip,
+          callbacks: {
+            label(context) {
+              return `${context.dataset.label}: ${formatNumber(context.parsed.y)} kWh`;
+            },
+          },
+        },
       },
-      datasets: {
-        bar: {
-          categoryPercentage: 0.68,
-          barPercentage: 0.84,
-          maxBarThickness: id === "chartVerbrauch" ? 34 : 28,
+      scales: {
+        ...options.scales,
+        x: {
+          ...options.scales.x,
+          stacked: true,
+        },
+        y: {
+          ...options.scales.y,
+          stacked: true,
+          ticks: {
+            ...options.scales.y.ticks,
+            callback(value) {
+              return `${formatNumber(value)} kWh`;
+            },
+          },
         },
       },
     },
   });
-  chartRegistry.push(chart);
+
+  createChart("overviewCostChart", {
+    type: "bar",
+    data: {
+      labels: yearly.map((bucket) => String(bucket.year)),
+      datasets: [
+        {
+          label: "Rennweg",
+          data: yearly.map((bucket) => bucket.rennwegCost),
+          backgroundColor: "rgba(0, 128, 128, 0.78)",
+          borderRadius: 12,
+          stack: "cost",
+        },
+        {
+          label: "Aspangstrasse",
+          data: yearly.map((bucket) => bucket.aspangCost),
+          backgroundColor: "rgba(0, 95, 184, 0.82)",
+          borderRadius: 12,
+          stack: "cost",
+        },
+      ],
+    },
+    options: {
+      ...options,
+      plugins: {
+        ...options.plugins,
+        tooltip: {
+          ...options.plugins.tooltip,
+          callbacks: {
+            label(context) {
+              return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        ...options.scales,
+        x: {
+          ...options.scales.x,
+          stacked: true,
+        },
+        y: {
+          ...options.scales.y,
+          stacked: true,
+          ticks: {
+            ...options.scales.y.ticks,
+            callback(value) {
+              return `${formatNumber(value)} EUR`;
+            },
+          },
+        },
+      },
+    },
+  });
 }
 
-function buildSummaryCards(rennweg, aspang) {
-  const lastR = rennweg[rennweg.length - 1];
-  const lastA = aspang[aspang.length - 1];
-  const totalKwhR = rennweg.reduce((sum, entry) => sum + entry.kwh, 0);
-  const totalKwhA = aspang.reduce((sum, entry) => sum + entry.kwh, 0);
-  const avgR = (lastR.gesamt_inkl_ust / lastR.kwh) * 100;
-  const avgA = (lastA.gesamt_inkl_ust / lastA.kwh) * 100;
+function renderDetailCharts() {
+  const monthly = buildMonthlySeries(state.data);
+  const options = baseChartOptions();
 
+  createChart("detailTrendChart", {
+    type: "line",
+    data: {
+      labels: monthly.map((bucket) => formatMonthLabel(bucket.label)),
+      datasets: [
+        {
+          label: "Rennweg",
+          data: monthly.map((bucket) => bucket.rennwegKwh),
+          borderColor: "#008080",
+          backgroundColor: "rgba(0, 128, 128, 0.16)",
+          fill: true,
+          tension: 0.38,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+        {
+          label: "Aspangstrasse",
+          data: monthly.map((bucket) => bucket.aspangKwh),
+          borderColor: "#005FB8",
+          backgroundColor: "rgba(0, 95, 184, 0.12)",
+          fill: true,
+          tension: 0.38,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+      ],
+    },
+    options: {
+      ...options,
+      plugins: {
+        ...options.plugins,
+        tooltip: {
+          ...options.plugins.tooltip,
+          callbacks: {
+            label(context) {
+              return `${context.dataset.label}: ${formatNumber(context.parsed.y, 0)} kWh`;
+            },
+          },
+        },
+      },
+      scales: {
+        ...options.scales,
+        y: {
+          ...options.scales.y,
+          ticks: {
+            ...options.scales.y.ticks,
+            callback(value) {
+              return `${formatNumber(value)} kWh`;
+            },
+          },
+        },
+      },
+    },
+  });
+
+  createChart("detailCostTrendChart", {
+    type: "bar",
+    data: {
+      labels: monthly.map((bucket) => formatMonthLabel(bucket.label)),
+      datasets: [
+        {
+          label: "Rennweg",
+          data: monthly.map((bucket) => bucket.rennwegCost),
+          backgroundColor: "rgba(0, 128, 128, 0.75)",
+          borderRadius: 10,
+          stack: "monthlyCost",
+        },
+        {
+          label: "Aspangstrasse",
+          data: monthly.map((bucket) => bucket.aspangCost),
+          backgroundColor: "rgba(0, 95, 184, 0.82)",
+          borderRadius: 10,
+          stack: "monthlyCost",
+        },
+      ],
+    },
+    options: {
+      ...options,
+      plugins: {
+        ...options.plugins,
+        tooltip: {
+          ...options.plugins.tooltip,
+          callbacks: {
+            label(context) {
+              return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        ...options.scales,
+        x: {
+          ...options.scales.x,
+          stacked: true,
+        },
+        y: {
+          ...options.scales.y,
+          stacked: true,
+          ticks: {
+            ...options.scales.y.ticks,
+            callback(value) {
+              return `${formatNumber(value)} EUR`;
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderChartsForActiveScreen() {
+  destroyCharts();
+  if (state.activeScreen === "overview") {
+    renderOverviewCharts();
+  }
+  if (state.activeScreen === "detail") {
+    renderDetailCharts();
+  }
+}
+
+function setHeaderMeta() {
+  const meta = SCREEN_META[state.activeScreen];
+  document.getElementById("screenTitle").textContent = meta.title;
+  document.getElementById("screenSubtitle").textContent = meta.subtitle;
+}
+
+function renderStatus() {
+  const latest = state.data.entries[0];
+  const mode = state.data.demo ? "Demo data" : "Live data";
+  document.getElementById("headerDataMode").textContent = mode;
+  document.getElementById("sidebarDataMode").textContent = mode;
+  document.getElementById("sidebarLastUpdate").textContent = latest ? formatDate(latest.rechnungsdatum) : "-";
+  const pulse = document.getElementById("sidebarPulse");
+  pulse.style.display = state.settings.livePulse ? "inline-flex" : "none";
+}
+
+function renderOverview() {
+  const summary = getSummary(state.data);
+
+  document.getElementById("overviewHeroStats").innerHTML = `
+    <div class="metric-card bg-white/12 text-white ring-1 ring-white/14">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Total cost</p>
+      <strong class="mt-2 block text-3xl font-extrabold">${formatCompactCurrency(summary.totalCost)}</strong>
+    </div>
+    <div class="metric-card bg-white/12 text-white ring-1 ring-white/14">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Total kWh</p>
+      <strong class="mt-2 block text-3xl font-extrabold">${formatNumber(summary.totalKwh)}</strong>
+    </div>
+    <div class="metric-card bg-white/12 text-white ring-1 ring-white/14">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Latest invoice</p>
+      <strong class="mt-2 block text-2xl font-extrabold">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "-"}</strong>
+    </div>
+  `;
+
+  document.getElementById("snapshotCards").innerHTML = `
+    <div class="snapshot-card">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Rennweg</p>
+          <strong class="mt-2 block text-3xl font-extrabold text-ink">${formatCurrency(summary.latestRennweg.gesamt_inkl_ust)}</strong>
+          <p class="mt-2 text-sm text-slate">${formatNumber(summary.latestRennweg.kwh)} kWh · ${formatNumber(summary.latestRennweg.centsPerKwh, 1)} ct/kWh</p>
+        </div>
+        <span class="status-chip bg-secondary/14 text-secondary">Stable</span>
+      </div>
+    </div>
+    <div class="snapshot-card">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Aspangstrasse</p>
+          <strong class="mt-2 block text-3xl font-extrabold text-ink">${formatCurrency(summary.latestAspang.gesamt_inkl_ust)}</strong>
+          <p class="mt-2 text-sm text-slate">${formatNumber(summary.latestAspang.kwh)} kWh · ${formatNumber(summary.latestAspang.centsPerKwh, 1)} ct/kWh</p>
+        </div>
+        <span class="status-chip bg-accent/16 text-[#8A5A00]">Wallbox</span>
+      </div>
+    </div>
+    <div class="snapshot-card bg-gradient-to-br from-slate-950 to-slate-800 text-white">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">Cost structure</p>
+      <strong class="mt-2 block text-3xl font-extrabold">${formatCurrency(summary.totalTaxes + summary.totalNetwork)}</strong>
+      <p class="mt-2 text-sm text-white/70">${formatCurrency(summary.totalNetwork)} network · ${formatCurrency(summary.totalTaxes)} taxes</p>
+    </div>
+  `;
+
+  document.getElementById("kpiGrid").innerHTML = `
+    <article class="panel-surface metric-card">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Portfolio kWh</p>
+      <strong class="mt-3 block text-4xl font-extrabold text-ink">${formatNumber(summary.totalKwh)}</strong>
+      <p class="mt-2 text-sm text-slate">Kumuliert ueber beide Standorte</p>
+    </article>
+    <article class="panel-surface metric-card">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Portfolio cost</p>
+      <strong class="mt-3 block text-4xl font-extrabold text-ink">${formatCompactCurrency(summary.totalCost)}</strong>
+      <p class="mt-2 text-sm text-slate">Gesamt inklusive Netz und Steuer</p>
+    </article>
+    <article class="panel-surface metric-card">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Rennweg avg</p>
+      <strong class="mt-3 block text-4xl font-extrabold text-secondary">${formatNumber(summary.avgRennweg, 1)}</strong>
+      <p class="mt-2 text-sm text-slate">ct/kWh auf letzter Rechnung</p>
+    </article>
+    <article class="panel-surface metric-card">
+      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Aspang avg</p>
+      <strong class="mt-3 block text-4xl font-extrabold text-primary">${formatNumber(summary.avgAspang, 1)}</strong>
+      <p class="mt-2 text-sm text-slate">ct/kWh mit Wallbox-Profil</p>
+    </article>
+  `;
+
+  document.getElementById("recentLogs").innerHTML = state.data.entries.slice(0, 5).map((entry) => `
+    <div class="log-card">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="font-display text-lg font-bold tracking-tight text-ink">${entry.rechnungsnummer}</p>
+          <p class="mt-1 text-sm text-slate">${entry.locationLabel} · ${formatDate(entry.rechnungsdatum)}</p>
+        </div>
+        <span class="status-chip ${entry.location === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-primary/12 text-primary"}">${entry.locationLabel}</span>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2 text-sm text-slate">
+        <span>${formatNumber(entry.kwh)} kWh</span>
+        <span>·</span>
+        <span>${formatCurrency(entry.gesamt_inkl_ust)}</span>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderDetail() {
+  const locations = [
+    { key: "rennweg", entries: state.data.rennweg, badge: "Residential" },
+    { key: "aspangstrasse", entries: state.data.aspangstrasse, badge: "Wallbox" },
+  ];
+
+  document.getElementById("detailLocationCards").innerHTML = locations.map(({ key, entries, badge }) => {
+    const latest = getLatestEntry(entries);
+    const totalCost = sumEntries(entries, "gesamt_inkl_ust");
+    const totalKwh = sumEntries(entries, "kwh");
+    const badgeClass = key === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-accent/16 text-[#8A5A00]";
+    return `
+      <article class="panel-surface rounded-[2rem] p-5 md:p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Location detail</p>
+            <h3 class="mt-2 font-display text-3xl font-bold tracking-tight">${locationLabel(key)}</h3>
+          </div>
+          <span class="status-chip ${badgeClass}">${badge}</span>
+        </div>
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          <div class="metric-card bg-slate-50/80">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Latest total</p>
+            <strong class="mt-2 block text-3xl font-extrabold">${formatCurrency(latest.gesamt_inkl_ust)}</strong>
+          </div>
+          <div class="metric-card bg-slate-50/80">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Total kWh</p>
+            <strong class="mt-2 block text-3xl font-extrabold">${formatNumber(totalKwh)}</strong>
+          </div>
+          <div class="metric-card bg-slate-50/80">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Latest period</p>
+            <strong class="mt-2 block text-2xl font-extrabold">${formatDate(latest.zeitraumBis)}</strong>
+          </div>
+        </div>
+        <p class="mt-4 text-sm leading-7 text-slate">Letzte Rechnung: ${formatPeriod(latest)}. Gesamt im Datensatz: ${formatCompactCurrency(totalCost)} bei ${entries.length} archivierten Statements.</p>
+      </article>
+    `;
+  }).join("");
+
+  document.getElementById("detailInvoices").innerHTML = locations.map(({ key, entries, badge }) => `
+    <section class="space-y-3 rounded-[1.7rem] bg-white/78 p-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="font-display text-2xl font-bold tracking-tight">${locationLabel(key)}</p>
+          <p class="text-sm text-slate">${badge === "Wallbox" ? "Wallbox profile active" : "Residential profile"}</p>
+        </div>
+        <span class="status-chip ${key === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-accent/16 text-[#8A5A00]"}">${badge}</span>
+      </div>
+      ${[...entries].sort((a, b) => b.invoiceDate - a.invoiceDate).map((entry) => `
+        <button class="archive-row flex w-full items-center justify-between rounded-[1.3rem] bg-slate-50/90 px-4 py-4 text-left" data-entry-id="${entry.id}" type="button">
+          <div>
+            <p class="font-semibold text-ink">${entry.rechnungsnummer}</p>
+            <p class="mt-1 text-sm text-slate">${formatDate(entry.rechnungsdatum)} · ${formatNumber(entry.kwh)} kWh</p>
+          </div>
+          <div class="text-right">
+            <p class="font-display text-xl font-bold tracking-tight text-ink">${formatCurrency(entry.gesamt_inkl_ust)}</p>
+            <p class="text-sm text-slate">${formatNumber(entry.centsPerKwh, 1)} ct/kWh</p>
+          </div>
+        </button>
+      `).join("")}
+    </section>
+  `).join("");
+}
+
+function renderArchiveFilters() {
+  const years = [...new Set(state.data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
+  const select = document.getElementById("archiveYear");
+  const current = state.archive.year;
+  select.innerHTML = `<option value="all">Alle Jahre</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
+  select.value = years.includes(Number(current)) ? current : "all";
+}
+
+function getFilteredArchiveEntries() {
+  const term = state.archive.search.trim().toLowerCase();
+  return state.data.entries.filter((entry) => {
+    const matchesSearch = !term || [
+      entry.rechnungsnummer,
+      entry.locationLabel,
+      formatDate(entry.rechnungsdatum),
+      formatDate(entry.zeitraumVon),
+      formatDate(entry.zeitraumBis),
+    ].join(" ").toLowerCase().includes(term);
+    const matchesYear = state.archive.year === "all" || String(entry.year) === String(state.archive.year);
+    const matchesLocation = state.archive.location === "all" || entry.location === state.archive.location;
+    return matchesSearch && matchesYear && matchesLocation;
+  });
+}
+
+function renderArchiveTable() {
+  const entries = getFilteredArchiveEntries();
+  const tbody = document.getElementById("archiveTableBody");
+  const empty = document.getElementById("archiveEmpty");
+
+  tbody.innerHTML = entries.map((entry) => `
+    <tr class="archive-row" data-entry-id="${entry.id}">
+      <td class="px-5">
+        <div class="min-w-[12rem]">
+          <p class="font-semibold text-ink">${entry.rechnungsnummer}</p>
+          <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate">${formatDate(entry.rechnungsdatum)}</p>
+        </div>
+      </td>
+      <td class="px-5">
+        <span class="status-chip ${entry.location === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-primary/12 text-primary"}">${entry.locationLabel}</span>
+      </td>
+      <td class="px-5 text-slate">${formatDate(entry.zeitraumVon)} - ${formatDate(entry.zeitraumBis)}</td>
+      <td class="px-5 font-semibold text-ink">${formatNumber(entry.kwh)}</td>
+      <td class="px-5 text-slate">${formatCurrency(entry.energiekosten)}</td>
+      <td class="px-5 font-display text-lg font-bold tracking-tight text-ink">${formatCurrency(entry.gesamt_inkl_ust)}</td>
+      <td class="px-5">
+        <button class="action-secondary !min-h-0 !rounded-xl !px-4 !py-2 text-sm" type="button">Open PDF</button>
+      </td>
+    </tr>
+  `).join("");
+
+  empty.classList.toggle("hidden", entries.length !== 0);
+}
+
+function renderSettings() {
+  const settings = state.settings;
+  document.getElementById("gmailAccount").value = settings.gmailAccount;
+  document.getElementById("gmailLabel").value = settings.gmailLabel;
+  document.getElementById("syncFrequency").value = settings.syncFrequency;
+  document.getElementById("currency").value = settings.currency;
+  document.getElementById("meterRennweg").value = settings.meterRennweg;
+  document.getElementById("meterAspang").value = settings.meterAspang;
+  document.getElementById("baseDirectory").value = settings.baseDirectory;
+  document.getElementById("outputTarget").value = settings.outputTarget;
+  document.getElementById("livePulse").checked = settings.livePulse;
+}
+
+function activateScreen(screen) {
+  state.activeScreen = screen;
+  try {
+    localStorage.setItem(STORAGE_KEYS.activeScreen, screen);
+  } catch (_error) {
+    // Ignore storage failures in restricted contexts.
+  }
+  document.querySelectorAll("[data-screen]").forEach((section) => {
+    section.classList.toggle("screen-active", section.dataset.screen === screen);
+  });
+  document.querySelectorAll("[data-screen-target]").forEach((button) => {
+    const active = button.dataset.screenTarget === screen;
+    button.classList.toggle("nav-pill-active", active && button.classList.contains("nav-pill"));
+    button.classList.toggle("mobile-nav-pill-active", active && button.classList.contains("mobile-nav-pill"));
+  });
+  setHeaderMeta();
+  requestAnimationFrame(() => renderChartsForActiveScreen());
+}
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  window.clearTimeout(showToast.timeoutId);
+  showToast.timeoutId = window.setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 2200);
+}
+
+function getEntryById(id) {
+  return state.data.entries.find((entry) => entry.id === id);
+}
+
+function buildModalPreview(entry) {
   return `
-    <article class="summary-card">
-      <div class="summary-head">
-        <div class="summary-label">Letzte Rechnung</div>
-        <span class="summary-badge summary-badge-rennweg">Rennweg</span>
+    <div class="faux-pdf" data-watermark="VERBUND">
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-2">
+          <div class="pdf-line h-4 w-24"></div>
+          <div class="pdf-line h-3 w-36"></div>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <span class="material-symbols-outlined">bolt</span>
+        </div>
       </div>
-      <div class="summary-value rennweg">${fmtE(lastR.gesamt_inkl_ust)} €</div>
-      <div class="summary-sub">${fmt(lastR.kwh)} kWh · ${fmt(avgR, 1)} ct/kWh</div>
-    </article>
-    <article class="summary-card">
-      <div class="summary-head">
-        <div class="summary-label">Letzte Rechnung</div>
-        <span class="summary-badge summary-badge-aspang">Aspangstraße</span>
+
+      <div class="mt-6 grid gap-3">
+        <div class="pdf-line h-3 w-full"></div>
+        <div class="pdf-line h-3 w-4/5"></div>
+        <div class="pdf-line h-3 w-3/5"></div>
       </div>
-      <div class="summary-value aspang">${fmtE(lastA.gesamt_inkl_ust)} €</div>
-      <div class="summary-sub">${fmt(lastA.kwh)} kWh · ${fmt(avgA, 1)} ct/kWh</div>
-    </article>
-    <article class="summary-card">
-      <div class="summary-head">
-        <div class="summary-label">Gesamtverbrauch</div>
-        <span class="summary-badge summary-badge-rennweg">Rennweg</span>
+
+      <div class="mt-8 grid grid-cols-3 gap-3">
+        <div class="h-28 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60"></div>
+        <div class="h-28 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60"></div>
+        <div class="h-28 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60"></div>
       </div>
-      <div class="summary-value rennweg">${fmt(totalKwhR)}</div>
-      <div class="summary-sub">${rennweg.length} Abrechnungen im Datensatz</div>
-    </article>
-    <article class="summary-card">
-      <div class="summary-head">
-        <div class="summary-label">Gesamtverbrauch</div>
-        <span class="summary-badge summary-badge-aspang">Aspangstraße</span>
+
+      <div class="mt-8 rounded-[1.5rem] bg-slate-50/80 p-4">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Invoice</p>
+            <p class="mt-2 font-display text-2xl font-bold tracking-tight">${entry.rechnungsnummer}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Total</p>
+            <p class="mt-2 font-display text-2xl font-bold tracking-tight text-primary">${formatCurrency(entry.gesamt_inkl_ust)}</p>
+          </div>
+        </div>
       </div>
-      <div class="summary-value aspang">${fmt(totalKwhA)}</div>
-      <div class="summary-sub">${aspang.length} Abrechnungen mit Wallbox</div>
-    </article>
+
+      <div class="mt-8 flex justify-center gap-3 text-slate">
+        <div class="icon-button !h-11 !w-11"><span class="material-symbols-outlined">zoom_in</span></div>
+        <div class="icon-button !h-11 !w-11"><span class="material-symbols-outlined">download</span></div>
+        <div class="icon-button !h-11 !w-11"><span class="material-symbols-outlined">open_in_full</span></div>
+      </div>
+    </div>
   `;
 }
 
-function buildHistory(entries) {
-  return entries.map((entry) => {
-    const ct = (entry.gesamt_inkl_ust / entry.kwh) * 100;
-    const name = entry.haushalt === "rennweg" ? "Rennweg" : "Aspangstr.";
-    const cls = entry.haushalt === "rennweg" ? "household-rennweg" : "household-aspang";
-    const from = new Date(entry.zeitraum_von).toLocaleDateString("de-AT", { month: "2-digit", year: "2-digit" });
-    const to = new Date(entry.zeitraum_bis).toLocaleDateString("de-AT", { month: "2-digit", year: "2-digit" });
-
-    return `
-      <tr>
-        <td>${from} – ${to}</td>
-        <td><span class="table-badge ${cls}">${name}</span></td>
-        <td>${fmt(entry.kwh)}</td>
-        <td>${fmtE(entry.energiekosten)}</td>
-        <td>${fmtE(entry.netzgebuehren)}</td>
-        <td class="total-cell">${fmtE(entry.gesamt_inkl_ust)}</td>
-        <td>${fmt(ct, 1)}</td>
-      </tr>
-    `;
-  }).join("");
+function openModal(entryId) {
+  const entry = getEntryById(entryId);
+  if (!entry) return;
+  state.modalEntryId = entryId;
+  const modal = document.getElementById("invoiceModal");
+  document.getElementById("modalTitle").textContent = entry.rechnungsnummer;
+  document.getElementById("modalSubtitle").textContent = `${entry.locationLabel} · ${formatPeriod(entry)}`;
+  document.getElementById("modalPreview").innerHTML = buildModalPreview(entry);
+  document.getElementById("modalMeta").innerHTML = `
+    <div class="metric-card bg-slate-50/90">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Date</p>
+      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatDate(entry.rechnungsdatum)}</p>
+    </div>
+    <div class="metric-card bg-slate-50/90">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Consumption</p>
+      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatNumber(entry.kwh)} kWh</p>
+    </div>
+    <div class="metric-card bg-slate-50/90">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Energy cost</p>
+      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatCurrency(entry.energiekosten)}</p>
+    </div>
+    <div class="metric-card bg-slate-50/90">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Network + tax</p>
+      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatCurrency(entry.netzgebuehren + entry.steuern)}</p>
+    </div>
+    <div class="metric-card bg-slate-50/90">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Total cost</p>
+      <p class="mt-2 font-display text-2xl font-bold tracking-tight text-primary">${formatCurrency(entry.gesamt_inkl_ust)}</p>
+    </div>
+  `;
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
 }
 
-async function render() {
-  const data = await loadData();
-  const { rennweg, aspangstrasse, demo } = data;
-
-  destroyCharts();
-
-  const allDates = [...rennweg, ...aspangstrasse]
-    .map((entry) => entry.rechnungsdatum)
-    .sort()
-    .reverse();
-
-  document.getElementById("dataModeBadge").textContent = demo ? "Demo-Daten" : "Live-Daten";
-  document.getElementById("lastUpdate").textContent =
-    "Stand: " + new Date(allDates[0]).toLocaleDateString("de-AT");
-
-  document.getElementById("summaryCards").innerHTML = buildSummaryCards(rennweg, aspangstrasse);
-  document.getElementById("mainContent").hidden = false;
-
-  const labels = rennweg.map(label);
-  const rennwegColor = getCssVar("--rennweg");
-  const rennwegDim = getCssVar("--rennweg-dim");
-  const aspangColor = getCssVar("--aspang");
-  const aspangDim = getCssVar("--aspang-dim");
-
-  createBarChart("chartVerbrauch", labels, [
-    {
-      label: "Rennweg kWh",
-      data: rennweg.map((entry) => entry.kwh),
-      backgroundColor: rennwegDim,
-      borderColor: rennwegColor,
-      borderWidth: 1.6,
-      borderRadius: 6,
-    },
-    {
-      label: "Aspangstraße kWh",
-      data: aspangstrasse.map((entry) => entry.kwh),
-      backgroundColor: aspangDim,
-      borderColor: aspangColor,
-      borderWidth: 1.6,
-      borderRadius: 6,
-    },
-  ]);
-
-  createBarChart("chartKostenR", rennweg.map(label), [
-    { label: "Energiekosten", data: rennweg.map((entry) => entry.energiekosten), backgroundColor: rennwegColor, borderRadius: 5 },
-    { label: "Netzgebühren", data: rennweg.map((entry) => entry.netzgebuehren), backgroundColor: "rgba(0, 95, 184, 0.24)", borderRadius: 5 },
-    { label: "Steuern", data: rennweg.map((entry) => entry.steuern), backgroundColor: "rgba(245, 158, 11, 0.26)", borderRadius: 5 },
-  ]);
-
-  createBarChart("chartKostenA", aspangstrasse.map(label), [
-    { label: "Energiekosten", data: aspangstrasse.map((entry) => entry.energiekosten), backgroundColor: aspangColor, borderRadius: 5 },
-    { label: "Netzgebühren", data: aspangstrasse.map((entry) => entry.netzgebuehren), backgroundColor: "rgba(0, 128, 128, 0.24)", borderRadius: 5 },
-    { label: "Steuern", data: aspangstrasse.map((entry) => entry.steuern), backgroundColor: "rgba(245, 158, 11, 0.26)", borderRadius: 5 },
-  ]);
-
-  const entries = [
-    ...rennweg.map((entry) => ({ ...entry, haushalt: "rennweg" })),
-    ...aspangstrasse.map((entry) => ({ ...entry, haushalt: "aspangstrasse" })),
-  ].sort((a, b) => b.rechnungsdatum.localeCompare(a.rechnungsdatum));
-
-  document.getElementById("historyBody").innerHTML = buildHistory(entries);
+function closeModal() {
+  const modal = document.getElementById("invoiceModal");
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
 }
 
-function init() {
-  setTheme(getPreferredTheme());
-  const themeToggle = document.getElementById("themeToggle");
-  if (themeToggle) {
-    themeToggle.addEventListener("change", toggleTheme);
-  }
-  void render();
+function attachEvents() {
+  document.querySelectorAll("[data-screen-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activateScreen(button.dataset.screenTarget);
+    });
+  });
+
+  document.getElementById("manualSyncButton").addEventListener("click", () => {
+    showToast(state.data.demo ? "Demo mode active. JSON files are empty or unavailable." : "Live JSON loaded successfully.");
+  });
+
+  document.getElementById("archiveSearch").addEventListener("input", (event) => {
+    state.archive.search = event.target.value;
+    renderArchiveTable();
+  });
+
+  document.getElementById("archiveYear").addEventListener("change", (event) => {
+    state.archive.year = event.target.value;
+    renderArchiveTable();
+  });
+
+  document.getElementById("archiveLocation").addEventListener("change", (event) => {
+    state.archive.location = event.target.value;
+    renderArchiveTable();
+  });
+
+  document.getElementById("archiveTableBody").addEventListener("click", (event) => {
+    const row = event.target.closest("[data-entry-id]");
+    if (row) openModal(row.dataset.entryId);
+  });
+
+  document.getElementById("detailInvoices").addEventListener("click", (event) => {
+    const target = event.target.closest("[data-entry-id]");
+    if (target) openModal(target.dataset.entryId);
+  });
+
+  document.getElementById("invoiceModal").addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-modal='true']")) {
+      closeModal();
+    }
+  });
+
+  document.getElementById("closeModalButton").addEventListener("click", closeModal);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeModal();
+  });
+
+  document.getElementById("settingsForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    state.settings = {
+      gmailAccount: document.getElementById("gmailAccount").value.trim(),
+      gmailLabel: document.getElementById("gmailLabel").value.trim(),
+      syncFrequency: document.getElementById("syncFrequency").value,
+      currency: document.getElementById("currency").value,
+      meterRennweg: document.getElementById("meterRennweg").value.trim(),
+      meterAspang: document.getElementById("meterAspang").value.trim(),
+      baseDirectory: document.getElementById("baseDirectory").value.trim(),
+      outputTarget: document.getElementById("outputTarget").value.trim(),
+      livePulse: document.getElementById("livePulse").checked,
+    };
+    saveStoredSettings(state.settings);
+    renderStatus();
+    document.getElementById("settingsNotice").textContent = `Gespeichert um ${new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })}`;
+    showToast("Settings stored locally.");
+  });
+
+  document.getElementById("addPointButton").addEventListener("click", () => {
+    showToast("Prototype only. Add-point flow can be wired to your final config model.");
+  });
+
+  document.getElementById("globalSearch").addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    state.archive.search = event.target.value;
+    document.getElementById("archiveSearch").value = event.target.value;
+    activateScreen("archive");
+    renderArchiveTable();
+  });
+}
+
+function renderApp() {
+  renderStatus();
+  renderOverview();
+  renderDetail();
+  renderArchiveFilters();
+  renderArchiveTable();
+  renderSettings();
+  activateScreen(state.activeScreen);
+}
+
+async function init() {
+  state.data = await loadData();
+  attachEvents();
+  renderApp();
 }
 
 init();
