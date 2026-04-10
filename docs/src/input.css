@@ -119,22 +119,6 @@ body {
   box-shadow: 0 4px 16px -4px rgba(0, 72, 141, 0.14), 0 12px 32px -4px rgba(0, 72, 141, 0.07);
 }
 
-.mobile-nav {
-  position: fixed;
-  bottom: 1rem;
-  left: 50%;
-  z-index: 40;
-  display: flex;
-  width: calc(100% - 1.5rem);
-  max-width: 34rem;
-  transform: translateX(-50%);
-  justify-content: space-between;
-  gap: 0.4rem;
-  border-radius: 1.7rem;
-  background: rgba(255, 255, 255, 0.98);
-  padding: 0.55rem;
-  box-shadow: 0 22px 44px -28px rgba(15, 23, 42, 0.42), var(--ring-soft);
-}
 
 .mobile-nav-pill {
   display: inline-flex;
