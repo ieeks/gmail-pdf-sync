@@ -168,6 +168,17 @@ Die JSON-Dateien sind Arrays, neueste Einträge werden angehängt:
 
 ---
 
+## CSS Build
+
+Alle CSS-Änderungen gehen in `docs/src/input.css`.
+Nach jeder CSS-Änderung IMMER ausführen:
+```bash
+cd docs && npm run build:css
+```
+Dann `docs/styles.css` committen — **nie `styles.css` direkt editieren.**
+
+---
+
 ## docs/ — GitHub Pages Dashboard
 
 - Frontend ist in `index.html`, `styles.css` und `script.js` aufgeteilt
