@@ -642,6 +642,14 @@ function renderOverviewCharts() {
 }
 
 function renderDetailCharts() {
+  const c1 = document.getElementById("detailTrendChart");
+  const c2 = document.getElementById("detailCostTrendChart");
+  alert([
+    "detailTrendChart: " + (c1 ? c1.offsetWidth + "x" + c1.offsetHeight : "NOT FOUND"),
+    "detailCostTrendChart: " + (c2 ? c2.offsetWidth + "x" + c2.offsetHeight : "NOT FOUND"),
+    "activeScreen: " + state.activeScreen,
+    "charts keys: " + Object.keys(state.charts).join(", ")
+  ].join("\n"));
   const monthly = state.computed.monthly;
   const options = baseChartOptions();
 
