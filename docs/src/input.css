@@ -473,7 +473,7 @@ body {
   body.m-desktop-screen header.sticky { display: none !important; }
   body.m-desktop-screen .flex-1.lg\:pl-72 { padding-left: 0 !important; }
   body.m-desktop-screen main { padding-left: 1rem !important; padding-right: 1rem !important; padding-bottom: 5rem !important; }
-  body.m-desktop-screen canvas { display: none !important; }
+  body.m-desktop-screen canvas { display: block !important; }
 
   /* -- Mobile Glance: shown on overview by default -------------- */
   #mobileGlance {
