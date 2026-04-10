@@ -151,6 +151,7 @@ const state = {
   charts: {},
   data: null,
   wallbox: { byMonth: {}, byYear: {} },
+  computed: { yearly: null, monthly: null },
   archive: {
     search: "",
     year: "all",
@@ -509,7 +510,7 @@ function renderWallboxKennzahl() {
 }
 
 function renderOverviewCharts() {
-  const yearly = buildYearBuckets(state.data.entries);
+  const yearly = state.computed.yearly;
   const options = baseChartOptions();
   createChart("overviewConsumptionChart", {
     type: "bar",
@@ -641,7 +642,7 @@ function renderOverviewCharts() {
 }
 
 function renderDetailCharts() {
-  const monthly = buildMonthlySeries(state.data);
+  const monthly = state.computed.monthly;
   const options = baseChartOptions();
 
   createChart("detailTrendChart", {
@@ -1056,6 +1057,8 @@ function renderSettings() {
   document.getElementById("livePulse").checked = settings.livePulse;
 }
 
+const domCache = { screens: null, navButtons: null };
+
 function activateScreen(screen) {
   state.activeScreen = screen;
   try {
@@ -1063,10 +1066,10 @@ function activateScreen(screen) {
   } catch (_error) {
     // Ignore storage failures in restricted contexts.
   }
-  document.querySelectorAll("[data-screen]").forEach((section) => {
+  domCache.screens.forEach((section) => {
     section.classList.toggle("screen-active", section.dataset.screen === screen);
   });
-  document.querySelectorAll("[data-screen-target]").forEach((button) => {
+  domCache.navButtons.forEach((button) => {
     const active = button.dataset.screenTarget === screen;
     button.classList.toggle("nav-pill-active", active && button.classList.contains("nav-pill"));
     button.classList.toggle("mobile-nav-pill-active", active && button.classList.contains("mobile-nav-pill"));
@@ -1179,7 +1182,10 @@ function closeModal() {
 }
 
 function attachEvents() {
-  document.querySelectorAll("[data-screen-target]").forEach((button) => {
+  domCache.screens = Array.from(document.querySelectorAll("[data-screen]"));
+  domCache.navButtons = Array.from(document.querySelectorAll("[data-screen-target]"));
+
+  domCache.navButtons.forEach((button) => {
     button.addEventListener("click", () => {
       activateScreen(button.dataset.screenTarget);
     });
@@ -1272,7 +1278,7 @@ function renderMobileGlance() {
   const combinedCost = summary.latestRennweg.gesamt_inkl_ust + summary.latestAspang.gesamt_inkl_ust;
 
   // Delta vs previous year
-  const yearly = buildYearBuckets(state.data.entries);
+  const yearly = state.computed.yearly;
   let deltaChip = "";
   if (yearly.length >= 2) {
     const ly = yearly[yearly.length - 1];
@@ -1372,6 +1378,8 @@ function renderApp() {
 
 async function init() {
   [state.data, state.wallbox] = await Promise.all([loadData(), loadWallboxData()]);
+  state.computed.yearly = buildYearBuckets(state.data.entries);
+  state.computed.monthly = buildMonthlySeries(state.data);
   attachEvents();
   renderApp();
 }
