@@ -148,7 +148,7 @@ const WALLBOX_FIREBASE_CONFIG = {
 
 const state = {
   activeScreen: getStoredActiveScreen(),
-  charts: [],
+  charts: {},
   data: null,
   wallbox: { byMonth: {}, byYear: {} },
   archive: {
@@ -403,10 +403,8 @@ function getSummary(data) {
 }
 
 function destroyCharts() {
-  while (state.charts.length) {
-    const chart = state.charts.pop();
-    chart.destroy();
-  }
+  Object.values(state.charts).forEach((chart) => chart.destroy());
+  state.charts = {};
 }
 
 function getCssValue(variable) {
@@ -417,8 +415,12 @@ function createChart(canvasId, config) {
   if (!window.Chart) return;
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const chart = new Chart(canvas, config);
-  state.charts.push(chart);
+  if (state.charts[canvasId]) {
+    state.charts[canvasId].data = config.data;
+    state.charts[canvasId].update("none");
+    return;
+  }
+  state.charts[canvasId] = new Chart(canvas, config);
 }
 
 function baseChartOptions() {
@@ -778,8 +780,7 @@ function renderDetailCharts() {
   });
 }
 
-function renderChartsForActiveScreen() {
-  destroyCharts();
+function updateChartsForActiveScreen() {
   if (state.activeScreen === "overview") {
     renderOverviewCharts();
   }
@@ -1073,7 +1074,7 @@ function activateScreen(screen) {
   // Mobile Glance: switch between glance view (overview) and desktop screens
   document.body.classList.toggle("m-desktop-screen", screen !== "overview");
   setHeaderMeta();
-  requestAnimationFrame(() => renderChartsForActiveScreen());
+  requestAnimationFrame(() => updateChartsForActiveScreen());
 }
 
 function showToast(message) {
