@@ -787,6 +787,16 @@ function updateChartsForActiveScreen() {
   }
   if (state.activeScreen === "detail") {
     renderDetailCharts();
+    // After display:none → display:block, Chart.js may have measured 0×0.
+    // Force a resize so the canvas fills its container correctly.
+    const chartIds = ["detailTrendChart", "detailCostTrendChart"];
+    chartIds.forEach((id) => {
+      const chart = state.charts[id];
+      if (chart) {
+        chart.resize();
+        chart.update("none");
+      }
+    });
   }
 }
 
@@ -1077,7 +1087,9 @@ function activateScreen(screen) {
   // Mobile Glance: switch between glance view (overview) and desktop screens
   document.body.classList.toggle("m-desktop-screen", screen !== "overview");
   setHeaderMeta();
-  requestAnimationFrame(() => updateChartsForActiveScreen());
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => updateChartsForActiveScreen());
+  });
 }
 
 function showToast(message) {
