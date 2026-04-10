@@ -642,14 +642,6 @@ function renderOverviewCharts() {
 }
 
 function renderDetailCharts() {
-  const c1 = document.getElementById("detailTrendChart");
-  const c2 = document.getElementById("detailCostTrendChart");
-  alert([
-    "detailTrendChart: " + (c1 ? c1.offsetWidth + "x" + c1.offsetHeight : "NOT FOUND"),
-    "detailCostTrendChart: " + (c2 ? c2.offsetWidth + "x" + c2.offsetHeight : "NOT FOUND"),
-    "activeScreen: " + state.activeScreen,
-    "charts keys: " + Object.keys(state.charts).join(", ")
-  ].join("\n"));
   const monthly = state.computed.monthly;
   const options = baseChartOptions();
 
@@ -789,22 +781,28 @@ function renderDetailCharts() {
   });
 }
 
+function renderChartWhenVisible(canvasId, renderFn) {
+  if (state.charts[canvasId]) return; // already initialised — createChart will update
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ro = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.contentRect.width > 0) {
+        ro.disconnect();
+        renderFn();
+        return;
+      }
+    }
+  });
+  ro.observe(canvas);
+}
+
 function updateChartsForActiveScreen() {
   if (state.activeScreen === "overview") {
-    renderOverviewCharts();
+    renderChartWhenVisible("overviewConsumptionChart", renderOverviewCharts);
   }
   if (state.activeScreen === "detail") {
-    renderDetailCharts();
-    // After display:none → display:block, Chart.js may have measured 0×0.
-    // Force a resize so the canvas fills its container correctly.
-    const chartIds = ["detailTrendChart", "detailCostTrendChart"];
-    chartIds.forEach((id) => {
-      const chart = state.charts[id];
-      if (chart) {
-        chart.resize();
-        chart.update("none");
-      }
-    });
+    renderChartWhenVisible("detailTrendChart", renderDetailCharts);
   }
 }
 
@@ -1095,9 +1093,7 @@ function activateScreen(screen) {
   // Mobile Glance: switch between glance view (overview) and desktop screens
   document.body.classList.toggle("m-desktop-screen", screen !== "overview");
   setHeaderMeta();
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => updateChartsForActiveScreen());
-  });
+  updateChartsForActiveScreen();
 }
 
 function showToast(message) {
