@@ -14,6 +14,7 @@
 
 ## Einmalig einrichten
 
+- [x] **App-Passwort** aus Hardcode in `.env` ausgelagert (python-dotenv)
 - [ ] **Cron-Job** einrichten (täglich 08:00):
   ```
   crontab -e
