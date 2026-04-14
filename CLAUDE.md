@@ -21,8 +21,12 @@ in einem GitHub Pages Dashboard an.
 │   └── aspangstrasse.json
 ├── docs/
 │   ├── index.html             ← GitHub Pages Dashboard
-│   ├── styles.css             ← Dashboard-Styling
-│   └── script.js              ← Dashboard-Logik + Chart.js
+│   ├── styles.css             ← generiertes CSS (nie direkt editieren!)
+│   ├── script.js              ← Dashboard-Logik + Chart.js
+│   ├── src/
+│   │   └── input.css          ← CSS-Quelle (Tailwind + Custom)
+│   ├── package.json           ← npm Build-Config
+│   └── tailwind.config.js     ← Tailwind Theme (Farben, Fonts)
 └── .gitignore
 ```
 
@@ -191,16 +195,74 @@ Dann `docs/styles.css` committen — **nie `styles.css` direkt editieren.**
   - Neutral = `#45474A`
 - Zeigt aktuell:
   - Summary-Cards
-  - Verbrauchsvergleich
-  - Kosten-Charts pro Haushalt
-  - Historien-Tabelle
+  - Verbrauchsvergleich (Overview)
+  - Kosten-Charts + Trend-Charts (Insights)
+  - Historien-Tabelle (Archive)
 - Designrichtung:
   - leichtes, editorielles Dashboard
   - kühler `Volt & Grid`-Look statt warmem Utility-Look
   - mobile und GitHub-Pages-kompatibel
 
+**Mobile Layout:**
+- Unter 768px zeigt Overview die native Mobile Glance View (kein Chart)
+- Alle anderen Tabs (Insights, Archive, Settings) zeigen Desktop-Layout via `body.m-desktop-screen`
+- Navigation: `#mobileBottomNav` (fixierte Tab-Bar unten), die alte `.mobile-nav` wurde entfernt
+
 **GitHub Pages aktivieren:**
 → GitHub Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
+
+---
+
+## script.js — Architektur & Performance-Regeln
+
+### State-Struktur
+```js
+const state = {
+  activeScreen: "overview",   // gespeichert in localStorage
+  charts: {},                 // Map: canvasId → Chart-Instanz (KEIN Array!)
+  data: null,                 // geladen via loadData()
+  wallbox: { byMonth, byYear },
+  computed: {
+    yearly: null,             // buildYearBuckets() — einmalig nach loadData()
+    monthly: null,            // buildMonthlySeries() — einmalig nach loadData()
+  },
+  archive: { search, year, location },
+  settings: { ... },
+};
+```
+
+### Wichtige Performance-Regeln
+
+**Charts NICHT destroy/recreate bei Tab-Wechsel:**
+`state.charts` ist ein Objekt keyed by `canvasId`.
+`createChart(canvasId, config)` prüft ob Instanz existiert:
+- Existiert → `chart.data = config.data; chart.update("none")` (kein Flackern)
+- Existiert nicht → neu erstellen und speichern
+
+**Charts lazy via ResizeObserver initialisieren:**
+`renderChartWhenVisible(canvasId, renderFn)` wartet bis `contentRect.width > 0`
+bevor `renderFn()` aufgerufen wird. Nie direkt `renderOverviewCharts()` oder
+`renderDetailCharts()` aufrufen — immer über `renderChartWhenVisible()`.
+
+**DOM-Selektoren cachen:**
+`domCache.screens` und `domCache.navButtons` werden einmalig in `attachEvents()`
+befüllt. In `activateScreen()` diese gecachten Arrays verwenden, kein
+`querySelectorAll` pro Tab-Wechsel.
+
+**Berechnungen cachen:**
+`buildYearBuckets()` und `buildMonthlySeries()` laufen einmalig in `init()`
+nach `loadData()` und werden in `state.computed` gespeichert.
+In Render-Funktionen immer `state.computed.yearly` / `state.computed.monthly`
+verwenden.
+
+### Mobile Canvas-Sichtbarkeit
+Im Mobile-Breakpoint gilt:
+```css
+canvas { display: none !important; }                    /* Glance-Modus (Overview) */
+body.m-desktop-screen canvas { display: block !important; } /* Insights etc. */
+```
+`body.m-desktop-screen` wird gesetzt wenn `activeScreen !== "overview"`.
+Diese Logik ermöglicht den ResizeObserver-Trigger für Charts in Insights.
 
 ---
 
@@ -238,3 +300,16 @@ anonymisierte Zahlen und sind bedenkenlos public.
 **Dashboard zeigt Demo-Daten**
 → `data/rennweg.json` und `data/aspangstrasse.json` existieren noch nicht
 → Script einmal manuell ausführen: `python3 extract_verbund.py /pfad/zur/rechnung.pdf`
+
+**Charts in Insights auf Mobile leer**
+→ Sicherstellen dass `body.m-desktop-screen canvas { display: block !important }` in `src/input.css` steht
+→ CSS neu bauen: `cd docs && npm run build:css`
+
+**CSS-Änderung hat keinen Effekt**
+→ `styles.css` wurde direkt editiert (falsch!) statt `src/input.css`
+→ Korrekt: `src/input.css` editieren → `cd docs && npm run build:css` → `styles.css` committen
+
+**Chart zeigt alte Daten nach Data-Reload**
+→ Nach `loadData()` muss `destroyCharts()` aufgerufen werden und `state.computed` neu befüllt werden
+→ `state.computed.yearly = buildYearBuckets(state.data.entries)`
+→ `state.computed.monthly = buildMonthlySeries(state.data)`
