@@ -15,13 +15,17 @@ from datetime import datetime
 from email.header import decode_header
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+SCRIPT_DIR = Path(__file__).parent
+load_dotenv(SCRIPT_DIR / ".env")
+
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 GMAIL_USER         = "manuel.rechnungen@gmail.com"
-GMAIL_APP_PASSWORD = "hlhw pltf hkki nzow"   # Gmail App-Passwort (16-stellig, keine Leerzeichen)
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
 GMAIL_LABEL        = "Rechnungen"              # exakter Label-Name in Gmail
 ICLOUD_BASE        = Path("/Users/manuel/Documents/11_Developer/gmail-pdf-sync/invoices")
 
-SCRIPT_DIR         = Path(__file__).parent
 EXTRACT_SCRIPT     = SCRIPT_DIR / "extract_verbund.py"
 # ───────────────────────────────────────────────────────────────────────────────
 

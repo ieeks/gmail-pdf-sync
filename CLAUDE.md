@@ -14,8 +14,11 @@ in einem GitHub Pages Dashboard an.
 ```
 ~/Developer/gmail-pdf-sync/
 ├── CLAUDE.md                  ← diese Datei
+├── README.md                  ← öffentliche Dokumentation
 ├── gmail_invoices.py          ← PDFs aus Gmail → iCloud Download
 ├── extract_verbund.py         ← PDFs parsen → data/*.json
+├── .env                       ← GMAIL_APP_PASSWORD (nicht im Repo)
+├── .env.example               ← Vorlage (im Repo)
 ├── data/
 │   ├── rennweg.json           ← nur Zahlen, kein Datenschutz-relevantes Material
 │   └── aspangstrasse.json
@@ -35,23 +38,19 @@ in einem GitHub Pages Dashboard an.
 ## Setup (einmalig, beim ersten Start ausführen)
 
 ```bash
-# 1. Projektordner
-mkdir -p ~/Developer/gmail-pdf-sync/data
-mkdir -p ~/Developer/gmail-pdf-sync/docs
+# 1. Python-Abhängigkeiten
+pip3 install pdfplumber python-dotenv
 
-# 2. Python-Abhängigkeit
-pip3 install pdfplumber --break-system-packages
+# 2. .env anlegen
+cp .env.example .env
+# GMAIL_APP_PASSWORD eintragen (myaccount.google.com/apppasswords)
 
-# 3. Alle Dateien aus diesem Paket in den Ordner kopieren
+# 3. Zählpunkte eintragen (siehe Abschnitt unten)
 
-# 4. Zählpunkte eintragen (siehe Abschnitt unten)
-
-# 5. Gmail App-Passwort eintragen in gmail_invoices.py
-
-# 6. Einmalig testen
+# 4. Einmalig testen
 python3 ~/Developer/gmail-pdf-sync/gmail_invoices.py
 
-# 7. Cron einrichten (täglich 08:00)
+# 5. Cron einrichten (täglich 08:00)
 # crontab -e → folgende Zeile einfügen (DEINNAME ersetzen):
 # 0 8 * * * /usr/bin/python3 /Users/DEINNAME/Developer/gmail-pdf-sync/gmail_invoices.py >> /Users/DEINNAME/Developer/gmail-pdf-sync/gmail_invoices.log 2>&1
 ```
@@ -86,10 +85,12 @@ ZAEHLPUNKTE = {
 **Konfiguration:**
 ```python
 GMAIL_USER         = "manuel.rechnungen@gmail.com"
-GMAIL_APP_PASSWORD = "xxxx-xxxx-xxxx-xxxx"   # Gmail App-Passwort (16-stellig)
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")  # aus .env laden
 GMAIL_LABEL        = "Rechnungen"              # exakter Label-Name in Gmail
-ICLOUD_BASE        = Path.home() / "Library/Mobile Documents/com~apple~CloudDocs/Invoices"
+ICLOUD_BASE        = Path("/Users/manuel/Documents/11_Developer/gmail-pdf-sync/invoices")
 ```
+
+App-Passwort wird via `python-dotenv` aus `.env` im Projektordner geladen — nie hardcoden.
 
 **Gmail App-Passwort erstellen:**
 → https://myaccount.google.com/apppasswords
