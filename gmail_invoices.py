@@ -11,20 +11,18 @@ import email
 import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from email.header import decode_header
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 SCRIPT_DIR = Path(__file__).parent
-load_dotenv(SCRIPT_DIR / ".env")
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 GMAIL_USER         = "manuel.rechnungen@gmail.com"
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
 GMAIL_LABEL        = "Rechnungen"              # exakter Label-Name in Gmail
-ICLOUD_BASE        = Path("/Users/manuel/Documents/11_Developer/gmail-pdf-sync/invoices")
+PDF_TEMP_DIR       = Path(tempfile.mkdtemp())
 
 EXTRACT_SCRIPT     = SCRIPT_DIR / "extract_verbund.py"
 # ───────────────────────────────────────────────────────────────────────────────
@@ -84,7 +82,7 @@ def download_pdfs(mail: imaplib.IMAP4_SSL, msg_id: bytes) -> list[Path]:
     month = date_obj.month
     date_prefix = date_obj.strftime("%Y-%m-%d")
 
-    target_dir = ICLOUD_BASE / str(year) / MONTH_NAMES[month]
+    target_dir = PDF_TEMP_DIR / str(year) / MONTH_NAMES[month]
     target_dir.mkdir(parents=True, exist_ok=True)
 
     saved_paths: list[Path] = []
