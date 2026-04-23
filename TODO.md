@@ -2,15 +2,8 @@
 
 ## Wartet auf Verbund-Rechnung (in ein paar Wochen)
 
-- [ ] **Zählpunktnummern eintragen** in `extract_verbund.py`
-  - Seite 2 der Verbund-Rechnung, Zeile „Zählpunkt: AT002..."
-  - Beide Nummern (Rennweg + Aspangstraße) eintragen:
-    ```python
-    ZAEHLPUNKTE = {
-        "AT002...": "rennweg",
-        "AT002...": "aspangstrasse",
-    }
-    ```
+- [x] **Zählpunkt Aspangstraße** eingetragen: `AT0010000000000000001000015183029`
+- [ ] **Zählpunkt Rennweg** noch ausstehend — steht auf Seite 2 der Verbund-Rechnung, Zeile „Zählpunkt: AT..."
 
 ## Einmalig einrichten
 

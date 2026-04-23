@@ -21,7 +21,7 @@ except ImportError:
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 ZAEHLPUNKTE = {
     "AT00200000000000000000000001": "rennweg",        # ← echte Nummer eintragen
-    "AT00200000000000000000000002": "aspangstrasse",  # ← echte Nummer eintragen
+    "AT0010000000000000001000015183029": "aspangstrasse",
 }
 
 SCRIPT_DIR = Path(__file__).parent
