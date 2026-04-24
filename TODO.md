@@ -21,18 +21,9 @@
   - Firestore-first mit localStorage als schnellem Cache
   - Settings-Notice zeigt "Firestore · HH:MM" oder "Lokal · HH:MM"
 
+- [x] **Firestore-Regeln gesetzt** — `haushalte/`, `config/`, `invoices/` alle auf `allow read, write: if true`
+
 ---
-
-## Offen — Firestore-Regeln setzen (PFLICHT)
-
-Damit Settings gelesen/geschrieben werden können, in der Firebase Console unter  
-`wallbox-manuel` → Firestore → Rules folgendes ergänzen:
-
-```
-match /config/{doc} {
-  allow read, write: if true;
-}
-```
 
 ---
 
