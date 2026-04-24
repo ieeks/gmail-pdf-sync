@@ -129,10 +129,29 @@ Tailwind und `docs/src/input.css` sind nicht mehr in Verwendung.
 - **Farbpalette (VoltMetric Pro):**
   - Teal `#00C2A8` = Rennweg
   - Amber `#F59E0B` = Aspangstraße
-  - Ink `#0D1B2E` = Text
+  - Ink `#0D1B2E` / Text `#0F172A`
   - Hero-Gradient: `#003D35 → #007A6A`
-- **Fonts:** Plus Jakarta Sans (Headings), Inter (UI), IBM Plex Mono (Zahlen)
+  - Sidebar: `#111827` (dunkel)
+- **Fonts:** Plus Jakarta Sans (alles), IBM Plex Mono (Zahlen)
 - **Screens:** Overview · Insights · Billing Archive · Settings
+
+**Overview Layout (CSS Grid, 2 Spalten):**
+```
+┌─────────────────────────────────────────┐
+│  hero-row  (1/-1): HeroCard · RW · AS   │
+├─────────────────────────┬───────────────┤
+│  kpi-grid (col 1, row 2)│  right-panel  │
+├─────────────────────────┤  (col 2,      │
+│  charts-row (col 1,     │   rows 2+3)   │
+│   row 3): 2 Charts      │  Insights +   │
+│                         │  Tarif        │
+├─────────────────────────┴───────────────┤
+│  bottom-row (1/-1): recentLogs ·        │
+│  kostenVergleich · topKennzahlen        │
+└─────────────────────────────────────────┘
+```
+`renderOverview()` befüllt: `#heroCard`, `#rwCard`, `#asCard`, `#kpiGrid`, `#recentLogs`, `#kostenVergleich`, `#topKennzahlen`  
+Right-Panel (Insights + Tarif-Simulation) ist statisches HTML in `index.html`.
 
 **Mobile Layout:**
 - Unter 768px zeigt Overview die Mobile Glance View (kein Chart)

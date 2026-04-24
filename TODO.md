@@ -23,6 +23,13 @@
 
 - [x] **Firestore-Regeln gesetzt** — `haushalte/`, `config/`, `invoices/` alle auf `allow read, write: if true`
 
+- [x] **VoltMetric Pro → Production** — Preview auf `docs/` migriert (2026-04-25)
+  - Dunkle Sidebar `#111827`, neues CSS Design System (tokens, shadows, radius vars)
+  - Overview: CSS Grid mit Hero-Row, KPI-Grid, Right-Panel (statisch), Charts-Row, Bottom-Row
+  - `renderOverview()` neu: füllt heroCard, rwCard, asCard, kpiGrid, recentLogs, kostenVergleich, topKennzahlen
+  - `daysAgo()` helper, Event-Delegation für dynamisch gerenderte Elemente
+  - `voltmetric-preview.html` als Design-Referenz im Repo behalten
+
 ---
 
 ---
