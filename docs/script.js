@@ -311,18 +311,49 @@ async function loadLocationFile(path, fallback, location) {
   }
 }
 
-async function loadData() {
-  const [rennweg, aspang] = await Promise.all([
-    loadLocationFile("../data/rennweg.json", DEMO_DATA.rennweg, "rennweg"),
-    loadLocationFile("../data/aspangstrasse.json", DEMO_DATA.aspangstrasse, "aspangstrasse"),
-  ]);
+async function loadInvoicesFromFirestore() {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return null;
+    const snapshot = await db.collection("invoices").get();
+    if (snapshot.empty) return null;
+    const raw = [];
+    snapshot.forEach((doc) => raw.push(doc.data()));
+    return raw;
+  } catch (_err) {
+    return null;
+  }
+}
 
-  const entries = [...rennweg.entries, ...aspang.entries].sort((a, b) => b.invoiceDate - a.invoiceDate);
+async function loadData() {
+  // Firestore-first: versuche Rechnungen aus Firestore zu laden
+  const firestoreRaw = await loadInvoicesFromFirestore();
+
+  let rennwegEntries, aspangEntries, demo;
+
+  if (firestoreRaw && firestoreRaw.length > 0) {
+    const rw = firestoreRaw.filter((e) => e.location === "rennweg");
+    const as = firestoreRaw.filter((e) => e.location === "aspangstrasse");
+    rennwegEntries = normalizeEntries(rw.length > 0 ? rw : DEMO_DATA.rennweg, "rennweg");
+    aspangEntries = normalizeEntries(as.length > 0 ? as : DEMO_DATA.aspangstrasse, "aspangstrasse");
+    demo = rw.length === 0 && as.length === 0;
+  } else {
+    // Fallback: JSON-Dateien
+    const [rennweg, aspang] = await Promise.all([
+      loadLocationFile("../data/rennweg.json", DEMO_DATA.rennweg, "rennweg"),
+      loadLocationFile("../data/aspangstrasse.json", DEMO_DATA.aspangstrasse, "aspangstrasse"),
+    ]);
+    rennwegEntries = rennweg.entries;
+    aspangEntries = aspang.entries;
+    demo = rennweg.demo || aspang.demo;
+  }
+
+  const entries = [...rennwegEntries, ...aspangEntries].sort((a, b) => b.invoiceDate - a.invoiceDate);
   return {
-    rennweg: rennweg.entries,
-    aspangstrasse: aspang.entries,
+    rennweg: rennwegEntries,
+    aspangstrasse: aspangEntries,
     entries,
-    demo: rennweg.demo || aspang.demo,
+    demo,
   };
 }
 

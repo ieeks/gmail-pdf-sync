@@ -7,6 +7,7 @@ Verwendung:
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -17,6 +18,29 @@ except ImportError:
     print("FEHLER: pdfplumber nicht installiert.")
     print("  pip3 install pdfplumber --break-system-packages")
     sys.exit(1)
+
+# Firebase Admin SDK (optional — nur wenn FIREBASE_SERVICE_ACCOUNT gesetzt)
+_firestore_db = None
+
+def get_firestore_db():
+    global _firestore_db
+    if _firestore_db is not None:
+        return _firestore_db
+    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "")
+    if not sa_json:
+        return None
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, firestore as fs
+        sa_dict = json.loads(sa_json)
+        cred = credentials.Certificate(sa_dict)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
+        _firestore_db = fs.client()
+        return _firestore_db
+    except Exception as exc:
+        print(f"  Firebase Admin init fehlgeschlagen: {exc}")
+        return None
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 ZAEHLPUNKTE = {
@@ -179,6 +203,16 @@ def process_pdf(pdf_path: Path) -> bool:
     # Eintrag anhängen
     entries.append(data)
     save_json(json_path, entries)
+
+    # Firestore: Dokument schreiben (wenn Service Account verfügbar)
+    db = get_firestore_db()
+    if db:
+        try:
+            doc = {**data, "location": haushalt}
+            db.collection("invoices").document(rechnungsnummer).set(doc)
+            print(f"  Firestore: invoices/{rechnungsnummer} geschrieben.")
+        except Exception as exc:
+            print(f"  Firestore-Fehler (nicht kritisch): {exc}")
 
     print(f"  Haushalt:  {haushalt}")
     print(f"  Rechnung:  {rechnungsnummer}  ({data.get('rechnungsdatum', '?')})")

@@ -43,10 +43,10 @@ match /config/{doc} {
 
 ---
 
-## Phase 2 — Rechnungsdaten in Firestore
+## Phase 2 — Rechnungsdaten in Firestore ✓
 
-Aktuell werden Rechnungsdaten als statische JSON-Files ins Repo committet.  
-Ziel: Python-Script schreibt direkt in Firestore, Dashboard liest von dort.
+Rechnungsdaten werden nun parallel in `data/*.json` und Firestore gespeichert.  
+Das Dashboard liest Firestore-first, fällt auf JSON-Dateien zurück.
 
 **Firestore-Struktur:**
 ```
@@ -64,18 +64,22 @@ wallbox-manuel/
     rechnungsnummer: "VR-RW-2026-0204"
 ```
 
-**Was sich ändert:**
-- `extract_verbund.py` → statt JSON-File schreibt es per Firebase Admin SDK in Firestore
-- `script.js` → `loadData()` liest aus Firestore statt `fetch("../data/*.json")`
-- `data/*.json` als Fallback im Repo behalten (GitHub Actions schreibt sie weiterhin parallel)
-- GitHub Actions: `firebase-admin` installieren, Service Account Key als Secret hinterlegen
+**Erledigte Schritte:**
+- [x] Firebase Admin SDK in `extract_verbund.py` integriert (`get_firestore_db()` helper)
+- [x] `firebase-admin` in `requirements.txt` ergänzt
+- [x] Service Account Key als GitHub Secret `FIREBASE_SERVICE_ACCOUNT` hinterlegt
+- [x] `sync.yml` übergibt `FIREBASE_SERVICE_ACCOUNT` an den Sync-Schritt
+- [x] `loadData()` in `script.js` auf Firestore-first umgestellt (mit JSON-Fallback)
 
-**Schritte:**
-- [ ] Firebase Admin SDK in `extract_verbund.py` integrieren
-- [ ] Service Account Key als GitHub Secret `FIREBASE_SERVICE_ACCOUNT` anlegen
-- [ ] `loadData()` in `script.js` auf Firestore umstellen (mit JSON-Fallback)
-- [ ] Firestore-Regel für `invoices/` ergänzen
-- [ ] Bestehende Rechnungen einmalig in Firestore importieren
+**Noch offen:**
+- [ ] Firestore-Regel für `invoices/` ergänzen:
+  ```
+  match /invoices/{doc} {
+    allow read: if true;
+    allow write: if false;
+  }
+  ```
+- [ ] Bestehende Rechnungen einmalig in Firestore importieren (falls vorhanden)
 
 ---
 

@@ -27,6 +27,7 @@ jobs:
       - name: Gmail sync ausführen
         env:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: python gmail_invoices.py
 
       - name: JSON-Änderungen committen
