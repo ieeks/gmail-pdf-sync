@@ -72,13 +72,7 @@ wallbox-manuel/
 - [x] `loadData()` in `script.js` auf Firestore-first umgestellt (mit JSON-Fallback)
 
 **Noch offen:**
-- [ ] Firestore-Regel für `invoices/` ergänzen:
-  ```
-  match /invoices/{doc} {
-    allow read: if true;
-    allow write: if false;
-  }
-  ```
+- [x] Firestore-Regel für `invoices/` gesetzt (`allow read, write: if true`)
 - [ ] Bestehende Rechnungen einmalig in Firestore importieren (falls vorhanden)
 
 ---
