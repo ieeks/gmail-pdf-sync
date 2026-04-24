@@ -157,26 +157,62 @@ const state = {
     year: "all",
     location: "all",
   },
-  settings: loadStoredSettings(),
+  settings: { ...DEFAULT_SETTINGS }, // overwritten in init() after Firestore load
   modalEntryId: null,
 };
 
-function loadStoredSettings() {
+// ── Firebase helper ──────────────────────────────────────────────
+function getFirestoreDb() {
+  if (typeof firebase === "undefined") return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.settings);
-    if (!raw) return { ...DEFAULT_SETTINGS };
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch (_error) {
-    return { ...DEFAULT_SETTINGS };
+    const existing = firebase.apps.find((a) => a.name === "voltmetric-wallbox");
+    const app = existing || firebase.initializeApp(WALLBOX_FIREBASE_CONFIG, "voltmetric-wallbox");
+    return firebase.firestore(app);
+  } catch (_e) {
+    return null;
   }
 }
 
-function saveStoredSettings(settings) {
+// ── Settings: Firestore-first, localStorage as cache ────────────
+async function loadSettings() {
+  // Seed from localStorage so UI is never blank
+  let settings = { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.settings);
+    if (raw) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch (_e) {}
+
+  // Overwrite from Firestore if reachable
+  try {
+    const db = getFirestoreDb();
+    if (db) {
+      const doc = await db.collection("config").doc("settings").get();
+      if (doc.exists) {
+        settings = { ...DEFAULT_SETTINGS, ...doc.data() };
+        // Keep localStorage in sync as fast cache
+        localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+      }
+    }
+  } catch (_e) {}
+
+  return settings;
+}
+
+async function saveSettings(settings) {
+  // Write localStorage immediately (instant feedback)
   try {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
-  } catch (_error) {
-    // Ignore storage failures in restricted contexts.
-  }
+  } catch (_e) {}
+
+  // Write Firestore, return whether it succeeded
+  try {
+    const db = getFirestoreDb();
+    if (db) {
+      await db.collection("config").doc("settings").set(settings);
+      return true;
+    }
+  } catch (_e) {}
+  return false;
 }
 
 function formatNumber(value, digits = 0) {
@@ -292,10 +328,8 @@ async function loadData() {
 
 async function loadWallboxData() {
   try {
-    if (typeof firebase === "undefined") return { byMonth: {}, byYear: {} };
-    const existing = firebase.apps.find((a) => a.name === "voltmetric-wallbox");
-    const app = existing || firebase.initializeApp(WALLBOX_FIREBASE_CONFIG, "voltmetric-wallbox");
-    const db = firebase.firestore(app);
+    const db = getFirestoreDb();
+    if (!db) return { byMonth: {}, byYear: {} };
     const doc = await db.collection("haushalte").doc("haushalt").get();
     if (!doc.exists) return { byMonth: {}, byYear: {} };
     const charges = doc.data().charges || [];
@@ -448,13 +482,13 @@ function baseChartOptions() {
         },
       },
       tooltip: {
-        backgroundColor: "#ffffff",
-        titleColor: "#0f172a",
-        bodyColor: "#0f172a",
-        borderColor: "rgba(148, 163, 184, 0.20)",
+        backgroundColor: "#0D1B2E",
+        titleColor: "#ffffff",
+        bodyColor: "rgba(255,255,255,0.78)",
+        borderColor: "rgba(0,194,168,0.25)",
         borderWidth: 1,
         padding: 12,
-        cornerRadius: 14,
+        cornerRadius: 10,
       },
     },
     scales: {
@@ -506,7 +540,7 @@ function renderWallboxKennzahl() {
   const monthlyAvg = latestAspang ? latestAspang.kwh / 12 : 0;
   const pct = monthlyAvg > 0 ? Math.round((wallboxKwh / monthlyAvg) * 100) : 0;
   el.classList.remove("hidden");
-  el.innerHTML = `<span class="status-chip teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Monatsverbrauchs` : ""}</span>`;
+  el.innerHTML = `<span class="tag tag-teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Monatsverbrauchs` : ""}</span>`;
 }
 
 function renderOverviewCharts() {
@@ -520,21 +554,21 @@ function renderOverviewCharts() {
         {
           label: "Rennweg",
           data: yearly.map((bucket) => bucket.rennwegKwh),
-          backgroundColor: "#008080",
+          backgroundColor: "rgba(0,194,168,0.88)",
           borderRadius: 6,
           stack: "rennweg",
         },
         {
           label: "Aspangstr. Haushalt",
           data: yearly.map((bucket) => Math.max(0, bucket.aspangKwh - (state.wallbox.byYear[bucket.year] || 0))),
-          backgroundColor: "#5dcaa5",
+          backgroundColor: "rgba(245,158,11,0.75)",
           borderRadius: 0,
           stack: "aspang",
         },
         {
           label: "Aspangstr. Wallbox",
           data: yearly.map((bucket) => state.wallbox.byYear[bucket.year] || 0),
-          backgroundColor: "#0f6e56",
+          backgroundColor: "rgba(109,212,200,0.82)",
           borderRadius: 6,
           stack: "aspang",
         },
@@ -594,14 +628,14 @@ function renderOverviewCharts() {
         {
           label: "Rennweg",
           data: yearly.map((bucket) => bucket.rennwegCost),
-          backgroundColor: "rgba(0, 128, 128, 0.78)",
+          backgroundColor: "rgba(0,194,168,0.82)",
           borderRadius: 12,
           stack: "cost",
         },
         {
           label: "Aspangstrasse",
           data: yearly.map((bucket) => bucket.aspangCost),
-          backgroundColor: "rgba(0, 95, 184, 0.82)",
+          backgroundColor: "rgba(245,158,11,0.82)",
           borderRadius: 12,
           stack: "cost",
         },
@@ -654,8 +688,8 @@ function renderDetailCharts() {
           type: "line",
           label: "Rennweg",
           data: monthly.map((bucket) => bucket.rennwegKwh),
-          borderColor: "#008080",
-          backgroundColor: "rgba(0, 128, 128, 0.14)",
+          borderColor: "rgba(0,194,168,0.88)",
+          backgroundColor: "rgba(0,194,168,0.10)",
           fill: true,
           tension: 0.38,
           pointRadius: 0,
@@ -668,7 +702,7 @@ function renderDetailCharts() {
             const wbKwh = state.wallbox.byMonth[monthKey(bucket.label)] || 0;
             return Math.max(0, bucket.aspangKwh - wbKwh);
           }),
-          backgroundColor: "#5dcaa5",
+          backgroundColor: "rgba(245,158,11,0.70)",
           borderRadius: 0,
           stack: "aspang",
           order: 1,
@@ -676,7 +710,7 @@ function renderDetailCharts() {
         {
           label: "Aspangstr. Wallbox",
           data: monthly.map((bucket) => state.wallbox.byMonth[monthKey(bucket.label)] || 0),
-          backgroundColor: "#0f6e56",
+          backgroundColor: "rgba(109,212,200,0.75)",
           borderRadius: 4,
           stack: "aspang",
           order: 1,
@@ -734,14 +768,14 @@ function renderDetailCharts() {
         {
           label: "Rennweg",
           data: monthly.map((bucket) => bucket.rennwegCost),
-          backgroundColor: "rgba(0, 128, 128, 0.75)",
+          backgroundColor: "rgba(0,194,168,0.82)",
           borderRadius: 10,
           stack: "monthlyCost",
         },
         {
           label: "Aspangstrasse",
           data: monthly.map((bucket) => bucket.aspangCost),
-          backgroundColor: "rgba(0, 95, 184, 0.82)",
+          backgroundColor: "rgba(245,158,11,0.82)",
           borderRadius: 10,
           stack: "monthlyCost",
         },
@@ -825,41 +859,53 @@ function renderStatus() {
 function renderOverview() {
   const summary = getSummary(state.data);
 
-  document.getElementById("overviewHeroStats").innerHTML = `
-    <div class="metric-card bg-white/12 text-white">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Total cost</p>
-      <strong class="mt-2 block text-3xl font-extrabold">${formatCompactCurrency(summary.totalCost)}</strong>
-    </div>
-    <div class="metric-card bg-white/12 text-white">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Total kWh</p>
-      <strong class="mt-2 block text-3xl font-extrabold">${formatNumber(summary.totalKwh)}</strong>
-    </div>
-    <div class="metric-card bg-white/12 text-white">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">Latest invoice</p>
-      <strong class="mt-2 block text-2xl font-extrabold">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "-"}</strong>
+  document.getElementById("heroCard").innerHTML = `
+    <div class="hero-card">
+      <div class="hero-live-badge">
+        <span class="hero-live-dot"></span>
+        <span class="hero-live-label">Live</span>
+      </div>
+      <span class="hero-super">Gesamtüberblick · beide Standorte</span>
+      <div class="hero-value">${formatNumber(summary.totalKwh)}<span class="hero-value-unit"> kWh</span></div>
+      <div class="hero-sub">${formatCompactCurrency(summary.totalCost)} Gesamtkosten</div>
+      <div class="hero-tiles">
+        <div class="hero-tile">
+          <span class="hero-tile-label">Rennweg</span>
+          <div class="hero-tile-val">${formatNumber(summary.latestRennweg.kwh)}<span class="hero-tile-unit"> kWh</span></div>
+        </div>
+        <div class="hero-tile">
+          <span class="hero-tile-label">Aspangstr.</span>
+          <div class="hero-tile-val">${formatNumber(summary.latestAspang.kwh)}<span class="hero-tile-unit"> kWh</span></div>
+        </div>
+        <div class="hero-tile">
+          <span class="hero-tile-label">Letzter Abschluss</span>
+          <div class="hero-tile-val" style="font-size:12px">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "—"}</div>
+        </div>
+      </div>
+      <div class="hero-bar-row">
+        <span class="hero-bar-label">Datenabdeckung</span>
+        <span class="hero-bar-status">${state.data.demo ? "Demo" : "Live"}</span>
+      </div>
+      <div class="hero-bar-track"><div class="hero-bar-fill"></div></div>
     </div>
   `;
 
-  document.getElementById("snapshotCards").innerHTML = `
-    <div class="snapshot-card">
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Rennweg</p>
-          <strong class="mt-2 block font-display text-3xl font-bold val-teal">${formatNumber(summary.latestRennweg.kwh)} <span class="text-base font-semibold">kWh</span></strong>
-          <p class="mt-1 text-sm font-semibold val-amber">${formatCurrency(summary.latestRennweg.gesamt_inkl_ust)}</p>
-        </div>
-        <span class="status-chip teal">kWh</span>
+  document.getElementById("snapshotRail").innerHTML = `
+    <div class="snapshot-row snapshot-row-teal">
+      <div class="snapshot-row-body">
+        <span class="sl">Rennweg · latest</span>
+        <div class="snapshot-val snapshot-val-teal">${formatNumber(summary.latestRennweg.kwh)}<span class="snapshot-unit"> kWh</span></div>
+        <div class="snapshot-sub">${formatCurrency(summary.latestRennweg.gesamt_inkl_ust)}</div>
       </div>
+      <span class="loc-badge loc-badge-rw"><span class="loc-badge-dot"></span>Rennweg</span>
     </div>
-    <div class="snapshot-card">
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Aspangstrasse</p>
-          <strong class="mt-2 block font-display text-3xl font-bold val-teal">${formatNumber(summary.latestAspang.kwh)} <span class="text-base font-semibold">kWh</span></strong>
-          <p class="mt-1 text-sm font-semibold val-amber">${formatCurrency(summary.latestAspang.gesamt_inkl_ust)}</p>
-        </div>
-        <span class="status-chip teal">kWh</span>
+    <div class="snapshot-row snapshot-row-amber">
+      <div class="snapshot-row-body">
+        <span class="sl">Aspangstr. · latest</span>
+        <div class="snapshot-val snapshot-val-amber">${formatNumber(summary.latestAspang.kwh)}<span class="snapshot-unit"> kWh</span></div>
+        <div class="snapshot-sub">${formatCurrency(summary.latestAspang.gesamt_inkl_ust)}</div>
       </div>
+      <span class="loc-badge loc-badge-as"><span class="loc-badge-dot"></span>Aspangstr.</span>
     </div>
     ${(function() {
       const now = new Date();
@@ -867,78 +913,62 @@ function renderOverview() {
       const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
       if (wallboxKwh === 0) return "";
       return `
-    <div class="snapshot-card">
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Wallbox · Aspangstr.</p>
-          <strong class="mt-2 block font-display text-3xl font-bold val-teal">${formatNumber(wallboxKwh, 1)} <span class="text-base font-semibold">kWh</span></strong>
-          <p class="mt-1 text-sm text-slate">aktueller Monat</p>
-        </div>
-        <span class="status-chip teal">EV</span>
+    <div class="snapshot-row snapshot-row-ltteal">
+      <div class="snapshot-row-body">
+        <span class="sl">Wallbox · dieser Monat</span>
+        <div class="snapshot-val snapshot-val-teal">${formatNumber(wallboxKwh, 1)}<span class="snapshot-unit"> kWh</span></div>
+        <div class="snapshot-sub">Aspangstr. EV</div>
       </div>
+      <span class="loc-badge loc-badge-rw"><span class="loc-badge-dot"></span>EV</span>
     </div>`;
     })()}
-    <div class="snapshot-card">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Cost structure</p>
-          <strong class="mt-2 block font-display text-3xl font-bold val-amber">${formatNumber(summary.totalTaxes + summary.totalNetwork, 2)} EUR</strong>
-          <p class="mt-2 text-sm text-slate">${formatCurrency(summary.totalNetwork)} network · ${formatCurrency(summary.totalTaxes)} taxes</p>
-        </div>
-        <span class="status-chip amber">Tax aware</span>
+    <div class="snapshot-row">
+      <div class="snapshot-row-body">
+        <span class="sl">Kostenstruktur · gesamt</span>
+        <div class="snapshot-val">${formatNumber(summary.totalTaxes + summary.totalNetwork, 0)}<span class="snapshot-unit"> EUR</span></div>
+        <div class="snapshot-sub">${formatCurrency(summary.totalNetwork)} Netz · ${formatCurrency(summary.totalTaxes)} Steuern</div>
       </div>
+      <span class="tag tag-amber">Tax</span>
     </div>
   `;
 
   document.getElementById("kpiGrid").innerHTML = `
-    <article class="panel-surface metric-card">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Portfolio kWh</p>
-      <div class="mt-3 flex items-baseline gap-2">
-        <strong class="big-num val-teal">${formatNumber(summary.totalKwh)}</strong>
-        <span class="status-chip teal">kWh</span>
-      </div>
-      <p class="mt-2 text-sm text-slate">Kumuliert ueber beide Standorte</p>
-    </article>
-    <article class="panel-surface metric-card">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Portfolio cost</p>
-      <div class="mt-3 flex items-baseline gap-2">
-        <strong class="big-num val-amber">${formatNumber(summary.totalCost, 0)}</strong>
-        <span class="status-chip amber">EUR</span>
-      </div>
-      <p class="mt-2 text-sm text-slate">Gesamt inklusive Netz und Steuer</p>
-    </article>
-    <article class="panel-surface metric-card">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Rennweg avg</p>
-      <div class="mt-3 flex items-baseline gap-2">
-        <strong class="big-num val-teal">${formatNumber(summary.avgRennweg, 1)}</strong>
-        <span class="big-num-unit">ct/kWh</span>
-      </div>
-      <p class="mt-2 text-sm text-slate">ct/kWh auf letzter Rechnung</p>
-    </article>
-    <article class="panel-surface metric-card">
-      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Aspang avg</p>
-      <div class="mt-3 flex items-baseline gap-2">
-        <strong class="big-num val-amber">${formatNumber(summary.avgAspang, 1)}</strong>
-        <span class="big-num-unit">ct/kWh</span>
-      </div>
-      <p class="mt-2 text-sm text-slate">ct/kWh mit Wallbox-Profil</p>
-    </article>
+    <div class="kpi-card kpi-card-teal">
+      <span class="sl">Portfolio kWh</span>
+      <div class="kpi-value kpi-value-teal">${formatNumber(summary.totalKwh)}<span class="kpi-unit"> kWh</span></div>
+      <div class="kpi-trend kpi-trend-up">beide Standorte</div>
+      <div class="kpi-note">Kumuliert</div>
+    </div>
+    <div class="kpi-card kpi-card-amber">
+      <span class="sl">Portfolio cost</span>
+      <div class="kpi-value kpi-value-amber">${formatNumber(summary.totalCost, 0)}<span class="kpi-unit"> EUR</span></div>
+      <div class="kpi-trend kpi-trend-down">inkl. Netz &amp; Steuer</div>
+      <div class="kpi-note">Gesamt</div>
+    </div>
+    <div class="kpi-card kpi-card-teal">
+      <span class="sl">Rennweg avg</span>
+      <div class="kpi-value kpi-value-teal">${formatNumber(summary.avgRennweg, 1)}<span class="kpi-unit"> ct/kWh</span></div>
+      <div class="kpi-trend kpi-trend-up">letzte Rechnung</div>
+      <div class="kpi-note">Durchschnitt</div>
+    </div>
+    <div class="kpi-card kpi-card-amber">
+      <span class="sl">Aspangstr. avg</span>
+      <div class="kpi-value kpi-value-amber">${formatNumber(summary.avgAspang, 1)}<span class="kpi-unit"> ct/kWh</span></div>
+      <div class="kpi-trend kpi-trend-down">inkl. Wallbox</div>
+      <div class="kpi-note">Durchschnitt</div>
+    </div>
   `;
 
-  document.getElementById("recentLogs").innerHTML = state.data.entries.slice(0, 5).map((entry) => `
-    <div class="log-card">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="font-display text-lg font-bold tracking-tight text-ink">${entry.rechnungsnummer}</p>
-          <p class="mt-1 text-sm text-slate">${entry.locationLabel} · ${formatDate(entry.rechnungsdatum)}</p>
-        </div>
-        <span class="status-chip ${entry.location === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-primary/12 text-primary"}">${entry.locationLabel}</span>
+  document.getElementById("recentLogs").innerHTML = state.data.entries.slice(0, 4).map((entry) => `
+    <div class="log-entry">
+      <div class="log-entry-id">${entry.rechnungsnummer}</div>
+      <div class="log-entry-loc">
+        <span class="loc-badge ${entry.location === "rennweg" ? "loc-badge-rw" : "loc-badge-as"}">
+          <span class="loc-badge-dot"></span>${entry.locationLabel}
+        </span>
       </div>
-      <div class="mt-3 flex flex-wrap gap-2 text-sm text-slate">
-        <span>${formatNumber(entry.kwh)} kWh</span>
-        <span>·</span>
-        <span>${formatCurrency(entry.gesamt_inkl_ust)}</span>
-      </div>
+      <div class="log-entry-meta">${formatDate(entry.rechnungsdatum)}</div>
+      <div class="log-entry-total">${formatCurrency(entry.gesamt_inkl_ust)}</div>
     </div>
   `).join("");
 }
@@ -953,57 +983,54 @@ function renderDetail() {
     const latest = getLatestEntry(entries);
     const totalCost = sumEntries(entries, "gesamt_inkl_ust");
     const totalKwh = sumEntries(entries, "kwh");
-    const badgeClass = key === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-accent/16 text-[#8A5A00]";
+    const isRw = key === "rennweg";
     return `
-      <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Location detail</p>
-            <h3 class="mt-2 font-display text-3xl font-bold tracking-tight">${locationLabel(key)}</h3>
-          </div>
-          <span class="status-chip ${badgeClass}">${badge}</span>
+      <div class="panel detail-loc-card ${isRw ? "detail-loc-card-rw" : "detail-loc-card-as"}">
+        <div class="detail-loc-header">
+          <span class="loc-badge ${isRw ? "loc-badge-rw" : "loc-badge-as"}"><span class="loc-badge-dot"></span>${locationLabel(key)}</span>
+          <div class="detail-loc-name">${locationLabel(key)}</div>
+          <span class="detail-loc-avg ${isRw ? "detail-loc-avg-teal" : "detail-loc-avg-amber"}">${formatNumber(latest.centsPerKwh, 1)} ct/kWh</span>
         </div>
-        <div class="mt-6 grid gap-4 sm:grid-cols-3">
-          <div class="metric-card bg-slate-50/80">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Latest total</p>
-            <strong class="mt-2 block text-3xl font-extrabold">${formatCurrency(latest.gesamt_inkl_ust)}</strong>
+        <div class="detail-loc-kpis">
+          <div class="detail-loc-kpi">
+            <span class="sl">Latest total</span>
+            <div class="detail-loc-kpi-val">${formatCurrency(latest.gesamt_inkl_ust)}</div>
           </div>
-          <div class="metric-card bg-slate-50/80">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Total kWh</p>
-            <strong class="mt-2 block text-3xl font-extrabold">${formatNumber(totalKwh)}</strong>
+          <div class="detail-loc-kpi">
+            <span class="sl">Total kWh</span>
+            <div class="detail-loc-kpi-val">${formatNumber(totalKwh)}</div>
           </div>
-          <div class="metric-card bg-slate-50/80">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Latest period</p>
-            <strong class="mt-2 block text-2xl font-extrabold">${formatDate(latest.zeitraumBis)}</strong>
+          <div class="detail-loc-kpi">
+            <span class="sl">Latest period</span>
+            <div class="detail-loc-kpi-val" style="font-size:13px">${formatDate(latest.zeitraumBis)}</div>
           </div>
         </div>
-        <p class="mt-4 text-sm leading-7 text-slate">Letzte Rechnung: ${formatPeriod(latest)}. Gesamt im Datensatz: ${formatCompactCurrency(totalCost)} bei ${entries.length} archivierten Statements.</p>
-      </article>
+        <div class="detail-loc-note">Letzte Rechnung: ${formatPeriod(latest)}. Gesamt: ${formatCompactCurrency(totalCost)} bei ${entries.length} Statements.</div>
+      </div>
     `;
   }).join("");
 
-  document.getElementById("detailInvoices").innerHTML = locations.map(({ key, entries, badge }) => `
-    <section class="space-y-3 rounded-[1.7rem] bg-white/78 p-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <p class="font-display text-2xl font-bold tracking-tight">${locationLabel(key)}</p>
-          <p class="text-sm text-slate">${badge === "Wallbox" ? "Wallbox profile active" : "Residential profile"}</p>
-        </div>
-        <span class="status-chip ${key === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-accent/16 text-[#8A5A00]"}">${badge}</span>
+  const colDivider = `<div class="billing-divider"></div>`;
+  document.getElementById("detailInvoices").innerHTML = locations.map(({ key, entries }, i) => `
+    ${i > 0 ? colDivider : ""}
+    <div class="billing-col">
+      <div class="billing-col-head ${key === "rennweg" ? "billing-col-head-rw" : "billing-col-head-as"}">
+        <span class="loc-badge ${key === "rennweg" ? "loc-badge-rw" : "loc-badge-as"}"><span class="loc-badge-dot"></span></span>
+        <span class="billing-col-name">${locationLabel(key)}</span>
       </div>
       ${[...entries].sort((a, b) => b.invoiceDate - a.invoiceDate).map((entry) => `
-        <button class="archive-row flex w-full items-center justify-between rounded-[1.3rem] bg-slate-50/90 px-4 py-4 text-left" data-entry-id="${entry.id}" type="button">
-          <div>
-            <p class="font-semibold text-ink">${entry.rechnungsnummer}</p>
-            <p class="mt-1 text-sm text-slate">${formatDate(entry.rechnungsdatum)} · ${formatNumber(entry.kwh)} kWh</p>
+        <div class="billing-row" data-entry-id="${entry.id}" style="cursor:pointer">
+          <div class="billing-row-left">
+            <div class="billing-row-id">${entry.rechnungsnummer}</div>
+            <div class="billing-row-sub">${formatDate(entry.rechnungsdatum)} · ${formatNumber(entry.kwh)} kWh</div>
           </div>
-          <div class="text-right">
-            <p class="font-display text-xl font-bold tracking-tight text-ink">${formatCurrency(entry.gesamt_inkl_ust)}</p>
-            <p class="text-sm text-slate">${formatNumber(entry.centsPerKwh, 1)} ct/kWh</p>
+          <div class="billing-row-right">
+            <div class="billing-row-eur">${formatCurrency(entry.gesamt_inkl_ust)}</div>
+            <div class="${key === "rennweg" ? "billing-row-ct-rw" : "billing-row-ct-as"}">${formatNumber(entry.centsPerKwh, 1)} ct/kWh</div>
           </div>
-        </button>
+        </div>
       `).join("")}
-    </section>
+    </div>
   `).join("");
 }
 
@@ -1033,28 +1060,28 @@ function getFilteredArchiveEntries() {
 
 function renderArchiveTable() {
   const entries = getFilteredArchiveEntries();
-  const tbody = document.getElementById("archiveTableBody");
+  const container = document.getElementById("archiveTableBody");
   const empty = document.getElementById("archiveEmpty");
 
-  tbody.innerHTML = entries.map((entry) => `
-    <tr class="archive-row" data-entry-id="${entry.id}">
-      <td class="px-5">
-        <div class="min-w-[12rem]">
-          <p class="font-semibold text-ink">${entry.rechnungsnummer}</p>
-          <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate">${formatDate(entry.rechnungsdatum)}</p>
-        </div>
-      </td>
-      <td class="px-5">
-        <span class="status-chip ${entry.location === "rennweg" ? "bg-secondary/15 text-secondary" : "bg-primary/12 text-primary"}">${entry.locationLabel}</span>
-      </td>
-      <td class="px-5 text-slate">${formatDate(entry.zeitraumVon)} - ${formatDate(entry.zeitraumBis)}</td>
-      <td class="px-5 font-semibold text-ink">${formatNumber(entry.kwh)}</td>
-      <td class="px-5 text-slate">${formatCurrency(entry.energiekosten)}</td>
-      <td class="px-5 font-display text-lg font-bold tracking-tight text-ink">${formatCurrency(entry.gesamt_inkl_ust)}</td>
-      <td class="px-5">
-        <button class="action-secondary !min-h-0 !rounded-xl !px-4 !py-2 text-sm" type="button">Open PDF</button>
-      </td>
-    </tr>
+  container.innerHTML = entries.map((entry) => `
+    <div class="archive-table-row" data-entry-id="${entry.id}">
+      <div>
+        <div class="archive-row-id">${entry.rechnungsnummer}</div>
+        <div class="archive-row-date">${formatDate(entry.rechnungsdatum)}</div>
+      </div>
+      <div>
+        <span class="loc-badge ${entry.location === "rennweg" ? "loc-badge-rw" : "loc-badge-as"}">
+          <span class="loc-badge-dot"></span>${entry.locationLabel}
+        </span>
+      </div>
+      <div class="archive-row-period">${formatDate(entry.zeitraumVon)} – ${formatDate(entry.zeitraumBis)}</div>
+      <div class="archive-row-kwh">${formatNumber(entry.kwh)}</div>
+      <div class="archive-row-net">${formatCurrency(entry.energiekosten)}</div>
+      <div class="archive-row-total">${formatCurrency(entry.gesamt_inkl_ust)}</div>
+      <div>
+        <button class="btn-pdf ${entry.location === "rennweg" ? "btn-pdf-rw" : "btn-pdf-as"}" type="button">Open</button>
+      </div>
+    </div>
   `).join("");
 
   empty.classList.toggle("hidden", entries.length !== 0);
@@ -1071,6 +1098,8 @@ function renderSettings() {
   document.getElementById("baseDirectory").value = settings.baseDirectory;
   document.getElementById("outputTarget").value = settings.outputTarget;
   document.getElementById("livePulse").checked = settings.livePulse;
+  const lpt = document.getElementById("livePulseToggle");
+  if (lpt) lpt.classList.toggle("on", settings.livePulse);
 }
 
 const domCache = { screens: null, navButtons: null };
@@ -1087,7 +1116,7 @@ function activateScreen(screen) {
   });
   domCache.navButtons.forEach((button) => {
     const active = button.dataset.screenTarget === screen;
-    button.classList.toggle("nav-pill-active", active && button.classList.contains("nav-pill"));
+    button.classList.toggle("nav-item-active", active && button.classList.contains("nav-item"));
     button.classList.toggle("mobile-nav-pill-active", active && button.classList.contains("mobile-nav-pill"));
   });
   // Mobile Glance: switch between glance view (overview) and desktop screens
@@ -1113,45 +1142,54 @@ function getEntryById(id) {
 function buildModalPreview(entry) {
   return `
     <div class="faux-pdf" data-watermark="VERBUND">
-      <div class="flex items-start justify-between gap-4">
-        <div class="space-y-2">
-          <div class="pdf-line h-4 w-24"></div>
-          <div class="pdf-line h-3 w-36"></div>
+      <div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:1.5rem">
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <div class="pdf-line" style="height:16px;width:6rem"></div>
+          <div class="pdf-line" style="height:11px;width:9rem"></div>
         </div>
-        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <span class="material-symbols-outlined">bolt</span>
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(0,194,168,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M9 2L6 9H9L8 16L12 9H9Z" fill="rgba(0,194,168,0.85)"/>
+          </svg>
         </div>
       </div>
-
-      <div class="mt-6 grid gap-3">
-        <div class="pdf-line h-3 w-full"></div>
-        <div class="pdf-line h-3 w-4/5"></div>
-        <div class="pdf-line h-3 w-3/5"></div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:2rem">
+        <div class="pdf-line" style="height:10px;width:100%"></div>
+        <div class="pdf-line" style="height:10px;width:80%"></div>
+        <div class="pdf-line" style="height:10px;width:60%"></div>
       </div>
-
-      <div class="mt-8 grid grid-cols-3 gap-3">
-        <div class="h-28 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60"></div>
-        <div class="h-28 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60"></div>
-        <div class="h-28 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60"></div>
+      <div class="pdf-block-grid">
+        <div class="pdf-block"></div>
+        <div class="pdf-block"></div>
+        <div class="pdf-block"></div>
       </div>
-
-      <div class="mt-8 rounded-[1.5rem] bg-slate-50/80 p-4">
-        <div class="flex items-center justify-between gap-4">
+      <div class="pdf-invoice-box">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Invoice</p>
-            <p class="mt-2 font-display text-2xl font-bold tracking-tight">${entry.rechnungsnummer}</p>
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#96a8bc;margin-bottom:4px">Invoice</div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;color:#0D1B2E">${entry.rechnungsnummer}</div>
           </div>
-          <div class="text-right">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Total</p>
-            <p class="mt-2 font-display text-2xl font-bold tracking-tight text-primary">${formatCurrency(entry.gesamt_inkl_ust)}</p>
+          <div style="text-align:right">
+            <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#96a8bc;margin-bottom:4px">Total</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:#009e88">${formatCurrency(entry.gesamt_inkl_ust)}</div>
           </div>
         </div>
       </div>
-
-      <div class="mt-8 flex justify-center gap-3 text-slate">
-        <div class="icon-button !h-11 !w-11"><span class="material-symbols-outlined">zoom_in</span></div>
-        <div class="icon-button !h-11 !w-11"><span class="material-symbols-outlined">download</span></div>
-        <div class="icon-button !h-11 !w-11"><span class="material-symbols-outlined">open_in_full</span></div>
+      <div class="pdf-actions">
+        <div class="pdf-action-btn" title="Zoom">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M12 12L16 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <line x1="7.5" y1="5.2" x2="7.5" y2="9.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <line x1="5.2" y1="7.5" x2="9.8" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="pdf-action-btn" title="Download">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M9 2.5V11M5.5 8L9 11.5L12.5 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.5 14.5H15.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
       </div>
     </div>
   `;
@@ -1166,25 +1204,25 @@ function openModal(entryId) {
   document.getElementById("modalSubtitle").textContent = `${entry.locationLabel} · ${formatPeriod(entry)}`;
   document.getElementById("modalPreview").innerHTML = buildModalPreview(entry);
   document.getElementById("modalMeta").innerHTML = `
-    <div class="metric-card bg-slate-50/90">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Date</p>
-      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatDate(entry.rechnungsdatum)}</p>
+    <div class="modal-meta-card">
+      <span class="modal-meta-label">Date</span>
+      <div class="modal-meta-value">${formatDate(entry.rechnungsdatum)}</div>
     </div>
-    <div class="metric-card bg-slate-50/90">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Consumption</p>
-      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatNumber(entry.kwh)} kWh</p>
+    <div class="modal-meta-card">
+      <span class="modal-meta-label">Consumption</span>
+      <div class="modal-meta-value">${formatNumber(entry.kwh)}<span style="font-size:12px;font-weight:400;color:#96a8bc"> kWh</span></div>
     </div>
-    <div class="metric-card bg-slate-50/90">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Energy cost</p>
-      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatCurrency(entry.energiekosten)}</p>
+    <div class="modal-meta-card">
+      <span class="modal-meta-label">Energy cost</span>
+      <div class="modal-meta-value">${formatCurrency(entry.energiekosten)}</div>
     </div>
-    <div class="metric-card bg-slate-50/90">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Network + tax</p>
-      <p class="mt-2 font-display text-2xl font-bold tracking-tight">${formatCurrency(entry.netzgebuehren + entry.steuern)}</p>
+    <div class="modal-meta-card">
+      <span class="modal-meta-label">Network + tax</span>
+      <div class="modal-meta-value">${formatCurrency(entry.netzgebuehren + entry.steuern)}</div>
     </div>
-    <div class="metric-card bg-slate-50/90">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate">Total cost</p>
-      <p class="mt-2 font-display text-2xl font-bold tracking-tight text-primary">${formatCurrency(entry.gesamt_inkl_ust)}</p>
+    <div class="modal-meta-card">
+      <span class="modal-meta-label">Total cost</span>
+      <div class="modal-meta-value modal-meta-total">${formatCurrency(entry.gesamt_inkl_ust)}</div>
     </div>
   `;
   modal.classList.remove("hidden");
@@ -1248,7 +1286,7 @@ function attachEvents() {
     if (event.key === "Escape") closeModal();
   });
 
-  document.getElementById("settingsForm").addEventListener("submit", (event) => {
+  document.getElementById("settingsForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     state.settings = {
       gmailAccount: document.getElementById("gmailAccount").value.trim(),
@@ -1261,15 +1299,29 @@ function attachEvents() {
       outputTarget: document.getElementById("outputTarget").value.trim(),
       livePulse: document.getElementById("livePulse").checked,
     };
-    saveStoredSettings(state.settings);
+    const notice = document.getElementById("settingsNotice");
+    notice.textContent = "Speichert…";
+    const savedToFirestore = await saveSettings(state.settings);
     renderStatus();
-    document.getElementById("settingsNotice").textContent = `Gespeichert um ${new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })}`;
-    showToast("Settings stored locally.");
+    const time = new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
+    notice.textContent = `${savedToFirestore ? "Firestore" : "Lokal"} · ${time}`;
+    notice.classList.toggle("saved", savedToFirestore);
+    showToast(savedToFirestore ? "In Firestore gespeichert." : "Lokal gespeichert — Firestore nicht erreichbar.");
   });
 
   document.getElementById("addPointButton").addEventListener("click", () => {
     showToast("Prototype only. Add-point flow can be wired to your final config model.");
   });
+
+  const livePulseToggle = document.getElementById("livePulseToggle");
+  const livePulseCb = document.getElementById("livePulse");
+  if (livePulseToggle && livePulseCb) {
+    livePulseToggle.classList.toggle("on", livePulseCb.checked);
+    livePulseToggle.addEventListener("click", () => {
+      livePulseCb.checked = !livePulseCb.checked;
+      livePulseToggle.classList.toggle("on", livePulseCb.checked);
+    });
+  }
 
   document.getElementById("globalSearch").addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
@@ -1303,7 +1355,7 @@ function renderMobileGlance() {
     const pyTotal = py.rennwegKwh + py.aspangKwh;
     if (pyTotal > 0) {
       const delta = Math.round(((lyTotal - pyTotal) / pyTotal) * 100);
-      deltaChip = `<div class="m-hero-chip">${delta > 0 ? "+" : ""}${delta}% vs. Vorjahr</div>`;
+      deltaChip = `<span class="m-chip m-chip-neutral">${delta > 0 ? "+" : ""}${delta}% vs. Vorjahr</span>`;
     }
   }
 
@@ -1313,26 +1365,26 @@ function renderMobileGlance() {
       <div class="m-hero-eyebrow">Gesamtverbrauch · ${monthLabel}</div>
       <div class="m-hero-big">${formatNumber(combinedKwh)}<span class="m-hero-unit">kWh</span></div>
       <div class="m-hero-cost">Kosten gesamt <strong>${formatNumber(combinedCost, 2)} EUR</strong></div>
-      <div class="m-hero-meta">
-        <div class="m-hero-chip">Rennweg</div>
-        <div class="m-hero-chip">Aspangstr.</div>
+      <div class="m-hero-chips">
+        <span class="m-chip">Rennweg</span>
+        <span class="m-chip">Aspangstr.</span>
         ${deltaChip}
       </div>`;
   }
 
-  // Pills grid
+  // Location split cards
   const mPillsRow = document.getElementById("mPillsRow");
   if (mPillsRow) {
     mPillsRow.innerHTML = `
-      <div class="m-metric-pill">
-        <div class="m-pill-label">Rennweg</div>
-        <div class="m-pill-num">${formatNumber(summary.latestRennweg.kwh)}<span class="m-pill-unit"> kWh</span></div>
-        <div class="m-pill-sub">${formatNumber(summary.latestRennweg.gesamt_inkl_ust, 2)} EUR</div>
+      <div class="m-loc-card m-loc-card-rw">
+        <span class="m-loc-name m-loc-name-rw">Rennweg</span>
+        <div class="m-loc-kwh">${formatNumber(summary.latestRennweg.kwh)}<span class="m-loc-unit"> kWh</span></div>
+        <div class="m-loc-eur">${formatNumber(summary.latestRennweg.gesamt_inkl_ust, 2)} EUR</div>
       </div>
-      <div class="m-metric-pill">
-        <div class="m-pill-label">Aspangstr.</div>
-        <div class="m-pill-num">${formatNumber(summary.latestAspang.kwh)}<span class="m-pill-unit"> kWh</span></div>
-        <div class="m-pill-sub">${formatNumber(summary.latestAspang.gesamt_inkl_ust, 2)} EUR</div>
+      <div class="m-loc-card m-loc-card-as">
+        <span class="m-loc-name m-loc-name-as">Aspangstr.</span>
+        <div class="m-loc-kwh">${formatNumber(summary.latestAspang.kwh)}<span class="m-loc-unit"> kWh</span></div>
+        <div class="m-loc-eur">${formatNumber(summary.latestAspang.gesamt_inkl_ust, 2)} EUR</div>
       </div>`;
   }
 
@@ -1348,7 +1400,7 @@ function renderMobileGlance() {
       mWallboxCard.innerHTML = `
         <div class="m-wallbox-header">
           <span class="m-wallbox-title">Wallbox · Aspangstr.</span>
-          <span class="m-wallbox-badge">⚡ ${formatNumber(wallboxKwh, 1)} kWh</span>
+          <span class="m-wallbox-kwh">⚡ ${formatNumber(wallboxKwh, 1)} kWh</span>
         </div>
         <div class="m-progress-track">
           <div class="m-progress-fill" style="width:${pct}%"></div>
@@ -1366,7 +1418,8 @@ function renderMobileGlance() {
   const mLogList = document.getElementById("mLogList");
   if (mLogList) {
     mLogList.innerHTML = state.data.entries.slice(0, 3).map((entry) => {
-      const dotClass = "m-log-dot-teal"; // all Verbund entries = teal
+      const dotClass = entry.location === "rennweg" ? "m-log-dot-teal" : "m-log-dot-amber";
+      const amountClass = entry.location === "rennweg" ? "m-log-amount-rw" : "m-log-amount-as";
       const amount = formatNumber(entry.gesamt_inkl_ust, 2) + " EUR";
       return `
         <div class="m-log-row">
@@ -1375,7 +1428,7 @@ function renderMobileGlance() {
             <div class="m-log-name">Verbund · ${entry.locationLabel}</div>
             <div class="m-log-date">${formatDate(entry.rechnungsdatum)}</div>
           </div>
-          <span class="m-log-amount">${amount}</span>
+          <span class="${amountClass}">${amount}</span>
         </div>`;
     }).join("");
   }
@@ -1393,7 +1446,11 @@ function renderApp() {
 }
 
 async function init() {
-  [state.data, state.wallbox] = await Promise.all([loadData(), loadWallboxData()]);
+  [state.data, state.wallbox, state.settings] = await Promise.all([
+    loadData(),
+    loadWallboxData(),
+    loadSettings(),
+  ]);
   state.computed.yearly = buildYearBuckets(state.data.entries);
   state.computed.monthly = buildMonthlySeries(state.data);
   attachEvents();

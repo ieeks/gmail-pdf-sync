@@ -1,20 +1,20 @@
-# gmail-pdf-sync
+# gmail-pdf-sync · VoltMetric Pro
 
 Lädt automatisch Verbund-Stromrechnungen (PDF) aus Gmail herunter, extrahiert relevante Verbrauchsdaten und zeigt sie in einem GitHub Pages Dashboard an.
 
-**Dashboard:** [manuel-app.dev/gmail-pdf-sync](https://manuel-app.dev/gmail-pdf-sync/)
+**Dashboard:** [manuel-app.dev/gmail-pdf-sync](https://manuel-app.dev/gmail-pdf-sync/)  
+**Zwei Haushalte:** Rennweg · Aspangstraße (inkl. Wallbox E-Auto)
 
 ---
 
 ## Was es tut
 
-1. Verbindet sich per IMAP mit Gmail (`manuel.rechnungen@gmail.com`)
-2. Lädt PDF-Anhänge aus dem Label `Rechnungen` in iCloud Drive
+1. GitHub Actions läuft täglich 07:00 UTC und verbindet sich per IMAP mit Gmail
+2. Lädt neue PDF-Anhänge aus dem Label `Rechnungen`
 3. Extrahiert Verbrauchsdaten (kWh, Kosten, Zeitraum) aus den Verbund-PDFs
 4. Schreibt die Zahlen in `data/rennweg.json` und `data/aspangstrasse.json`
-5. Das Dashboard liest diese JSON-Dateien und zeigt Charts + Tabellen
-
-**Zwei Haushalte:** Rennweg · Aspangstraße (inkl. Wallbox E-Auto)
+5. Committet und pusht die JSON-Änderungen direkt ins Repo
+6. Das Dashboard liest diese JSON-Dateien und zeigt Charts + Tabellen
 
 ---
 
@@ -22,19 +22,20 @@ Lädt automatisch Verbund-Stromrechnungen (PDF) aus Gmail herunter, extrahiert r
 
 ```
 gmail-pdf-sync/
-├── gmail_invoices.py      ← PDFs aus Gmail → iCloud Download
+├── gmail_invoices.py      ← PDFs aus Gmail laden + extract_verbund aufrufen
 ├── extract_verbund.py     ← PDFs parsen → data/*.json
 ├── .env                   ← Gmail App-Passwort (nicht im Repo)
 ├── .env.example           ← Vorlage
 ├── data/
-│   ├── rennweg.json       ← Verbrauchsdaten Rennweg
-│   └── aspangstrasse.json ← Verbrauchsdaten Aspangstraße
-└── docs/                  ← GitHub Pages Dashboard
-    ├── index.html
-    ├── styles.css         ← generiert via Tailwind (nicht direkt editieren)
-    ├── script.js
-    └── src/
-        └── input.css      ← CSS-Quelle
+│   ├── rennweg.json       ← Verbrauchsdaten Rennweg (anonymisiert)
+│   └── aspangstrasse.json ← Verbrauchsdaten Aspangstraße (anonymisiert)
+├── docs/                  ← GitHub Pages Dashboard (VoltMetric Pro)
+│   ├── index.html         ← App-Shell, alle Screens
+│   ├── styles.css         ← Plain CSS Design System (direkt editierbar)
+│   └── script.js          ← SPA-Logik, Charts, Firebase
+└── .github/
+    └── workflows/
+        └── sync.yml       ← täglicher GitHub Actions Sync
 ```
 
 ---
@@ -54,11 +55,11 @@ cp .env.example .env
 # GMAIL_APP_PASSWORD eintragen
 ```
 
-Gmail App-Passwort erstellen: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+Gmail App-Passwort: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 
 ### 3. Zählpunkte eintragen
 
-In `extract_verbund.py` die Zählpunktnummern aus Seite 2 der Verbund-Rechnung eintragen:
+In `extract_verbund.py` die Nummern aus Seite 2 der Verbund-Rechnung eintragen:
 
 ```python
 ZAEHLPUNKTE = {
@@ -73,25 +74,16 @@ ZAEHLPUNKTE = {
 python3 gmail_invoices.py
 ```
 
-### 5. Cron-Job einrichten (täglich 08:00)
-
-```
-0 8 * * * /usr/bin/python3 /Users/manuel/Developer/gmail-pdf-sync/gmail_invoices.py >> /Users/manuel/Developer/gmail-pdf-sync/gmail_invoices.log 2>&1
-```
-
-> macOS: Terminal braucht Festplattenvollzugriff unter Systemeinstellungen → Datenschutz & Sicherheit.
-
 ---
 
 ## Dashboard (GitHub Pages)
 
 Aktiviert unter: Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
 
-CSS-Änderungen immer in `docs/src/input.css`, dann neu bauen:
+**CSS:** Kein Build-Step. `docs/styles.css` direkt editieren — plain CSS.
 
-```bash
-cd docs && npm run build:css
-```
+**Firebase:** Settings werden in Firestore `wallbox-manuel` unter `config/settings` gespeichert.  
+Wallbox-Daten kommen aus `haushalte/haushalt.charges[]` im selben Projekt.
 
 ---
 

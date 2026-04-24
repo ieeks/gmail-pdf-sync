@@ -15,6 +15,7 @@ in einem GitHub Pages Dashboard an.
 ~/Developer/gmail-pdf-sync/
 ├── CLAUDE.md                  ← diese Datei
 ├── README.md                  ← öffentliche Dokumentation
+├── TODO.md                    ← offene Punkte + Roadmap
 ├── gmail_invoices.py          ← PDFs aus Gmail → iCloud Download
 ├── extract_verbund.py         ← PDFs parsen → data/*.json
 ├── .env                       ← GMAIL_APP_PASSWORD (nicht im Repo)
@@ -22,15 +23,10 @@ in einem GitHub Pages Dashboard an.
 ├── data/
 │   ├── rennweg.json           ← nur Zahlen, kein Datenschutz-relevantes Material
 │   └── aspangstrasse.json
-├── docs/
-│   ├── index.html             ← GitHub Pages Dashboard
-│   ├── styles.css             ← generiertes CSS (nie direkt editieren!)
-│   ├── script.js              ← Dashboard-Logik + Chart.js
-│   ├── src/
-│   │   └── input.css          ← CSS-Quelle (Tailwind + Custom)
-│   ├── package.json           ← npm Build-Config
-│   └── tailwind.config.js     ← Tailwind Theme (Farben, Fonts)
-└── .gitignore
+└── docs/
+    ├── index.html             ← GitHub Pages Dashboard (App-Shell)
+    ├── styles.css             ← Plain CSS Design System (direkt editierbar, kein Build!)
+    └── script.js              ← SPA-Logik, Charts, Firebase
 ```
 
 ---
@@ -49,11 +45,9 @@ cp .env.example .env
 
 # 4. Einmalig testen
 python3 ~/Developer/gmail-pdf-sync/gmail_invoices.py
-
-# 5. Cron einrichten (täglich 08:00)
-# crontab -e → folgende Zeile einfügen (DEINNAME ersetzen):
-# 0 8 * * * /usr/bin/python3 /Users/DEINNAME/Developer/gmail-pdf-sync/gmail_invoices.py >> /Users/DEINNAME/Developer/gmail-pdf-sync/gmail_invoices.log 2>&1
 ```
+
+Der tägliche Sync läuft via GitHub Actions (`.github/workflows/sync.yml`, 07:00 UTC).
 
 ---
 
@@ -65,7 +59,7 @@ Beide Nummern in `extract_verbund.py` unter `ZAEHLPUNKTE` eintragen:
 ```python
 ZAEHLPUNKTE = {
     "AT00200000000000000000000001": "rennweg",        # ← echte Nummer eintragen
-    "AT00200000000000000000000002": "aspangstrasse",  # ← echte Nummer eintragen
+    "AT0010000000000000001000015183029": "aspangstrasse",  # ← eingetragen
 }
 ```
 
@@ -86,18 +80,9 @@ ZAEHLPUNKTE = {
 ```python
 GMAIL_USER         = "manuel.rechnungen@gmail.com"
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")  # aus .env laden
-GMAIL_LABEL        = "Rechnungen"              # exakter Label-Name in Gmail
+GMAIL_LABEL        = "Rechnungen"
 ICLOUD_BASE        = Path("/Users/manuel/Documents/11_Developer/gmail-pdf-sync/invoices")
 ```
-
-App-Passwort wird via `python-dotenv` aus `.env` im Projektordner geladen — nie hardcoden.
-
-**Gmail App-Passwort erstellen:**
-→ https://myaccount.google.com/apppasswords
-→ Name: „PDF Downloader" → 16-stelliges Passwort ohne Leerzeichen eintragen
-
-**Gmail IMAP aktivieren:**
-→ Gmail → Einstellungen → Alle Einstellungen → Weiterleitung und POP/IMAP → IMAP aktivieren
 
 ---
 
@@ -127,87 +112,32 @@ App-Passwort wird via `python-dotenv` aus `.env` im Projektordner geladen — ni
 
 **NICHT extrahieren:** Anlagenadresse, Kundennummer, Anlagenummer, Name, Zählerstand-Details
 
-**Regex-Muster für Verbund-PDFs (Seite 1):**
-```
-Rechnungsdatum:     r"Rechnungsdatum:\s*(\d{2}\.\d{2}\.\d{4})"
-Abrechnungszeitraum: r"Abrechnungszeitraum:\s*(\d{2}\.\d{2}\.\d{4})\s*-\s*(\d{2}\.\d{2}\.\d{4})"
-Stromverbrauch:     r"Stromverbrauch:\s*([\d.,]+)\s*kWh"
-Energiekosten:      r"Energiekosten\s+([\d.,]+)"
-Netzgebühren:       r"Netzgeb[üu]hren.*?\s+([\d.,]+)"  (letzter Match auf Seite 1)
-Steuern:            r"Steuern und Abgaben\s+([\d.,]+)"
-Gesamtkosten:       r"Ihre Gesamtkosten inkl\. USt\.\s+([\d.,]+)"
-Rechnungsnummer:    r"Rechnungsnummer:\s*(\S+)"
-```
-
-**Zählpunkt (Seite 2):**
-```
-r"Zählpunkt:\s*(AT\w+)"
-```
-
-**Wichtig bei Zahlen:** Verbund verwendet deutsches Format (`1.890,50`) → vor `float()` umwandeln:
-```python
-def parse_num(s): return float(s.replace('.','').replace(',','.'))
-```
-
----
-
-## data/*.json — Format
-
-Die JSON-Dateien sind Arrays, neueste Einträge werden angehängt:
-
-```json
-[
-  {
-    "rechnungsdatum":  "2024-02-05",
-    "zeitraum_von":    "2023-02-01",
-    "zeitraum_bis":    "2024-01-31",
-    "kwh":             1820.0,
-    "energiekosten":   148.50,
-    "netzgebuehren":   138.20,
-    "steuern":         78.10,
-    "gesamt_inkl_ust": 437.60,
-    "rechnungsnummer": "RNR2024001"
-  }
-]
-```
-
 ---
 
 ## CSS Build
 
-Alle CSS-Änderungen gehen in `docs/src/input.css`.
-Nach jeder CSS-Änderung IMMER ausführen:
-```bash
-cd docs && npm run build:css
-```
-Dann `docs/styles.css` committen — **nie `styles.css` direkt editieren.**
+**Kein Build-Step.** `docs/styles.css` direkt editieren — es ist plain CSS.
+Tailwind und `docs/src/input.css` sind nicht mehr in Verwendung.
 
 ---
 
-## docs/ — GitHub Pages Dashboard
+## docs/ — GitHub Pages Dashboard (VoltMetric Pro)
 
 - Frontend ist in `index.html`, `styles.css` und `script.js` aufgeteilt
 - Liest `../data/rennweg.json` und `../data/aspangstrasse.json`
 - Fällt bei fehlenden Daten automatisch auf Demo-Daten zurück
-- Aktuelle Farbpalette:
-  - Primary = `#005FB8`
-  - Rennweg = `#008080`
-  - Hinweis-/Steuer-Akzent = `#F59E0B`
-  - Neutral = `#45474A`
-- Zeigt aktuell:
-  - Summary-Cards
-  - Verbrauchsvergleich (Overview)
-  - Kosten-Charts + Trend-Charts (Insights)
-  - Historien-Tabelle (Archive)
-- Designrichtung:
-  - leichtes, editorielles Dashboard
-  - kühler `Volt & Grid`-Look statt warmem Utility-Look
-  - mobile und GitHub-Pages-kompatibel
+- **Farbpalette (VoltMetric Pro):**
+  - Teal `#00C2A8` = Rennweg
+  - Amber `#F59E0B` = Aspangstraße
+  - Ink `#0D1B2E` = Text
+  - Hero-Gradient: `#003D35 → #007A6A`
+- **Fonts:** Plus Jakarta Sans (Headings), Inter (UI), IBM Plex Mono (Zahlen)
+- **Screens:** Overview · Insights · Billing Archive · Settings
 
 **Mobile Layout:**
-- Unter 768px zeigt Overview die native Mobile Glance View (kein Chart)
-- Alle anderen Tabs (Insights, Archive, Settings) zeigen Desktop-Layout via `body.m-desktop-screen`
-- Navigation: `#mobileBottomNav` (fixierte Tab-Bar unten), die alte `.mobile-nav` wurde entfernt
+- Unter 768px zeigt Overview die Mobile Glance View (kein Chart)
+- Alle anderen Tabs zeigen Desktop-Layout via `body.m-desktop-screen`
+- Navigation: `#mobileBottomNav` (fixierte Tab-Bar unten)
 
 **GitHub Pages aktivieren:**
 → GitHub Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
@@ -228,8 +158,34 @@ const state = {
     monthly: null,            // buildMonthlySeries() — einmalig nach loadData()
   },
   archive: { search, year, location },
-  settings: { ... },
+  settings: { ... },          // geladen via loadSettings() aus Firestore
 };
+```
+
+### Firebase / Firestore
+
+**Projekt:** `wallbox-manuel`  
+**Helper:** `getFirestoreDb()` — initialisiert die Firebase-App einmalig und gibt `db` zurück.
+Wird von `loadWallboxData()`, `loadSettings()` und `saveSettings()` verwendet.
+
+**Collections:**
+```
+wallbox-manuel/
+  haushalte/haushalt          ← Wallbox-Ladedaten (charges[])
+  config/settings             ← Dashboard-Einstellungen (ein Dokument)
+```
+
+**Settings-Strategie (Firestore-first):**
+- `loadSettings()`: liest localStorage als sofortigen Seed, überschreibt dann mit Firestore
+- `saveSettings()`: schreibt localStorage sofort, dann Firestore async
+- Notice im UI zeigt "Firestore · HH:MM" oder "Lokal · HH:MM" je nach Ergebnis
+
+**⚠ Firestore-Regeln müssen gesetzt sein:**
+Firebase Console → `wallbox-manuel` → Firestore → Rules:
+```
+match /config/{doc} {
+  allow read, write: if true;
+}
 ```
 
 ### Wichtige Performance-Regeln
@@ -247,23 +203,18 @@ bevor `renderFn()` aufgerufen wird. Nie direkt `renderOverviewCharts()` oder
 
 **DOM-Selektoren cachen:**
 `domCache.screens` und `domCache.navButtons` werden einmalig in `attachEvents()`
-befüllt. In `activateScreen()` diese gecachten Arrays verwenden, kein
-`querySelectorAll` pro Tab-Wechsel.
+befüllt. In `activateScreen()` diese gecachten Arrays verwenden.
 
 **Berechnungen cachen:**
 `buildYearBuckets()` und `buildMonthlySeries()` laufen einmalig in `init()`
-nach `loadData()` und werden in `state.computed` gespeichert.
-In Render-Funktionen immer `state.computed.yearly` / `state.computed.monthly`
-verwenden.
+und werden in `state.computed` gespeichert.
 
 ### Mobile Canvas-Sichtbarkeit
-Im Mobile-Breakpoint gilt:
 ```css
-canvas { display: none !important; }                    /* Glance-Modus (Overview) */
-body.m-desktop-screen canvas { display: block !important; } /* Insights etc. */
+canvas { display: none !important; }                         /* Glance-Modus */
+body.m-desktop-screen canvas { display: block !important; }  /* Insights etc. */
 ```
 `body.m-desktop-screen` wird gesetzt wenn `activeScreen !== "overview"`.
-Diese Logik ermöglicht den ResizeObserver-Trigger für Charts in Insights.
 
 ---
 
@@ -295,20 +246,20 @@ anonymisierte Zahlen und sind bedenkenlos public.
 **Zählpunkt wird nicht erkannt**
 → PDF manuell öffnen, Seite 2, Zeile „Zählpunkt" → Nummer in ZAEHLPUNKTE eintragen
 
-**Cron läuft nicht (macOS)**
-→ Systemeinstellungen → Datenschutz & Sicherheit → Festplattenvollzugriff → Terminal hinzufügen
-
 **Dashboard zeigt Demo-Daten**
 → `data/rennweg.json` und `data/aspangstrasse.json` existieren noch nicht
 → Script einmal manuell ausführen: `python3 extract_verbund.py /pfad/zur/rechnung.pdf`
 
+**Settings werden nicht in Firestore gespeichert**
+→ Firestore-Regeln für `config/{doc}` prüfen (siehe oben)
+→ Browser-Console auf Firebase-Fehler prüfen
+
 **Charts in Insights auf Mobile leer**
-→ Sicherstellen dass `body.m-desktop-screen canvas { display: block !important }` in `src/input.css` steht
-→ CSS neu bauen: `cd docs && npm run build:css`
+→ Sicherstellen dass `body.m-desktop-screen canvas { display: block !important }` in `styles.css` steht
 
 **CSS-Änderung hat keinen Effekt**
-→ `styles.css` wurde direkt editiert (falsch!) statt `src/input.css`
-→ Korrekt: `src/input.css` editieren → `cd docs && npm run build:css` → `styles.css` committen
+→ `styles.css` ist plain CSS und wird direkt editiert — kein Build nötig
+→ Browser-Cache leeren (Cmd+Shift+R)
 
 **Chart zeigt alte Daten nach Data-Reload**
 → Nach `loadData()` muss `destroyCharts()` aufgerufen werden und `state.computed` neu befüllt werden

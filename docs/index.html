@@ -4,23 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VoltMetric Pro | Energy Billing Dashboard</title>
-  <meta name="description" content="Editoriales Stromkosten-Dashboard fuer Rennweg und Aspangstrasse.">
+  <meta name="description" content="Energiekosten-Dashboard für Rennweg und Aspangstrasse.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL,GRAD,opsz@400,0,0,24" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body class="min-h-screen bg-paper font-sans text-ink">
-  <div class="pointer-events-none fixed inset-0 overflow-hidden">
-    <div class="absolute -left-24 top-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
-    <div class="absolute right-0 top-0 h-80 w-80 rounded-full bg-secondary/10 blur-3xl"></div>
-    <div class="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-accent/10 blur-3xl"></div>
-  </div>
+<body>
 
   <!-- ============================================================
-       MOBILE GLANCE MODE — rendered by renderMobileGlance() in JS
-       Shown only on mobile (< 768px), hidden on desktop via CSS
+       MOBILE GLANCE MODE
+       Shown on mobile (< 768px), overview screen only
        ============================================================ -->
   <div id="mobileGlance">
     <div class="m-topbar">
@@ -33,443 +28,426 @@
         <span class="m-live-text">Live</span>
       </div>
     </div>
-    <div class="m-hero-card" id="mHeroCard"></div>
-    <div class="m-pills-row" id="mPillsRow"></div>
-    <div class="m-wallbox-card" id="mWallboxCard"></div>
-    <div class="m-section-header">
-      <span class="m-section-title">Letzte Aktivität</span>
-      <button class="m-section-link" data-screen-target="archive" type="button">Alle →</button>
+    <div class="m-content">
+      <div class="m-hero-card" id="mHeroCard"></div>
+      <div class="m-loc-split" id="mPillsRow"></div>
+      <div class="m-wallbox-card" id="mWallboxCard" style="display:none"></div>
+      <div class="m-section-header">
+        <span class="m-section-title">Letzte Aktivität</span>
+        <button class="m-section-link" data-screen-target="archive" type="button">Alle →</button>
+      </div>
+      <div class="m-log-list" id="mLogList"></div>
     </div>
-    <div class="m-log-list" id="mLogList"></div>
   </div>
-  <!-- End Mobile Glance -->
 
-  <div id="mainWrapper" class="relative min-h-screen lg:flex">
-    <aside class="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-72 lg:flex-col lg:px-6 lg:py-7">
-      <div class="panel-surface flex h-full flex-col justify-between rounded-[2rem] px-5 py-6">
-        <div class="space-y-8">
-          <div class="space-y-5">
-            <div class="flex items-center gap-3">
-              <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[#1D78D4] text-white shadow-panel">
-                <span class="material-symbols-outlined">bolt</span>
-              </div>
-              <div>
-                <p class="font-display text-xl font-extrabold tracking-tight text-primary">VoltMetric Pro</p>
-                <p class="text-sm text-slate">Energy billing editor</p>
-              </div>
-            </div>
+  <!-- ============================================================
+       APP SHELL (desktop + mobile non-overview screens)
+       ============================================================ -->
+  <div class="app">
 
-            <div class="rounded-[1.6rem] bg-white/80 px-4 py-4 shadow-soft">
-              <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-secondary/20 text-primary">
-                  <span class="material-symbols-outlined">auto_awesome</span>
-                </div>
-                <div>
-                  <p class="font-display text-lg font-bold leading-tight text-ink">The Digital Curator</p>
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate">Energy manager</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <nav class="space-y-2" aria-label="Primäre Navigation">
-            <button class="nav-pill nav-pill-active w-full justify-start" data-screen-target="overview">
-              <span class="material-symbols-outlined">dashboard</span>
-              <span>Overview</span>
-            </button>
-            <button class="nav-pill w-full justify-start" data-screen-target="detail">
-              <span class="material-symbols-outlined">insights</span>
-              <span>Insights</span>
-            </button>
-            <button class="nav-pill w-full justify-start" data-screen-target="archive">
-              <span class="material-symbols-outlined">description</span>
-              <span>Billing Archive</span>
-            </button>
-            <button class="nav-pill w-full justify-start" data-screen-target="settings">
-              <span class="material-symbols-outlined">settings</span>
-              <span>Settings</span>
-            </button>
-          </nav>
-
-          <div class="panel-soft space-y-4 rounded-[1.6rem] p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Data mode</p>
-                <p class="mt-1 font-display text-lg font-bold text-ink" id="sidebarDataMode">Initialisiere</p>
-              </div>
-              <span class="status-chip bg-secondary/15 text-secondary" id="sidebarPulse">
-                <span class="pulse-dot bg-secondary"></span>
-                Live
-              </span>
-            </div>
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Last update</p>
-              <p class="mt-1 text-sm font-medium text-ink" id="sidebarLastUpdate">-</p>
-            </div>
-            <button class="action-primary w-full" id="manualSyncButton" type="button">Run manual sync</button>
-          </div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-mark">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M9 2L6 9H9L8 16L12 9H9Z" fill="#fff"/>
+          </svg>
         </div>
+        <div>
+          <div class="sidebar-logo-name">VoltMetric Pro</div>
+          <div class="sidebar-logo-sub">Energy billing editor</div>
+        </div>
+      </div>
 
-        <div class="space-y-2 text-sm text-slate">
-          <div class="nav-pill w-full justify-start !bg-transparent !px-3 !py-2.5">
-            <span class="material-symbols-outlined">help</span>
-            <span>Help</span>
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">M</div>
+        <div>
+          <div class="sidebar-user-name">manuel.rechnungen</div>
+          <div class="sidebar-user-role">Energy manager</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Primäre Navigation">
+        <button class="nav-item nav-item-active" data-screen-target="overview" type="button">
+          <span class="nav-dot"></span>Overview
+        </button>
+        <button class="nav-item" data-screen-target="detail" type="button">
+          <span class="nav-dot"></span>Insights
+        </button>
+        <button class="nav-item" data-screen-target="archive" type="button">
+          <span class="nav-dot"></span>Billing Archive
+        </button>
+        <button class="nav-item" data-screen-target="settings" type="button">
+          <span class="nav-dot"></span>Settings
+        </button>
+      </nav>
+
+      <div class="flex-spacer"></div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-status">
+          <div class="sidebar-live-row">
+            <span class="sidebar-live-dot"></span>
+            <span class="sidebar-live-label" id="sidebarPulse">Live</span>
           </div>
-          <div class="nav-pill w-full justify-start !bg-transparent !px-3 !py-2.5">
-            <span class="material-symbols-outlined">logout</span>
-            <span>Sign out</span>
-          </div>
+          <div class="sidebar-data-mode" id="sidebarDataMode">Initialisiere…</div>
+          <div class="sidebar-last-update" id="sidebarLastUpdate">—</div>
+        </div>
+        <button class="btn-sync" id="manualSyncButton" type="button">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M15.5 9A6.5 6.5 0 1 1 9 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M9 1L12 4.5L9 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Run manual sync
+        </button>
+        <div class="sidebar-links">
+          <a class="sidebar-link" href="#" tabindex="-1">Help</a>
+          <a class="sidebar-link" href="#" tabindex="-1">Sign out</a>
         </div>
       </div>
     </aside>
 
-    <div class="flex-1 lg:pl-72">
-      <header class="sticky top-0 z-30 px-4 pb-3 pt-4 md:px-8 lg:px-10 lg:pt-6">
-        <div class="glass-topbar mx-auto flex max-w-7xl items-center gap-3 rounded-[1.7rem] px-4 py-3 md:px-6">
-          <div class="min-w-0 flex-1">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Energy Billing Dashboard</p>
-            <div class="flex items-center gap-3">
-              <h1 class="truncate font-display text-2xl font-extrabold tracking-tight text-ink md:text-3xl" id="screenTitle">Overview</h1>
-              <span class="status-chip hidden md:inline-flex" id="headerDataMode">Lade Daten</span>
-            </div>
-            <p class="mt-1 max-w-2xl text-sm text-slate" id="screenSubtitle">Kuratiertes Billing-Overview fuer Rennweg und Aspangstrasse.</p>
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-text">
+          <div class="topbar-super">Energy Billing Dashboard</div>
+          <div class="topbar-title-row">
+            <h1 class="topbar-title" id="screenTitle">Overview</h1>
+            <span class="topbar-badge" id="headerDataMode">Lade…</span>
           </div>
-
-          <label class="hidden min-w-[15rem] items-center gap-2 rounded-2xl bg-slate-100/90 px-3 py-2.5 text-slate md:flex">
-            <span class="material-symbols-outlined text-[20px]">search</span>
-            <input id="globalSearch" class="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" type="search" placeholder="Search invoices or insights">
-          </label>
-
-          <button class="icon-button" type="button" aria-label="Benachrichtigungen">
-            <span class="material-symbols-outlined">notifications</span>
-          </button>
-          <button class="icon-button" type="button" aria-label="Profil">
-            <span class="material-symbols-outlined">account_circle</span>
-          </button>
+          <div class="topbar-subtitle" id="screenSubtitle">Kuratiertes Billing-Overview für Rennweg und Aspangstrasse.</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="topbar-search">
+            <svg width="13" height="13" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <circle cx="7.5" cy="7.5" r="5.5" stroke="#96a8bc" stroke-width="1.3"/>
+              <path d="M12 12L16 16" stroke="#96a8bc" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <input id="globalSearch" type="search" placeholder="Search invoices…" aria-label="Rechnungen suchen">
+          </div>
         </div>
       </header>
 
-      <main class="px-4 pb-28 md:px-8 lg:px-10 lg:pb-10">
-        <div class="mx-auto max-w-7xl">
-          <section class="screen screen-active space-y-6" data-screen="overview">
-            <div class="grid gap-6 xl:grid-cols-[1.55fr_0.95fr]">
-              <article class="hero-panel overflow-hidden rounded-[2rem] px-6 py-7 md:px-8">
-                <div class="relative z-10 flex flex-col gap-8">
-                  <div class="max-w-2xl space-y-4">
-                    <span class="status-chip bg-white/18 text-white ring-1 ring-white/20">Digital Curator Layout</span>
-                    <div class="space-y-3">
-                      <h2 class="font-display text-4xl font-extrabold tracking-tight text-white md:text-5xl">Energy footprint, curated like editorial content.</h2>
-                      <p class="max-w-xl text-base leading-7 text-white/78">Der Prototyp verbindet Verbrauch, Kosten und Rechnungsarchiv in einer ruhigen, dichten SPA. Live-JSON wird gelesen, bei leeren oder fehlenden Dateien faellt das Dashboard auf Demo-Daten zurueck.</p>
-                    </div>
-                  </div>
+      <!-- SCREENS -->
+      <div class="screens">
 
-                  <div class="grid gap-3 sm:grid-cols-3" id="overviewHeroStats"></div>
+        <!-- ── OVERVIEW ─────────────────────────────────────────── -->
+        <section class="screen screen-active" data-screen="overview">
+
+          <div class="overview-top">
+            <!-- Hero card filled by renderOverview() -->
+            <div id="heroCard"></div>
+            <!-- Snapshot rail filled by renderOverview() -->
+            <div class="snapshot-rail" id="snapshotRail"></div>
+          </div>
+
+          <!-- KPI strip filled by renderOverview() -->
+          <div class="kpi-grid" id="kpiGrid"></div>
+
+          <div class="charts-row">
+            <div class="chart-panel panel">
+              <div class="chart-header">
+                <div>
+                  <span class="sl">Stacked comparison</span>
+                  <div class="chart-title">Consumption by invoice year</div>
                 </div>
-              </article>
-
-              <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Current mix</p>
-                    <h3 class="mt-2 font-display text-2xl font-bold tracking-tight text-ink">Portfolio snapshot</h3>
-                  </div>
-                  <span class="status-chip amber">Tax aware</span>
-                </div>
-
-                <div class="mt-6 space-y-4" id="snapshotCards"></div>
-              </article>
+                <span class="tag tag-teal">kWh</span>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="overviewConsumptionChart"></canvas>
+              </div>
+              <div class="hidden" id="wallboxKennzahl"></div>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" id="kpiGrid"></div>
-
-            <div class="grid gap-6 xl:grid-cols-[1.25fr_1.25fr_0.9fr]">
-              <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Stacked comparison</p>
-                    <h3 class="mt-2 font-display text-2xl font-bold tracking-tight">Consumption by invoice year</h3>
-                  </div>
-                  <span class="status-chip teal">kWh</span>
+            <div class="chart-panel panel">
+              <div class="chart-header">
+                <div>
+                  <span class="sl">Stacked comparison</span>
+                  <div class="chart-title">Cost by invoice year</div>
                 </div>
-                <div class="mt-6 h-[21rem]">
-                  <canvas id="overviewConsumptionChart"></canvas>
-                </div>
-                <div class="mt-4 hidden" id="wallboxKennzahl"></div>
-              </article>
-
-              <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Stacked comparison</p>
-                    <h3 class="mt-2 font-display text-2xl font-bold tracking-tight">Cost by invoice year</h3>
-                  </div>
-                  <span class="status-chip amber">EUR</span>
-                </div>
-                <div class="mt-6 h-[21rem]">
-                  <canvas id="overviewCostChart"></canvas>
-                </div>
-              </article>
-
-              <article class="panel-soft rounded-[2rem] p-5 md:p-6">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Recent logs</p>
-                    <h3 class="mt-2 font-display text-2xl font-bold tracking-tight">Last captures</h3>
-                  </div>
-                </div>
-                <div class="mt-6 space-y-3" id="recentLogs"></div>
-              </article>
+                <span class="tag tag-amber">EUR</span>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="overviewCostChart"></canvas>
+              </div>
             </div>
-          </section>
 
-          <section class="screen space-y-6" data-screen="detail">
-            <div class="grid gap-4 xl:grid-cols-2" id="detailLocationCards"></div>
+            <div class="recent-logs-panel panel">
+              <div class="recent-logs-title">Last captures</div>
+              <div id="recentLogs"></div>
+              <div class="flex-spacer"></div>
+              <button class="btn-archive" data-screen-target="archive" type="button">All invoices →</button>
+            </div>
+          </div>
 
-            <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Monthly trend</p>
-                  <h2 class="mt-2 font-display text-3xl font-bold tracking-tight">Normalized consumption runway</h2>
+        </section>
+
+        <!-- ── INSIGHTS ──────────────────────────────────────────── -->
+        <section class="screen" data-screen="detail">
+
+          <div class="detail-loc-grid" id="detailLocationCards"></div>
+
+          <div class="panel monthly-chart-panel">
+            <div class="monthly-chart-header">
+              <div>
+                <span class="sl">Monthly trend</span>
+                <div class="chart-title">Consumption runway · 18 months</div>
+              </div>
+              <div class="monthly-chart-legend">
+                <div class="chart-legend-item">
+                  <span class="chart-legend-dot" style="background:rgba(0,194,168,0.88)"></span>Rennweg
                 </div>
-                <span class="status-chip bg-secondary/15 text-secondary">12m cadence</span>
-              </div>
-              <div class="mt-6 h-[23rem]">
-                <canvas id="detailTrendChart"></canvas>
-              </div>
-            </article>
-
-            <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Monthly trend</p>
-                  <h2 class="mt-2 font-display text-3xl font-bold tracking-tight">Normalized cost curve</h2>
+                <div class="chart-legend-item">
+                  <span class="chart-legend-dot" style="background:rgba(245,158,11,0.82)"></span>Aspangstr.
                 </div>
-                <span class="status-chip bg-accent/16 text-[#8A5A00]">Tax included</span>
               </div>
-              <div class="mt-6 h-[23rem]">
-                <canvas id="detailCostTrendChart"></canvas>
-              </div>
-            </article>
+            </div>
+            <div class="chart-canvas-wrap" style="min-height:220px">
+              <canvas id="detailTrendChart"></canvas>
+            </div>
+          </div>
 
-            <article class="panel-soft rounded-[2rem] p-5 md:p-6">
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Invoice list</p>
-                  <h2 class="mt-2 font-display text-3xl font-bold tracking-tight">Detailed billing history</h2>
+          <div class="panel monthly-chart-panel">
+            <div class="monthly-chart-header">
+              <div>
+                <span class="sl">Monthly trend</span>
+                <div class="chart-title">Cost curve · 18 months</div>
+              </div>
+              <div class="monthly-chart-legend">
+                <div class="chart-legend-item">
+                  <span class="chart-legend-dot" style="background:rgba(0,194,168,0.88)"></span>Rennweg
                 </div>
-                <button class="action-secondary" data-screen-target="archive" type="button">Open archive</button>
-              </div>
-              <div class="mt-6 grid gap-4 xl:grid-cols-2" id="detailInvoices"></div>
-            </article>
-          </section>
-
-          <section class="screen space-y-6" data-screen="archive">
-            <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-              <div class="grid gap-4 xl:grid-cols-[1.6fr_0.8fr_0.8fr]">
-                <label class="field-shell">
-                  <span class="field-label">Search</span>
-                  <input id="archiveSearch" class="ghost-input" type="search" placeholder="Invoice number, date, location">
-                </label>
-                <label class="field-shell">
-                  <span class="field-label">Year</span>
-                  <select id="archiveYear" class="ghost-input">
-                    <option value="all">Alle Jahre</option>
-                  </select>
-                </label>
-                <label class="field-shell">
-                  <span class="field-label">Location</span>
-                  <select id="archiveLocation" class="ghost-input">
-                    <option value="all">Alle Orte</option>
-                    <option value="rennweg">Rennweg</option>
-                    <option value="aspangstrasse">Aspangstrasse</option>
-                  </select>
-                </label>
-              </div>
-            </article>
-
-            <article class="panel-soft rounded-[2rem] p-3 md:p-4">
-              <div class="overflow-hidden rounded-[1.5rem] bg-white/80">
-                <div class="overflow-x-auto">
-                  <table class="min-w-full text-left text-sm">
-                    <thead>
-                      <tr class="text-xs uppercase tracking-[0.2em] text-slate">
-                        <th class="px-5 py-4 font-semibold">Invoice</th>
-                        <th class="px-5 py-4 font-semibold">Location</th>
-                        <th class="px-5 py-4 font-semibold">Period</th>
-                        <th class="px-5 py-4 font-semibold">kWh</th>
-                        <th class="px-5 py-4 font-semibold">Energy</th>
-                        <th class="px-5 py-4 font-semibold">Total</th>
-                        <th class="px-5 py-4 font-semibold">Preview</th>
-                      </tr>
-                    </thead>
-                    <tbody id="archiveTableBody"></tbody>
-                  </table>
+                <div class="chart-legend-item">
+                  <span class="chart-legend-dot" style="background:rgba(245,158,11,0.82)"></span>Aspangstr.
                 </div>
-                <div class="hidden px-5 py-10 text-center text-slate" id="archiveEmpty">Keine Rechnungen fuer diesen Filter.</div>
               </div>
-            </article>
-          </section>
+            </div>
+            <div class="chart-canvas-wrap" style="min-height:220px">
+              <canvas id="detailCostTrendChart"></canvas>
+            </div>
+          </div>
 
-          <section class="screen space-y-6" data-screen="settings">
-            <div class="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
-              <form class="space-y-6" id="settingsForm">
-                <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-                  <div class="flex items-start justify-between gap-4">
-                    <div>
-                      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Gmail integration</p>
-                      <h2 class="mt-2 font-display text-3xl font-bold tracking-tight">Sync configuration</h2>
-                    </div>
-                    <span class="status-chip bg-secondary/15 text-secondary">
-                      <span class="pulse-dot bg-secondary"></span>
-                      Connected
-                    </span>
+          <div class="panel billing-history-panel">
+            <div class="billing-history-header">
+              <div class="billing-history-title">Billing history</div>
+              <button class="btn-open-archive" data-screen-target="archive" type="button">Open archive →</button>
+            </div>
+            <div class="billing-cols" id="detailInvoices"></div>
+          </div>
+
+        </section>
+
+        <!-- ── ARCHIVE ───────────────────────────────────────────── -->
+        <section class="screen" data-screen="archive">
+
+          <div class="panel archive-filters-panel">
+            <div class="archive-filters">
+              <div class="archive-filter-group wide">
+                <span class="sl">Search</span>
+                <div class="archive-search-wrap">
+                  <svg width="13" height="13" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <circle cx="7.5" cy="7.5" r="5.5" stroke="#96a8bc" stroke-width="1.3"/>
+                    <path d="M12 12L16 16" stroke="#96a8bc" stroke-width="1.3" stroke-linecap="round"/>
+                  </svg>
+                  <input id="archiveSearch" class="archive-search-input" type="search" placeholder="Invoice number, date, location" aria-label="Rechnungen filtern">
+                </div>
+              </div>
+              <div class="archive-filter-group">
+                <span class="sl">Year</span>
+                <select id="archiveYear" class="archive-select" aria-label="Jahr filtern">
+                  <option value="all">Alle Jahre</option>
+                </select>
+              </div>
+              <div class="archive-filter-group">
+                <span class="sl">Location</span>
+                <select id="archiveLocation" class="archive-select" aria-label="Standort filtern">
+                  <option value="all">Alle Orte</option>
+                  <option value="rennweg">Rennweg</option>
+                  <option value="aspangstrasse">Aspangstrasse</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel archive-table-panel">
+            <div class="archive-table-head">
+              <span class="archive-th">Invoice</span>
+              <span class="archive-th">Location</span>
+              <span class="archive-th">Period</span>
+              <span class="archive-th">kWh</span>
+              <span class="archive-th">Energy</span>
+              <span class="archive-th">Total</span>
+              <span class="archive-th">Open</span>
+            </div>
+            <div id="archiveTableBody"></div>
+            <div class="archive-empty hidden" id="archiveEmpty">Keine Rechnungen für diesen Filter.</div>
+          </div>
+
+        </section>
+
+        <!-- ── SETTINGS ──────────────────────────────────────────── -->
+        <section class="screen" data-screen="settings">
+          <div class="settings-grid">
+
+            <form class="settings-col-left" id="settingsForm">
+              <div class="panel settings-panel">
+                <div class="settings-panel-header">
+                  <span class="settings-panel-title">Sync configuration</span>
+                  <div class="connected-badge">
+                    <span class="connected-dot"></span>
+                    <span class="connected-label">Connected</span>
                   </div>
-
-                  <div class="mt-6 grid gap-4 md:grid-cols-2">
-                    <label class="field-shell md:col-span-2">
-                      <span class="field-label">Account email</span>
-                      <input id="gmailAccount" class="ghost-input" type="email" placeholder="manuel.rechnungen@gmail.com">
-                    </label>
-                    <label class="field-shell">
-                      <span class="field-label">Filter label</span>
-                      <input id="gmailLabel" class="ghost-input" type="text" placeholder="Rechnungen">
-                    </label>
-                    <label class="field-shell">
-                      <span class="field-label">Sync frequency</span>
-                      <select id="syncFrequency" class="ghost-input">
+                </div>
+                <div class="settings-fields">
+                  <div class="field-group">
+                    <span class="field-label-text">Account email</span>
+                    <input id="gmailAccount" class="field-input" type="email" placeholder="manuel.rechnungen@gmail.com">
+                  </div>
+                  <div class="field-row">
+                    <div class="field-group">
+                      <span class="field-label-text">Filter label</span>
+                      <input id="gmailLabel" class="field-input" type="text" placeholder="Rechnungen">
+                    </div>
+                    <div class="field-group">
+                      <span class="field-label-text">Sync frequency</span>
+                      <select id="syncFrequency" class="field-select">
                         <option value="6h">Every 6 hours</option>
                         <option value="daily">Daily</option>
                         <option value="weekly">Weekly</option>
                       </select>
-                    </label>
-                  </div>
-                </article>
-
-                <article class="panel-soft rounded-[2rem] p-5 md:p-6">
-                  <div class="flex items-start justify-between gap-4">
-                    <div>
-                      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Meter points</p>
-                      <h2 class="mt-2 font-display text-3xl font-bold tracking-tight">Locations and IDs</h2>
-                    </div>
-                    <button class="action-secondary" id="addPointButton" type="button">Add point</button>
-                  </div>
-
-                  <div class="mt-6 grid gap-4 md:grid-cols-2">
-                    <label class="field-shell">
-                      <span class="field-label">Rennweg</span>
-                      <input id="meterRennweg" class="ghost-input" type="text" placeholder="AT002000000000000000123456789">
-                    </label>
-                    <label class="field-shell">
-                      <span class="field-label">Aspangstrasse</span>
-                      <input id="meterAspang" class="ghost-input" type="text" placeholder="AT0020000000000000987654321">
-                    </label>
-                  </div>
-                </article>
-              </form>
-
-              <div class="space-y-6">
-                <article class="panel-surface rounded-[2rem] p-5 md:p-6">
-                  <div class="flex items-start gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/16 text-[#8A5A00]">
-                      <span class="material-symbols-outlined">palette</span>
-                    </div>
-                    <div>
-                      <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Preferences</p>
-                      <h2 class="mt-2 font-display text-3xl font-bold tracking-tight">Dashboard defaults</h2>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div class="mt-6 space-y-4">
-                    <label class="field-shell">
-                      <span class="field-label">Default currency</span>
-                      <select id="currency" class="ghost-input">
-                        <option value="EUR">EUR</option>
-                        <option value="USD">USD</option>
-                        <option value="CHF">CHF</option>
-                      </select>
-                    </label>
-                    <label class="field-shell">
-                      <span class="field-label">Base directory</span>
-                      <input id="baseDirectory" class="ghost-input" type="text" placeholder="/iCloud/Drive/Energy_Sync/Invoices">
-                    </label>
-                    <label class="field-shell">
-                      <span class="field-label">Data output target</span>
-                      <input id="outputTarget" class="ghost-input" type="text" placeholder="/VoltMetric/Output/JSON">
-                    </label>
-                    <label class="toggle-row">
-                      <span>
-                        <span class="field-label !mb-1 !text-left">Live sync pulse</span>
-                        <span class="text-sm text-slate">Zeigt aktive Sync-Indikatoren im UI.</span>
-                      </span>
-                      <input id="livePulse" class="h-5 w-5 accent-primary" type="checkbox">
-                    </label>
+              <div class="panel settings-panel">
+                <div class="settings-panel-header">
+                  <span class="settings-panel-title">Meter points</span>
+                  <button class="btn-add-point" id="addPointButton" type="button">+ Add point</button>
+                </div>
+                <div class="meter-points-grid">
+                  <div class="meter-point">
+                    <span class="field-label-text">Rennweg</span>
+                    <input id="meterRennweg" class="field-input" type="text" placeholder="AT002000000000000000123456789">
                   </div>
-                </article>
+                  <div class="meter-point">
+                    <span class="field-label-text">Aspangstrasse</span>
+                    <input id="meterAspang" class="field-input" type="text" placeholder="AT0020000000000000987654321">
+                  </div>
+                </div>
+              </div>
+            </form>
 
-                <article class="panel-soft rounded-[2rem] p-5 md:p-6">
-                  <div class="space-y-3">
-                    <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Prototype note</p>
-                    <h3 class="font-display text-2xl font-bold tracking-tight">Local-first settings</h3>
-                    <p class="text-sm leading-7 text-slate">Diese Einstellungen werden nur im Browser per <code>localStorage</code> gehalten. Sie aendern keine Python-Konfiguration, geben dir aber direkt eine UI-Struktur fuer den finalen Settings-Screen.</p>
+            <div class="settings-col-right">
+              <div class="panel settings-panel">
+                <div class="settings-prefs-title">Dashboard defaults</div>
+                <div class="settings-fields">
+                  <div class="field-group">
+                    <span class="field-label-text">Default currency</span>
+                    <select id="currency" class="field-select">
+                      <option value="EUR">EUR</option>
+                      <option value="USD">USD</option>
+                      <option value="CHF">CHF</option>
+                    </select>
                   </div>
-                  <div class="mt-6 flex flex-wrap items-center gap-3">
-                    <button class="action-primary" form="settingsForm" type="submit">Save changes</button>
-                    <span class="text-sm text-slate" id="settingsNotice">Noch nichts gespeichert.</span>
+                  <div class="field-group">
+                    <span class="field-label-text">Base directory</span>
+                    <input id="baseDirectory" class="field-input" type="text" placeholder="/iCloud/Drive/Energy_Sync">
                   </div>
-                </article>
+                  <div class="field-group">
+                    <span class="field-label-text">Data output target</span>
+                    <input id="outputTarget" class="field-input" type="text" placeholder="/VoltMetric/Output/JSON">
+                  </div>
+                  <div class="live-sync-row">
+                    <span class="live-sync-label">Live sync pulse — zeigt aktive Sync-Indikatoren im UI.</span>
+                    <button class="pill-toggle" id="livePulseToggle" type="button" aria-pressed="true"></button>
+                    <input id="livePulse" type="checkbox" style="display:none" aria-hidden="true">
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel prototype-note">
+                <div class="prototype-note-header">
+                  <span class="prototype-note-icon">⚡</span>
+                  <span class="prototype-note-title">Local-first settings</span>
+                </div>
+                <p class="prototype-note-text">Diese Einstellungen werden per <code>localStorage</code> gehalten. Sie ändern keine Python-Konfiguration, geben aber eine UI-Struktur für den finalen Settings-Screen.</p>
+                <div class="settings-actions">
+                  <button class="btn-save" form="settingsForm" type="submit">Save changes</button>
+                  <span class="settings-notice" id="settingsNotice">Noch nichts gespeichert.</span>
+                </div>
               </div>
             </div>
-          </section>
-        </div>
-      </main>
-    </div>
-  </div>
 
-  <!-- Mobile Bottom Tab Bar -->
+          </div>
+        </section>
+
+      </div><!-- end .screens -->
+    </div><!-- end .main-content -->
+  </div><!-- end .app -->
+
+  <!-- ============================================================
+       MOBILE BOTTOM NAV
+       ============================================================ -->
   <nav id="mobileBottomNav" aria-label="Mobile Navigation">
     <button class="m-nav-tab mobile-nav-pill" data-screen-target="overview" type="button">
-      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor"/></svg>
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/>
+        <rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor"/>
+        <rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor"/>
+        <rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor"/>
+      </svg>
       <span class="m-tab-label">Overview</span>
     </button>
     <button class="m-nav-tab mobile-nav-pill" data-screen-target="detail" type="button">
-      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><polyline points="1,14 5,8 9,10 14,4 17,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <polyline points="1,14 5,8 9,10 14,4 17,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <span class="m-tab-label">Insights</span>
     </button>
     <button class="m-nav-tab mobile-nav-pill" data-screen-target="archive" type="button">
-      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2" y="1" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.3"/><line x1="5" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1"/><line x1="5" y1="9" x2="13" y2="9" stroke="currentColor" stroke-width="1"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1"/></svg>
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <rect x="2" y="1" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.3"/>
+        <line x1="5" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1"/>
+        <line x1="5" y1="9" x2="13" y2="9" stroke="currentColor" stroke-width="1"/>
+        <line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1"/>
+      </svg>
       <span class="m-tab-label">Archive</span>
     </button>
     <button class="m-nav-tab mobile-nav-pill" data-screen-target="settings" type="button">
-      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.3"/></svg>
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/>
+        <circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.3"/>
+      </svg>
       <span class="m-tab-label">Settings</span>
     </button>
   </nav>
 
+  <!-- ============================================================
+       INVOICE MODAL
+       ============================================================ -->
   <div class="modal-shell hidden" id="invoiceModal" aria-hidden="true">
     <div class="modal-backdrop" data-close-modal="true"></div>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <button class="modal-close" id="closeModalButton" type="button" aria-label="Modal schliessen">
-        <span class="material-symbols-outlined">close</span>
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
       </button>
-
-      <div class="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
+      <div class="modal-body">
         <div class="modal-preview" id="modalPreview"></div>
-        <div class="bg-white px-6 py-6 md:px-8">
-          <div class="space-y-2">
-            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate">Extracted data</p>
-            <h2 class="font-display text-3xl font-bold tracking-tight" id="modalTitle">Invoice preview</h2>
-            <p class="text-sm text-slate" id="modalSubtitle">Verbund statement preview</p>
-          </div>
-
-          <div class="mt-6 grid gap-3" id="modalMeta"></div>
-
-          <div class="mt-5 rounded-[1.4rem] bg-accent/12 px-4 py-4 text-sm leading-6 text-[#785000]">
-            Die Werte stammen aus dem strukturierten JSON-Prototyp. Im finalen Flow kann hier spaeter die echte PDF-Vorschau oder ein OCR-Check eingebettet werden.
-          </div>
-
-          <div class="mt-6 grid gap-3">
-            <button class="action-primary" type="button">Verify data</button>
-            <button class="action-secondary" type="button">Edit manually</button>
+        <div class="modal-data">
+          <span class="modal-super">Extracted data</span>
+          <h2 class="modal-title" id="modalTitle">Invoice preview</h2>
+          <p class="modal-subtitle" id="modalSubtitle">Verbund statement preview</p>
+          <div class="modal-meta-grid" id="modalMeta"></div>
+          <div class="modal-note">Die Werte stammen aus dem strukturierten JSON-Datensatz. Im finalen Flow kann hier später die echte PDF-Vorschau oder ein OCR-Check eingebettet werden.</div>
+          <div class="modal-actions">
+            <button class="btn-primary" type="button">Verify data</button>
+            <button class="btn-secondary" type="button">Edit manually</button>
           </div>
         </div>
       </div>
