@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltMetric Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;display:flex;background:#F7F9FB;color:#0F172A;-webkit-font-smoothing:antialiased}
+
+/* ── TOKENS ─────────────────────────────── */
+:root{
+  --teal:#00C2A8;--teal-d:#009E88;--teal-10:rgba(0,194,168,.10);--teal-06:rgba(0,194,168,.06);
+  --amber:#F59E0B;--amber-10:rgba(245,158,11,.10);
+  --green:#22C55E;--green-10:rgba(34,197,94,.10);
+  --red:#EF4444;--red-10:rgba(239,68,68,.10);
+  --indigo:#6366F1;--indigo-10:rgba(99,102,241,.10);
+  --hero1:#003D35;--hero2:#005E50;
+  --card:#fff;--bg:#F7F9FB;
+  --text:#0F172A;--muted:#64748B;--subtle:#94A3B8;
+  --border:#E2E8F0;--border-s:#F1F5F9;
+  --sh-xs:0 1px 3px rgba(15,23,42,.05);
+  --sh-sm:0 2px 8px rgba(15,23,42,.07),0 1px 3px rgba(15,23,42,.04);
+  --sh:0 4px 16px rgba(15,23,42,.08),0 2px 6px rgba(15,23,42,.04);
+  --r:12px;--r-lg:16px;--r-xl:18px;
+  --tr:.16s ease;
+}
+
+/* ── SIDEBAR ─────────────────────────────── */
+.sidebar{
+  width:216px;min-width:216px;
+  background:#111827;
+  display:flex;flex-direction:column;
+  height:100vh;overflow:hidden;
+  position:relative;z-index:20;
+  flex-shrink:0;
+}
+.sb-logo{
+  padding:22px 18px 16px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.logo-mark{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--teal),var(--teal-d));
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-shadow:0 2px 8px rgba(0,194,168,.35);
+}
+.logo-mark svg{width:17px;height:17px}
+.logo-text{line-height:1.2}
+.logo-text .lt1{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;letter-spacing:.5px;color:#fff;display:block}
+.logo-text .lt2{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);display:block}
+
+.sb-user{
+  margin:12px 12px 6px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:10px 12px;
+  display:flex;align-items:center;gap:10px;
+}
+.u-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:#374151;border:1.5px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:#9CA3AF;
+  flex-shrink:0;
+}
+.u-name{font-size:12px;font-weight:600;color:#F9FAFB;display:block}
+.u-role{font-size:10.5px;color:#6B7280;display:block;margin-top:1px}
+
+.sb-nav{padding:8px 10px;flex:1;display:flex;flex-direction:column;gap:2px}
+.nav-section-label{
+  font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:#4B5563;padding:10px 8px 5px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 10px;border-radius:8px;
+  font-size:13px;font-weight:500;color:#9CA3AF;
+  cursor:pointer;transition:background var(--tr),color var(--tr);
+  text-decoration:none;
+}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7;transition:opacity var(--tr)}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#E5E7EB}
+.nav-item:hover svg{opacity:1}
+.nav-item.active{background:rgba(0,194,168,.15);color:#5EEAD4;font-weight:600}
+.nav-item.active svg{opacity:1;color:var(--teal)}
+
+.sb-footer{
+  padding:14px 12px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.sb-live{
+  display:flex;align-items:center;gap:7px;margin-bottom:2px;
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px rgba(34,197,94,.6);
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.sb-live-text{font-size:12.5px;font-weight:700;color:#F9FAFB}
+.sb-live-sub{font-size:10.5px;color:#6B7280;margin-bottom:3px}
+.sb-live-time{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#4B5563;margin-bottom:12px;display:block}
+.btn-sync{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;padding:9px;
+  background:#16A34A;color:#fff;border:none;border-radius:8px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:700;
+  cursor:pointer;transition:background var(--tr),transform var(--tr);
+  letter-spacing:.01em;
+}
+.btn-sync:hover{background:#15803D;transform:translateY(-1px)}
+.btn-sync svg{width:13px;height:13px}
+.sb-links{
+  display:flex;gap:16px;margin-top:10px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+.sb-link{font-size:11px;color:#6B7280;cursor:pointer;transition:color var(--tr)}
+.sb-link:hover{color:#9CA3AF}
+
+/* ── PAGE / TOPBAR ───────────────────────── */
+.page{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh}
+.topbar{
+  padding:16px 28px 12px;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  flex-shrink:0;z-index:10;
+}
+.tb-left{}
+.tb-eyebrow{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle);margin-bottom:3px}
+.tb-title-row{display:flex;align-items:center;gap:10px}
+.tb-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+.live-pill{
+  display:flex;align-items:center;gap:5px;
+  background:var(--teal-10);border:1px solid rgba(0,194,168,.22);
+  color:var(--teal-d);border-radius:20px;padding:3px 10px;
+  font-size:11.5px;font-weight:600;
+}
+.live-pill-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:blink 2s ease-in-out infinite}
+.tb-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ctrl{
+  display:flex;align-items:center;gap:6px;
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  padding:7px 10px;font-size:12.5px;font-weight:500;color:var(--text);
+  cursor:pointer;box-shadow:var(--sh-xs);transition:border-color var(--tr);
+  appearance:none;font-family:'Plus Jakarta Sans',sans-serif;outline:none;
+}
+.ctrl:focus{border-color:var(--teal)}
+.ctrl svg{width:14px;height:14px;color:var(--subtle)}
+
+/* ── MAIN SCROLL ─────────────────────────── */
+.main{flex:1;overflow-y:auto;min-height:0}
+.main::-webkit-scrollbar{width:5px}
+.main::-webkit-scrollbar-track{background:transparent}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+
+/* ── CONTENT GRID ────────────────────────── */
+.content{
+  padding:20px 28px;
+  display:grid;
+  grid-template-columns:1fr 288px;
+  grid-template-rows:auto auto auto auto auto;
+  gap:16px;
+}
+
+/* ── HERO ROW ────────────────────────────── */
+.hero-row{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:1.7fr 0.8fr 0.8fr;
+  gap:14px;
+}
+.hero-card{
+  background:linear-gradient(140deg,var(--hero1) 0%,var(--hero2) 100%);
+  border-radius:var(--r-xl);padding:22px 24px;color:#fff;
+  display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;overflow:hidden;box-shadow:var(--sh);
+  min-height:176px;
+}
+.hero-card::before{
+  content:'';position:absolute;top:-50px;right:-40px;
+  width:180px;height:180px;
+  background:radial-gradient(circle,rgba(0,194,168,.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.45);margin-bottom:6px;
+}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hero-kpi-wrap{}
+.hero-kwh{
+  font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:500;
+  letter-spacing:-2px;line-height:1;color:#fff;
+}
+.hero-kwh-u{font-size:18px;font-weight:300;letter-spacing:0;opacity:.55;margin-left:3px}
+.hero-eur{
+  font-family:'IBM Plex Mono',monospace;font-size:14px;
+  color:rgba(255,255,255,.55);margin-top:5px;letter-spacing:-.3px;
+}
+.hero-trend{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.28);
+  color:#4ADE80;border-radius:20px;padding:4px 10px;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500;
+  white-space:nowrap;flex-shrink:0;
+}
+.hero-trend svg{width:11px;height:11px}
+.hero-subcards{display:flex;gap:10px;margin-top:16px}
+.hero-sc{
+  flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);
+  border-radius:10px;padding:10px 12px;
+  transition:background var(--tr);
+}
+.hero-sc:hover{background:rgba(255,255,255,.12)}
+.hero-sc-label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:6px}
+.hero-sc-kwh{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;color:#fff;letter-spacing:-.5px}
+.hero-sc-kwh span{font-size:11px;font-weight:300;opacity:.5;margin-left:2px}
+.hero-sc-meta{font-size:10.5px;color:rgba(255,255,255,.45);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+
+/* Location Cards */
+.loc-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-xl);padding:18px 18px 16px;
+  box-shadow:var(--sh-sm);display:flex;flex-direction:column;
+  transition:transform var(--tr),box-shadow .22s ease;
+}
+.loc-card:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+.lc-header{
+  margin-bottom:10px;
+}
+.lc-eyebrow{
+  font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--subtle);display:block;margin-bottom:3px;
+}
+.lc-header .lc-loc{font-size:14px;font-weight:700;display:block}
+.lc-kwh{
+  font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:500;
+  letter-spacing:-1px;line-height:1;margin-bottom:4px;
+}
+.lc-kwh span{font-size:14px;font-weight:300;color:var(--muted);letter-spacing:0;margin-left:2px}
+.lc-eur{
+  font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;
+  color:var(--text);margin-bottom:10px;
+}
+.lc-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ct-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
+  padding:3px 8px;border-radius:6px;
+}
+.ct-badge.teal{background:var(--teal-10);color:var(--teal-d);border:1px solid rgba(0,194,168,.18)}
+.ct-badge.amber{background:var(--amber-10);color:#B45309;border:1px solid rgba(245,158,11,.18)}
+.lc-divider{height:1px;background:var(--border-s);margin-bottom:10px}
+.lc-vs-label{font-size:10.5px;color:var(--subtle);margin-bottom:3px}
+.lc-vs-val{
+  display:flex;align-items:center;gap:4px;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;
+}
+.lc-vs-val.down{color:var(--red)}
+.lc-vs-val.up{color:var(--green)}
+.lc-vs-val svg{width:11px;height:11px}
+
+/* ── KPI GRID ────────────────────────────── */
+.kpi-grid{
+  grid-column:1;grid-row:2;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
+  align-items:start;
+}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:12px 14px 11px;
+  box-shadow:var(--sh-xs);position:relative;overflow:hidden;
+  transition:transform var(--tr),box-shadow .22s ease;
+}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--sh-sm)}
+.kpi-icon-float{
+  position:absolute;top:14px;right:14px;
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.kpi-icon-float svg{width:15px;height:15px}
+.kpi-icon-float.amber{background:var(--amber-10);color:var(--amber)}
+.kpi-icon-float.green{background:var(--green-10);color:var(--green)}
+.kpi-icon-float.indigo{background:var(--indigo-10);color:var(--indigo)}
+
+.kpi-label{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:6px;padding-right:32px;display:flex;align-items:center;gap:5px}
+.kpi-label-info{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;border:1.5px solid var(--subtle);color:var(--subtle);font-size:9px;font-style:normal;cursor:default}
+
+/* Card 1: dual ct/kWh */
+.kpi-dual{display:flex;gap:16px;margin-bottom:4px}
+.kpi-dual-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;letter-spacing:-.3px;line-height:1.2;white-space:nowrap}
+.kpi-dual-val.teal{color:var(--teal)}
+.kpi-dual-val.amber{color:var(--amber)}
+.kpi-dual-loc{font-size:11px;font-weight:700;color:var(--text);margin-top:2px}
+.kpi-dual-footer{font-size:10.5px;color:var(--subtle);margin-top:4px}
+
+/* Cards 2-4: single value */
+.kpi-val{
+  font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;
+  letter-spacing:-1px;line-height:1;color:var(--text);margin-bottom:3px;
+}
+.kpi-val .ku{font-size:13px;font-weight:300;color:var(--muted);letter-spacing:0}
+.kpi-sub-label{font-size:10.5px;color:var(--subtle)}
+
+/* ── RIGHT PANEL ─────────────────────────── */
+.right-panel{
+  grid-column:2;grid-row:2/4;
+  display:flex;flex-direction:column;gap:14px;
+}
+.inv-panel{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-sm);
+  flex:1;
+}
+.inv-panel-head{
+  padding:14px 16px 12px;border-bottom:1px solid var(--border-s);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.inv-panel-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--text)}
+.inv-row{
+  padding:10px 16px;border-bottom:1px solid var(--border-s);
+  cursor:pointer;transition:background var(--tr);
+}
+.inv-row:last-of-type{border-bottom:none}
+.inv-row:hover{background:var(--bg)}
+.inv-row-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:4px;
+}
+.inv-nr{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:500;color:var(--text)}
+.inv-date{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--subtle)}
+.inv-row-bot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.inv-loc-pill{
+  font-size:10px;font-weight:600;padding:1.5px 7px;border-radius:4px;
+  display:inline-flex;align-items:center;gap:3px;
+}
+.inv-loc-pill.rw{background:var(--teal-06);color:var(--teal-d);border:1px solid rgba(0,194,168,.15)}
+.inv-loc-pill.as{background:var(--amber-10);color:#B45309;border:1px solid rgba(245,158,11,.15)}
+.inv-loc-pill .dot{width:5px;height:5px;border-radius:50%}
+.inv-loc-pill.rw .dot{background:var(--teal)}
+.inv-loc-pill.as .dot{background:var(--amber)}
+.inv-meta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted)}
+.inv-ct-sm{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;color:var(--indigo);margin-left:auto}
+.inv-panel-foot{
+  padding:10px 16px;border-top:1px solid var(--border-s);
+}
+.btn-all{
+  font-size:12px;font-weight:600;color:var(--teal-d);
+  background:none;border:none;cursor:pointer;padding:0;
+  display:inline-flex;align-items:center;gap:4px;
+  transition:gap var(--tr),color var(--tr);
+}
+.btn-all:hover{gap:7px;color:var(--teal)}
+
+/* Tarif Card */
+.tarif-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-sm);
+  transition:transform var(--tr),box-shadow .22s ease;
+}
+.tarif-card:hover{transform:translateY(-1px);box-shadow:var(--sh)}
+.tarif-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.tarif-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:700;color:var(--text)}
+.tarif-new-pill{
+  font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--teal-10);color:var(--teal-d);border:1px solid rgba(0,194,168,.2);
+  padding:2px 7px;border-radius:5px;
+}
+.tarif-desc{font-size:11px;color:var(--muted);margin-bottom:12px}
+.tarif-divider{height:1px;background:var(--border-s);margin-bottom:12px}
+.tarif-provider-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tarif-provider{font-size:12.5px;font-weight:600;color:var(--text)}
+.tarif-rec-pill{
+  font-size:10px;font-weight:600;color:var(--indigo);
+  border:1.5px solid rgba(99,102,241,.3);border-radius:6px;padding:2px 8px;
+}
+.tarif-nums{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-bottom:2px}
+.tarif-cost{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;color:var(--indigo);letter-spacing:-1px;line-height:1}
+.tarif-cost .tu{font-size:14px;font-weight:300;color:var(--muted);letter-spacing:0}
+.tarif-saving{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#16A34A;letter-spacing:-.5px;text-align:right}
+.tarif-cost-lbl{font-size:10px;color:var(--subtle);margin-bottom:12px}
+.tarif-saving-lbl{font-size:10px;color:#16A34A;text-align:right}
+.tarif-labels{display:flex;justify-content:space-between}
+.btn-tarif-detail{
+  display:flex;align-items:center;gap:4px;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--border-s);
+  font-size:12px;font-weight:600;color:var(--teal-d);
+  background:none;border-left:none;border-right:none;border-bottom:none;
+  cursor:pointer;padding-left:0;padding-right:0;
+  transition:gap var(--tr),color var(--tr);width:100%;
+}
+.btn-tarif-detail:hover{gap:7px;color:var(--teal)}
+
+/* ── CHARTS ROW ──────────────────────────── */
+.charts-row{
+  grid-column:1;grid-row:3;
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+}
+.chart-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-xl);padding:18px 18px 14px;
+  box-shadow:var(--sh-sm);
+  transition:box-shadow .22s ease;
+}
+.chart-card:hover{box-shadow:var(--sh)}
+.chart-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px}
+.chart-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.2px}
+.chart-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.chart-period-sel{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;font-size:11px;font-weight:500;color:var(--muted);
+  cursor:pointer;appearance:none;font-family:'Plus Jakarta Sans',sans-serif;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2394A3B8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 6px center;padding-right:20px;
+  flex-shrink:0;
+}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--muted)}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.chart-wrap{height:185px;position:relative}
+
+/* ── BOTTOM ROW ──────────────────────────── */
+.bottom-row{
+  grid-column:1/-1;grid-row:4;
+  display:grid;grid-template-columns:1fr 1fr 230px;gap:14px;
+  align-items:start;
+}
+
+/* Insights */
+.insights-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);
+}
+.section-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;letter-spacing:-.2px}
+.insights-list{display:flex;flex-direction:column;gap:10px}
+.ins-item{display:flex;align-items:flex-start;gap:10px}
+.ins-ico{
+  width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.ins-ico svg{width:14px;height:14px}
+.ins-ico.teal{background:var(--teal-10);color:var(--teal)}
+.ins-ico.amber{background:var(--amber-10);color:var(--amber)}
+.ins-ico.indigo{background:var(--indigo-10);color:var(--indigo)}
+.ins-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ins-val{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;margin-bottom:2px}
+.ins-val.teal{color:var(--teal-d)}
+.ins-val.amber{color:var(--amber)}
+.ins-val.indigo{color:var(--indigo)}
+.ins-text{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* Kosten/kWh Vergleich */
+.kosten-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);
+}
+.cmp-row{margin-bottom:12px}
+.cmp-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.cmp-name{font-size:11.5px;font-weight:500;color:var(--text)}
+.cmp-val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600}
+.cmp-val.teal{color:var(--teal-d)}
+.cmp-val.amber{color:#B45309}
+.cmp-bar-bg{height:8px;background:var(--border-s);border-radius:4px;overflow:hidden}
+.cmp-bar{height:100%;border-radius:4px;transition:width .6s ease}
+.cmp-bar.teal{background:var(--teal)}
+.cmp-bar.amber{background:var(--amber)}
+.cmp-avg{font-size:10.5px;color:var(--subtle);margin-top:10px}
+
+/* Top Kennzahlen */
+.kennzahlen-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);
+  position:relative;
+}
+.kz-ico{
+  position:absolute;top:14px;right:14px;
+  width:28px;height:28px;border-radius:8px;
+  background:var(--amber-10);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;
+}
+.kz-ico svg{width:15px;height:15px}
+.kz-list{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.kz-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border-s)}
+.kz-row:last-child{border-bottom:none;padding-bottom:0}
+.kz-key{font-size:11.5px;color:var(--muted)}
+.kz-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--text);text-align:right}
+
+/* ── FOOTER ──────────────────────────────── */
+.footer-bar{
+  padding:10px 28px;
+  background:var(--card);border-top:1px solid var(--border);
+  text-align:center;flex-shrink:0;
+}
+.footer-bar p{font-size:11px;color:var(--subtle)}
+</style>
+</head>
+<body>
+
+<!-- ─────────────── SIDEBAR ─────────────── -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 18 18" fill="none"><path d="M10 2L4 10h5l-1 6 6-8h-5l1-6z" fill="white" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="logo-text">
+      <span class="lt1">VOLTMETRIC</span>
+      <span class="lt2">PRO</span>
+    </div>
+  </div>
+
+  <div class="sb-user">
+    <div class="u-avatar">M</div>
+    <div>
+      <span class="u-name">manuel.rechnungen</span>
+      <span class="u-role">Energy manager</span>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="nav-section-label">Menü</div>
+    <a class="nav-item active">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Overview
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+      Insights
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+      Billing Archive
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+      Settings
+    </a>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="sb-live">
+      <div class="live-dot"></div>
+      <span class="sb-live-text">Live</span>
+    </div>
+    <div class="sb-live-sub">Daten aktuell</div>
+    <span class="sb-live-time">24.04.2026, 07:02</span>
+    <button class="btn-sync">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+      Sync jetzt
+    </button>
+    <div class="sb-links">
+      <span class="sb-link">Hilfe</span>
+      <span class="sb-link">Abmelden</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ─────────────── PAGE ─────────────────── -->
+<div class="page">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="tb-eyebrow">Energy Billing Dashboard</div>
+      <div class="tb-title-row">
+        <h1 class="tb-title">Overview</h1>
+        <div class="live-pill">
+          <div class="live-pill-dot"></div>
+          Live-Daten
+        </div>
+      </div>
+      <div class="tb-sub">Deine Stromkosten im Überblick – Rennweg &amp; Aspangstraße</div>
+    </div>
+    <div class="tb-right">
+      <select class="ctrl">
+        <option>EUR</option>
+      </select>
+      <select class="ctrl">
+        <option>Letzte 18 Monate</option>
+        <option>Letzte 12 Monate</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="content">
+
+      <!-- ① HERO ROW (full width) -->
+      <div class="hero-row">
+
+        <!-- Hero Card (dark) -->
+        <div class="hero-card">
+          <div>
+            <div class="hero-eyebrow">Gesamtüberblick – beide Standorte</div>
+            <div class="hero-top">
+              <div class="hero-kpi-wrap">
+                <div class="hero-kwh">20.580<span class="hero-kwh-u"> kWh</span></div>
+                <div class="hero-eur">4.866 € Gesamtkosten</div>
+              </div>
+              <div class="hero-trend">
+                <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 2l4 5H2z"/></svg>
+                12,8% vs Vorjahr
+              </div>
+            </div>
+          </div>
+          <div class="hero-subcards">
+            <div class="hero-sc">
+              <div class="hero-sc-label">Rennweg</div>
+              <div class="hero-sc-kwh">1.780 <span>kWh</span></div>
+              <div class="hero-sc-meta">470,50 € · 26,4 ct/kWh</div>
+            </div>
+            <div class="hero-sc">
+              <div class="hero-sc-label">Aspangstraße</div>
+              <div class="hero-sc-kwh">3.410 <span>kWh</span></div>
+              <div class="hero-sc-meta">776,10 € · 22,8 ct/kWh</div>
+            </div>
+            <div class="hero-sc">
+              <div class="hero-sc-label">Letzte Rechnung</div>
+              <div class="hero-sc-kwh" style="font-size:14px;letter-spacing:-.3px">04.02.2026</div>
+              <div class="hero-sc-meta">vor 79 Tagen</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rennweg Card -->
+        <div class="loc-card">
+          <div class="lc-header">
+            <span class="lc-eyebrow">Letzte Rechnung</span>
+            <span class="lc-loc" style="color:var(--teal-d)">Rennweg</span>
+          </div>
+          <div class="lc-kwh" style="color:var(--teal)">1.780 <span>kWh</span></div>
+          <div class="lc-row">
+            <div class="lc-eur" style="margin-bottom:0">470,50 €</div>
+            <div class="ct-badge teal">26,4 ct/kWh</div>
+          </div>
+          <div class="lc-divider"></div>
+          <div class="lc-vs-label">Vs. Vorperiode</div>
+          <div class="lc-vs-val down">
+            <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 10L2 5h8z"/></svg>
+            −2,1 %
+          </div>
+        </div>
+
+        <!-- Aspangstraße Card -->
+        <div class="loc-card">
+          <div class="lc-header">
+            <span class="lc-eyebrow">Letzte Rechnung</span>
+            <span class="lc-loc" style="color:var(--amber)">Aspangstraße</span>
+          </div>
+          <div class="lc-kwh" style="color:var(--amber)">3.410 <span>kWh</span></div>
+          <div class="lc-row">
+            <div class="lc-eur" style="margin-bottom:0">776,10 €</div>
+            <div class="ct-badge amber">22,8 ct/kWh</div>
+          </div>
+          <div class="lc-divider"></div>
+          <div class="lc-vs-label">Vs. Vorperiode</div>
+          <div class="lc-vs-val up">
+            <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 2l4 5H2z"/></svg>
+            +3,6 %
+          </div>
+        </div>
+
+      </div><!-- /hero-row -->
+
+      <!-- ② KPI GRID (left, row 2) -->
+      <div class="kpi-grid">
+
+        <!-- Card 1: Ø ct/kWh dual -->
+        <div class="kpi-card">
+          <div class="kpi-label">
+            Ø Kosten / kWh
+            <i class="kpi-label-info">i</i>
+          </div>
+          <div class="kpi-dual">
+            <div>
+              <div class="kpi-dual-val teal">26,4 ct/kWh</div>
+              <div class="kpi-dual-loc">Rennweg</div>
+            </div>
+            <div>
+              <div class="kpi-dual-val amber">22,8 ct/kWh</div>
+              <div class="kpi-dual-loc">Aspangstraße</div>
+            </div>
+          </div>
+          <div class="kpi-dual-footer">Beide Standorte</div>
+        </div>
+
+        <!-- Card 2: Gesamtkosten -->
+        <div class="kpi-card">
+          <div class="kpi-icon-float amber">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="kpi-label">Kosten gesamt (18 Monate)</div>
+          <div class="kpi-val">4.866 <span class="ku">€</span></div>
+          <div class="kpi-sub-label">inkl. Netz &amp; Steuern</div>
+        </div>
+
+        <!-- Card 3: Verbrauch -->
+        <div class="kpi-card">
+          <div class="kpi-icon-float green">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="kpi-label">Verbrauch gesamt (18 Monate)</div>
+          <div class="kpi-val">20.580 <span class="ku">kWh</span></div>
+          <div class="kpi-sub-label">beide Standorte</div>
+        </div>
+
+        <!-- Card 4: Wallbox -->
+        <div class="kpi-card">
+          <div class="kpi-icon-float indigo">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
+          </div>
+          <div class="kpi-label">Wallbox (Aspangstraße)</div>
+          <div class="kpi-val">331,6 <span class="ku">kWh</span></div>
+          <div class="kpi-sub-label">diesen Monat</div>
+        </div>
+
+      </div><!-- /kpi-grid -->
+
+      <!-- ③ RIGHT PANEL (rows 2+3) -->
+      <div class="right-panel">
+
+        <!-- Insights -->
+        <div class="insights-card">
+          <div class="section-title">Insights</div>
+          <div class="insights-list">
+            <div class="ins-item">
+              <div class="ins-ico teal">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+              </div>
+              <div>
+                <div class="ins-name">Kosten steigen</div>
+                <div class="ins-val teal">+3,6 % bei Aspangstraße</div>
+                <div class="ins-text">vs. letzter Vorjahreszeitraum</div>
+              </div>
+            </div>
+            <div class="ins-item">
+              <div class="ins-ico amber">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+              </div>
+              <div>
+                <div class="ins-name">Hoher Verbrauch</div>
+                <div class="ins-val amber">Dez–Jan Peak</div>
+                <div class="ins-text">stärkste Monate bei beiden Standorten</div>
+              </div>
+            </div>
+            <div class="ins-item">
+              <div class="ins-ico indigo">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
+              </div>
+              <div>
+                <div class="ins-name">Wallbox-Anteil</div>
+                <div class="ins-val indigo">11 % des Verbrauchs</div>
+                <div class="ins-text">kommen von der Wallbox</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarif Simulation -->
+        <div class="tarif-card">
+          <div class="tarif-head">
+            <div class="tarif-title">Tarif-Simulation</div>
+            <div class="tarif-new-pill">Neu</div>
+          </div>
+          <div class="tarif-desc">Vergleiche und spare klever.</div>
+          <div class="tarif-divider"></div>
+          <div class="tarif-provider-row">
+            <div class="tarif-provider">EVN Nacht-Tarif</div>
+            <div class="tarif-rec-pill">Empfehlung</div>
+          </div>
+          <div class="tarif-nums">
+            <div>
+              <div class="tarif-cost">3.820 <span class="tu">€</span></div>
+            </div>
+            <div style="text-align:right">
+              <div class="tarif-saving">−1.046 €</div>
+            </div>
+          </div>
+          <div class="tarif-labels">
+            <div class="tarif-cost-lbl">Geschätzte Kosten (18 Monate)</div>
+            <div class="tarif-saving-lbl">Ersparnis vs. aktuell</div>
+          </div>
+          <button class="btn-tarif-detail">
+            Details ansehen
+            <svg viewBox="0 0 16 16" fill="currentColor" style="width:11px;height:11px;margin-left:2px"><path d="M1 8a.5.5 0 01.5-.5h11.793l-3.147-3.146a.5.5 0 01.708-.708l4 4a.5.5 0 010 .708l-4 4a.5.5 0 01-.708-.708L13.293 8.5H1.5A.5.5 0 011 8z"/></svg>
+          </button>
+        </div>
+
+      </div><!-- /right-panel -->
+
+      <!-- ④ CHARTS ROW (left, row 3) -->
+      <div class="charts-row">
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Verbrauch – 18 Monate</div>
+            </div>
+            <select class="chart-period-sel"><option>Monatlich</option></select>
+          </div>
+          <div class="chart-legend">
+            <div class="leg-item"><div class="leg-dot" style="background:var(--teal)"></div>Rennweg</div>
+            <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>Aspangstr. Haushalt</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#67E8F9"></div>Aspangstr. Wallbox</div>
+          </div>
+          <div class="chart-wrap"><canvas id="cConsumption"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Kosten – 18 Monate</div>
+            </div>
+            <select class="chart-period-sel"><option>Monatlich</option></select>
+          </div>
+          <div class="chart-legend">
+            <div class="leg-item"><div class="leg-dot" style="background:var(--teal)"></div>Rennweg</div>
+            <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>Aspangstraße</div>
+          </div>
+          <div class="chart-wrap"><canvas id="cCosts"></canvas></div>
+        </div>
+
+      </div><!-- /charts-row -->
+
+      <!-- ⑤ BOTTOM ROW (full width) -->
+      <div class="bottom-row">
+
+        <!-- Letzte Rechnungen -->
+        <div class="inv-panel">
+          <div class="inv-panel-head">
+            <div class="inv-panel-title">Letzte Rechnungen</div>
+          </div>
+          <div class="inv-row">
+            <div class="inv-row-top"><span class="inv-nr">VR-RW-2026-0204</span><span class="inv-date">04.02.2026</span></div>
+            <div class="inv-row-bot"><span class="inv-loc-pill rw"><span class="dot"></span>Rennweg</span><span class="inv-meta">1.780 kWh</span><span class="inv-meta">470,50 €</span><span class="inv-ct-sm">26,4 ct/kWh</span></div>
+          </div>
+          <div class="inv-row">
+            <div class="inv-row-top"><span class="inv-nr">VR-AS-2026-0204</span><span class="inv-date">04.02.2026</span></div>
+            <div class="inv-row-bot"><span class="inv-loc-pill as"><span class="dot"></span>Aspangstraße</span><span class="inv-meta">3.410 kWh</span><span class="inv-meta">776,10 €</span><span class="inv-ct-sm">22,8 ct/kWh</span></div>
+          </div>
+          <div class="inv-row">
+            <div class="inv-row-top"><span class="inv-nr">VR-RW-2025-0203</span><span class="inv-date">03.02.2025</span></div>
+            <div class="inv-row-bot"><span class="inv-loc-pill rw"><span class="dot"></span>Rennweg</span><span class="inv-meta">1.950 kWh</span><span class="inv-meta">496,40 €</span><span class="inv-ct-sm">25,5 ct/kWh</span></div>
+          </div>
+          <div class="inv-row">
+            <div class="inv-row-top"><span class="inv-nr">VR-AS-2025-0203</span><span class="inv-date">03.02.2025</span></div>
+            <div class="inv-row-bot"><span class="inv-loc-pill as"><span class="dot"></span>Aspangstraße</span><span class="inv-meta">3.580 kWh</span><span class="inv-meta">796,60 €</span><span class="inv-ct-sm">22,3 ct/kWh</span></div>
+          </div>
+          <div class="inv-panel-foot">
+            <button class="btn-all">Alle Rechnungen <svg viewBox="0 0 16 16" fill="currentColor" style="width:11px;height:11px"><path d="M1 8a.5.5 0 01.5-.5h11.793l-3.147-3.146a.5.5 0 01.708-.708l4 4a.5.5 0 010 .708l-4 4a.5.5 0 01-.708-.708L13.293 8.5H1.5A.5.5 0 011 8z"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Kosten / kWh Vergleich -->
+        <div class="kosten-card">
+          <div class="section-title">Kosten pro kWh – Vergleich</div>
+          <div class="cmp-row">
+            <div class="cmp-label-row">
+              <span class="cmp-name">Rennweg</span>
+              <span class="cmp-val teal">26,4 ct/kWh</span>
+            </div>
+            <div class="cmp-bar-bg"><div class="cmp-bar teal" style="width:88%"></div></div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-label-row">
+              <span class="cmp-name">Aspangstraße</span>
+              <span class="cmp-val amber">22,8 ct/kWh</span>
+            </div>
+            <div class="cmp-bar-bg"><div class="cmp-bar amber" style="width:76%"></div></div>
+          </div>
+          <div class="cmp-avg">Durchschnitt letzte 18 Monate</div>
+        </div>
+
+        <!-- Top Kennzahlen -->
+        <div class="kennzahlen-card">
+          <div class="section-title" style="padding-right:36px">Deine Top-Kennzahlen</div>
+          <div class="kz-ico">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="kz-list">
+            <div class="kz-row">
+              <span class="kz-key">Gesamtverbrauch</span>
+              <span class="kz-val">20.580 kWh</span>
+            </div>
+            <div class="kz-row">
+              <span class="kz-key">Gesamtkosten</span>
+              <span class="kz-val">4.866 €</span>
+            </div>
+            <div class="kz-row">
+              <span class="kz-key">Ø Kosten / kWh</span>
+              <span class="kz-val">23,6 ct/kWh</span>
+            </div>
+            <div class="kz-row">
+              <span class="kz-key">Letzte Rechnung</span>
+              <span class="kz-val">vor 79 Tagen</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /bottom-row -->
+
+    </div><!-- /content -->
+  </main>
+
+  <footer class="footer-bar">
+    <p>Daten werden täglich um 07:00 Uhr automatisch aktualisiert.</p>
+  </footer>
+
+</div><!-- /page -->
+
+<script>
+const M=['Nov \'24','Dez \'24','Jan \'25','Feb \'25','Mär \'25','Apr \'25','Mai \'25','Jun \'25','Jul \'25','Aug \'25','Sep \'25','Okt \'25','Nov \'25','Dez \'25','Jan \'26'];
+const RW =[152,165,178,162,148,128,112,108,112,120,135,152,165,178,158];
+const ASH=[118,130,140,122,108, 92, 82, 78, 82, 90,102,118,130,140,125];
+const WB = [62, 55, 48, 55, 68, 88,100,105, 96, 80, 65, 52, 48, 45, 55];
+const TR = RW.map((v,i)=>v+ASH[i]+WB[i]);
+const RE =[39, 42, 45, 41, 38, 32, 28, 27, 29, 31, 34, 39, 42, 45, 40];
+const AE =[37, 40, 44, 38, 34, 29, 26, 25, 26, 28, 32, 37, 40, 44, 39];
+
+const BASE={
+  responsive:true,maintainAspectRatio:false,
+  animation:{duration:700,easing:'easeInOutQuart'},
+  plugins:{
+    legend:{display:false},
+    tooltip:{
+      backgroundColor:'#0F172A',titleColor:'#64748B',bodyColor:'#F1F5F9',
+      borderColor:'rgba(255,255,255,.08)',borderWidth:1,
+      cornerRadius:8,padding:9,
+      titleFont:{family:"'Plus Jakarta Sans',sans-serif",size:10},
+      bodyFont:{family:"'IBM Plex Mono',monospace",size:11},
+      displayColors:true,boxWidth:8,boxHeight:8,boxPadding:3,
+    }
+  },
+  scales:{
+    x:{
+      grid:{display:false},border:{display:false},
+      ticks:{font:{family:"'IBM Plex Mono',monospace",size:9},color:'#94A3B8',maxRotation:0,maxTicksLimit:8}
+    },
+    y:{
+      grid:{color:'rgba(226,232,240,.5)',lineWidth:1},border:{display:false},
+      ticks:{font:{family:"'IBM Plex Mono',monospace",size:9},color:'#94A3B8',maxTicksLimit:5}
+    }
+  }
+};
+
+// Chart 1: stacked bars + trend line
+new Chart(document.getElementById('cConsumption'),{
+  type:'bar',
+  data:{
+    labels:M,
+    datasets:[
+      {label:'Rennweg',data:RW,backgroundColor:'rgba(0,194,168,.82)',borderRadius:3,borderSkipped:false,stack:'s'},
+      {label:'Aspangstr. Haushalt',data:ASH,backgroundColor:'rgba(245,158,11,.78)',borderRadius:3,borderSkipped:false,stack:'s'},
+      {label:'Wallbox',data:WB,backgroundColor:'rgba(103,232,249,.70)',borderRadius:3,borderSkipped:false,stack:'s'},
+      {
+        type:'line',label:'Trend',data:TR,
+        borderColor:'rgba(255,255,255,.65)',borderWidth:1.5,
+        pointBackgroundColor:'rgba(255,255,255,.9)',pointBorderColor:'rgba(255,255,255,.9)',
+        pointRadius:2.5,pointHoverRadius:4,
+        fill:false,tension:.35,stack:undefined,
+        tooltip:{callbacks:{label:ctx=>` Gesamt: ${ctx.raw} kWh`}}
+      }
+    ]
+  },
+  options:{
+    ...BASE,
+    plugins:{...BASE.plugins,tooltip:{...BASE.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw} kWh`}}},
+    scales:{...BASE.scales,y:{...BASE.scales.y,stacked:true},x:{...BASE.scales.x,stacked:true}}
+  }
+});
+
+// Chart 2: stacked bar costs
+new Chart(document.getElementById('cCosts'),{
+  type:'bar',
+  data:{
+    labels:M,
+    datasets:[
+      {label:'Rennweg',data:RE,backgroundColor:'rgba(0,194,168,.82)',borderRadius:3,borderSkipped:false,stack:'c'},
+      {label:'Aspangstraße',data:AE,backgroundColor:'rgba(245,158,11,.78)',borderRadius:3,borderSkipped:false,stack:'c'},
+    ]
+  },
+  options:{
+    ...BASE,
+    plugins:{...BASE.plugins,tooltip:{...BASE.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw} €`}}},
+    scales:{...BASE.scales,y:{...BASE.scales.y,stacked:true},x:{...BASE.scales.x,stacked:true}}
+  }
+});
+</script>
+</body>
+</html>

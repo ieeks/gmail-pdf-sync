@@ -249,6 +249,13 @@ function formatPeriod(entry) {
   return `${formatDate(entry.zeitraumVon)} - ${formatDate(entry.zeitraumBis)}`;
 }
 
+function daysAgo(dateObj) {
+  const days = Math.floor((Date.now() - dateObj.getTime()) / 86400000);
+  if (days === 0) return "heute";
+  if (days === 1) return "vor 1 Tag";
+  return `vor ${days} Tagen`;
+}
+
 function locationLabel(location) {
   return location === "rennweg" ? "Rennweg" : "Aspangstrasse";
 }
@@ -890,118 +897,196 @@ function renderStatus() {
 function renderOverview() {
   const summary = getSummary(state.data);
 
+  // ① Hero Card
   document.getElementById("heroCard").innerHTML = `
     <div class="hero-card">
-      <div class="hero-live-badge">
-        <span class="hero-live-dot"></span>
-        <span class="hero-live-label">Live</span>
-      </div>
-      <span class="hero-super">Gesamtüberblick · beide Standorte</span>
-      <div class="hero-value">${formatNumber(summary.totalKwh)}<span class="hero-value-unit"> kWh</span></div>
-      <div class="hero-sub">${formatCompactCurrency(summary.totalCost)} Gesamtkosten</div>
-      <div class="hero-tiles">
-        <div class="hero-tile">
-          <span class="hero-tile-label">Rennweg</span>
-          <div class="hero-tile-val">${formatNumber(summary.latestRennweg.kwh)}<span class="hero-tile-unit"> kWh</span></div>
-        </div>
-        <div class="hero-tile">
-          <span class="hero-tile-label">Aspangstr.</span>
-          <div class="hero-tile-val">${formatNumber(summary.latestAspang.kwh)}<span class="hero-tile-unit"> kWh</span></div>
-        </div>
-        <div class="hero-tile">
-          <span class="hero-tile-label">Letzter Abschluss</span>
-          <div class="hero-tile-val" style="font-size:12px">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "—"}</div>
+      <div>
+        <div class="hero-eyebrow">Gesamtüberblick – beide Standorte</div>
+        <div class="hero-top">
+          <div>
+            <div class="hero-kwh">${formatNumber(summary.totalKwh)}<span class="hero-kwh-u"> kWh</span></div>
+            <div class="hero-eur">${formatNumber(summary.totalCost, 0)} € Gesamtkosten</div>
+          </div>
+          <div class="hero-trend">
+            <svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 2l4 5H2z"/></svg>
+            ${state.data.demo ? "Demo" : "Live-Daten"}
+          </div>
         </div>
       </div>
-      <div class="hero-bar-row">
-        <span class="hero-bar-label">Datenabdeckung</span>
-        <span class="hero-bar-status">${state.data.demo ? "Demo" : "Live"}</span>
+      <div class="hero-subcards">
+        <div class="hero-sc">
+          <div class="hero-sc-label">Rennweg</div>
+          <div class="hero-sc-kwh">${formatNumber(summary.latestRennweg.kwh)} <span>kWh</span></div>
+          <div class="hero-sc-meta">${formatNumber(summary.latestRennweg.gesamt_inkl_ust, 2)} € · ${formatNumber(summary.avgRennweg, 1)} ct/kWh</div>
+        </div>
+        <div class="hero-sc">
+          <div class="hero-sc-label">Aspangstraße</div>
+          <div class="hero-sc-kwh">${formatNumber(summary.latestAspang.kwh)} <span>kWh</span></div>
+          <div class="hero-sc-meta">${formatNumber(summary.latestAspang.gesamt_inkl_ust, 2)} € · ${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
+        </div>
+        <div class="hero-sc">
+          <div class="hero-sc-label">Letzte Rechnung</div>
+          <div class="hero-sc-kwh" style="font-size:14px;letter-spacing:-.3px">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "—"}</div>
+          <div class="hero-sc-meta">${summary.latestInvoice ? daysAgo(summary.latestInvoice.invoiceDate) : "—"}</div>
+        </div>
       </div>
-      <div class="hero-bar-track"><div class="hero-bar-fill"></div></div>
     </div>
   `;
 
-  document.getElementById("snapshotRail").innerHTML = `
-    <div class="snapshot-row snapshot-row-teal">
-      <div class="snapshot-row-body">
-        <span class="sl">Rennweg · latest</span>
-        <div class="snapshot-val snapshot-val-teal">${formatNumber(summary.latestRennweg.kwh)}<span class="snapshot-unit"> kWh</span></div>
-        <div class="snapshot-sub">${formatCurrency(summary.latestRennweg.gesamt_inkl_ust)}</div>
+  // ② Rennweg Location Card
+  document.getElementById("rwCard").innerHTML = `
+    <div class="loc-card">
+      <div>
+        <span class="lc-eyebrow">Letzte Rechnung</span>
+        <span class="lc-loc" style="color:var(--teal-dk)">Rennweg</span>
       </div>
-      <span class="loc-badge loc-badge-rw"><span class="loc-badge-dot"></span>Rennweg</span>
-    </div>
-    <div class="snapshot-row snapshot-row-amber">
-      <div class="snapshot-row-body">
-        <span class="sl">Aspangstr. · latest</span>
-        <div class="snapshot-val snapshot-val-amber">${formatNumber(summary.latestAspang.kwh)}<span class="snapshot-unit"> kWh</span></div>
-        <div class="snapshot-sub">${formatCurrency(summary.latestAspang.gesamt_inkl_ust)}</div>
+      <div class="lc-kwh" style="color:var(--teal)">${formatNumber(summary.latestRennweg.kwh)} <span>kWh</span></div>
+      <div class="lc-row">
+        <div class="lc-eur" style="margin-bottom:0">${formatNumber(summary.latestRennweg.gesamt_inkl_ust, 2)} €</div>
+        <div class="ct-badge teal">${formatNumber(summary.avgRennweg, 1)} ct/kWh</div>
       </div>
-      <span class="loc-badge loc-badge-as"><span class="loc-badge-dot"></span>Aspangstr.</span>
-    </div>
-    ${(function() {
-      const now = new Date();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
-      if (wallboxKwh === 0) return "";
-      return `
-    <div class="snapshot-row snapshot-row-ltteal">
-      <div class="snapshot-row-body">
-        <span class="sl">Wallbox · dieser Monat</span>
-        <div class="snapshot-val snapshot-val-teal">${formatNumber(wallboxKwh, 1)}<span class="snapshot-unit"> kWh</span></div>
-        <div class="snapshot-sub">Aspangstr. EV</div>
+      <div class="lc-divider"></div>
+      <div class="lc-vs-label">Abrechnungszeitraum</div>
+      <div class="lc-vs-val" style="color:var(--muted);font-size:11px;font-family:'IBM Plex Mono',monospace">
+        ${summary.latestRennweg.zeitraumVon ? formatDate(summary.latestRennweg.zeitraumVon) : "—"}
       </div>
-      <span class="loc-badge loc-badge-rw"><span class="loc-badge-dot"></span>EV</span>
-    </div>`;
-    })()}
-    <div class="snapshot-row">
-      <div class="snapshot-row-body">
-        <span class="sl">Kostenstruktur · gesamt</span>
-        <div class="snapshot-val">${formatNumber(summary.totalTaxes + summary.totalNetwork, 0)}<span class="snapshot-unit"> EUR</span></div>
-        <div class="snapshot-sub">${formatCurrency(summary.totalNetwork)} Netz · ${formatCurrency(summary.totalTaxes)} Steuern</div>
-      </div>
-      <span class="tag tag-amber">Tax</span>
     </div>
   `;
 
+  // ③ Aspangstraße Location Card
+  document.getElementById("asCard").innerHTML = `
+    <div class="loc-card">
+      <div>
+        <span class="lc-eyebrow">Letzte Rechnung</span>
+        <span class="lc-loc" style="color:var(--amber)">Aspangstraße</span>
+      </div>
+      <div class="lc-kwh" style="color:var(--amber)">${formatNumber(summary.latestAspang.kwh)} <span>kWh</span></div>
+      <div class="lc-row">
+        <div class="lc-eur" style="margin-bottom:0">${formatNumber(summary.latestAspang.gesamt_inkl_ust, 2)} €</div>
+        <div class="ct-badge amber">${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
+      </div>
+      <div class="lc-divider"></div>
+      <div class="lc-vs-label">Abrechnungszeitraum</div>
+      <div class="lc-vs-val" style="color:var(--muted);font-size:11px;font-family:'IBM Plex Mono',monospace">
+        ${summary.latestAspang.zeitraumVon ? formatDate(summary.latestAspang.zeitraumVon) : "—"}
+      </div>
+    </div>
+  `;
+
+  // ④ KPI Grid
+  const wallboxThisYear = state.wallbox.byYear[new Date().getFullYear()] || 0;
   document.getElementById("kpiGrid").innerHTML = `
-    <div class="kpi-card kpi-card-teal">
-      <span class="sl">Portfolio kWh</span>
-      <div class="kpi-value kpi-value-teal">${formatNumber(summary.totalKwh)}<span class="kpi-unit"> kWh</span></div>
-      <div class="kpi-trend kpi-trend-up">beide Standorte</div>
-      <div class="kpi-note">Kumuliert</div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ø Kosten / kWh <i class="kpi-label-info">i</i></div>
+      <div class="kpi-dual">
+        <div>
+          <div class="kpi-dual-val teal">${formatNumber(summary.avgRennweg, 1)} ct/kWh</div>
+          <div class="kpi-dual-loc">Rennweg</div>
+        </div>
+        <div>
+          <div class="kpi-dual-val amber">${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
+          <div class="kpi-dual-loc">Aspangstraße</div>
+        </div>
+      </div>
+      <div class="kpi-dual-footer">Beide Standorte</div>
     </div>
-    <div class="kpi-card kpi-card-amber">
-      <span class="sl">Portfolio cost</span>
-      <div class="kpi-value kpi-value-amber">${formatNumber(summary.totalCost, 0)}<span class="kpi-unit"> EUR</span></div>
-      <div class="kpi-trend kpi-trend-down">inkl. Netz &amp; Steuer</div>
-      <div class="kpi-note">Gesamt</div>
+    <div class="kpi-card">
+      <div class="kpi-icon-float amber">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="kpi-label">Kosten gesamt</div>
+      <div class="kpi-val">${formatNumber(summary.totalCost, 0)} <span class="ku">€</span></div>
+      <div class="kpi-sub-label">inkl. Netz &amp; Steuern</div>
     </div>
-    <div class="kpi-card kpi-card-teal">
-      <span class="sl">Rennweg avg</span>
-      <div class="kpi-value kpi-value-teal">${formatNumber(summary.avgRennweg, 1)}<span class="kpi-unit"> ct/kWh</span></div>
-      <div class="kpi-trend kpi-trend-up">letzte Rechnung</div>
-      <div class="kpi-note">Durchschnitt</div>
+    <div class="kpi-card">
+      <div class="kpi-icon-float green">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="kpi-label">Verbrauch gesamt</div>
+      <div class="kpi-val">${formatNumber(summary.totalKwh)} <span class="ku">kWh</span></div>
+      <div class="kpi-sub-label">beide Standorte</div>
     </div>
-    <div class="kpi-card kpi-card-amber">
-      <span class="sl">Aspangstr. avg</span>
-      <div class="kpi-value kpi-value-amber">${formatNumber(summary.avgAspang, 1)}<span class="kpi-unit"> ct/kWh</span></div>
-      <div class="kpi-trend kpi-trend-down">inkl. Wallbox</div>
-      <div class="kpi-note">Durchschnitt</div>
+    <div class="kpi-card">
+      <div class="kpi-icon-float indigo">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
+      </div>
+      <div class="kpi-label">Wallbox (Aspangstr.)</div>
+      <div class="kpi-val">${formatNumber(wallboxThisYear, 1)} <span class="ku">kWh</span></div>
+      <div class="kpi-sub-label">dieses Jahr</div>
     </div>
   `;
 
-  document.getElementById("recentLogs").innerHTML = state.data.entries.slice(0, 4).map((entry) => `
-    <div class="log-entry">
-      <div class="log-entry-id">${entry.rechnungsnummer}</div>
-      <div class="log-entry-loc">
-        <span class="loc-badge ${entry.location === "rennweg" ? "loc-badge-rw" : "loc-badge-as"}">
-          <span class="loc-badge-dot"></span>${entry.locationLabel}
-        </span>
+  // ⑤ Letzte Rechnungen
+  const recentEntries = state.data.entries.slice(0, 4);
+  document.getElementById("recentLogs").innerHTML = `
+    <div class="inv-panel">
+      <div class="inv-panel-head">
+        <div class="inv-panel-title">Letzte Rechnungen</div>
       </div>
-      <div class="log-entry-meta">${formatDate(entry.rechnungsdatum)}</div>
-      <div class="log-entry-total">${formatCurrency(entry.gesamt_inkl_ust)}</div>
+      ${recentEntries.map((entry) => `
+        <div class="inv-row" data-entry-id="${entry.id}" tabindex="0" role="button">
+          <div class="inv-row-top">
+            <span class="inv-nr">${entry.rechnungsnummer}</span>
+            <span class="inv-date">${formatDate(entry.rechnungsdatum)}</span>
+          </div>
+          <div class="inv-row-bot">
+            <span class="inv-loc-pill ${entry.location === "rennweg" ? "rw" : "as"}">
+              <span class="dot"></span>${entry.locationLabel}
+            </span>
+            <span class="inv-meta">${formatNumber(entry.kwh)} kWh</span>
+            <span class="inv-meta">${formatNumber(entry.gesamt_inkl_ust, 2)} €</span>
+            <span class="inv-ct-sm">${formatNumber(entry.centsPerKwh, 1)} ct/kWh</span>
+          </div>
+        </div>
+      `).join("")}
+      <div class="inv-panel-foot">
+        <button class="btn-all" data-screen-target="archive" type="button">
+          Alle Rechnungen
+          <svg viewBox="0 0 16 16" fill="currentColor" style="width:11px;height:11px"><path d="M1 8a.5.5 0 01.5-.5h11.793l-3.147-3.146a.5.5 0 01.708-.708l4 4a.5.5 0 010 .708l-4 4a.5.5 0 01-.708-.708L13.293 8.5H1.5A.5.5 0 011 8z"/></svg>
+        </button>
+      </div>
     </div>
-  `).join("");
+  `;
+
+  // ⑥ Kosten/kWh Vergleich
+  const maxCt = Math.max(summary.avgRennweg, summary.avgAspang) || 1;
+  document.getElementById("kostenVergleich").innerHTML = `
+    <div class="kosten-card">
+      <div class="section-title">Kosten pro kWh – Vergleich</div>
+      <div class="cmp-row">
+        <div class="cmp-label-row">
+          <span class="cmp-name">Rennweg</span>
+          <span class="cmp-val teal">${formatNumber(summary.avgRennweg, 1)} ct/kWh</span>
+        </div>
+        <div class="cmp-bar-bg"><div class="cmp-bar teal" style="width:${Math.round(summary.avgRennweg / maxCt * 100)}%"></div></div>
+      </div>
+      <div class="cmp-row">
+        <div class="cmp-label-row">
+          <span class="cmp-name">Aspangstraße</span>
+          <span class="cmp-val amber">${formatNumber(summary.avgAspang, 1)} ct/kWh</span>
+        </div>
+        <div class="cmp-bar-bg"><div class="cmp-bar amber" style="width:${Math.round(summary.avgAspang / maxCt * 100)}%"></div></div>
+      </div>
+      <div class="cmp-avg">Letzte abgerechnete Periode</div>
+    </div>
+  `;
+
+  // ⑦ Top Kennzahlen
+  const avgCt = summary.totalKwh > 0 ? (summary.totalCost / summary.totalKwh * 100) : 0;
+  document.getElementById("topKennzahlen").innerHTML = `
+    <div class="kennzahlen-card">
+      <div class="section-title" style="padding-right:36px">Top-Kennzahlen</div>
+      <div class="kz-ico">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="kz-list">
+        <div class="kz-row"><span class="kz-key">Gesamtverbrauch</span><span class="kz-val">${formatNumber(summary.totalKwh)} kWh</span></div>
+        <div class="kz-row"><span class="kz-key">Gesamtkosten</span><span class="kz-val">${formatNumber(summary.totalCost, 0)} €</span></div>
+        <div class="kz-row"><span class="kz-key">Ø Kosten / kWh</span><span class="kz-val">${formatNumber(avgCt, 1)} ct/kWh</span></div>
+        <div class="kz-row"><span class="kz-key">Letzte Rechnung</span><span class="kz-val">${summary.latestInvoice ? daysAgo(summary.latestInvoice.invoiceDate) : "—"}</span></div>
+      </div>
+    </div>
+  `;
 }
 
 function renderDetail() {
@@ -1293,6 +1378,20 @@ function attachEvents() {
   document.getElementById("archiveLocation").addEventListener("change", (event) => {
     state.archive.location = event.target.value;
     renderArchiveTable();
+  });
+
+  // Delegated handler for dynamically-rendered data-screen-target elements (e.g. btn-all in recentLogs)
+  document.querySelector(".screens").addEventListener("click", (event) => {
+    const target = event.target.closest("[data-screen-target]");
+    if (target && !domCache.navButtons.includes(target)) {
+      activateScreen(target.dataset.screenTarget);
+    }
+  });
+
+  // Delegated handler for invoice rows in recentLogs
+  document.querySelector(".screens").addEventListener("click", (event) => {
+    const row = event.target.closest("#recentLogs [data-entry-id]");
+    if (row) openModal(row.dataset.entryId);
   });
 
   document.getElementById("archiveTableBody").addEventListener("click", (event) => {
