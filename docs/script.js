@@ -925,11 +925,6 @@ function renderOverview() {
           <div class="hero-sc-kwh">${formatNumber(summary.latestAspang.kwh)} <span>kWh</span></div>
           <div class="hero-sc-meta">${formatNumber(summary.latestAspang.gesamt_inkl_ust, 2)} € · ${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
         </div>
-        <div class="hero-sc">
-          <div class="hero-sc-label">Letzte Rechnung</div>
-          <div class="hero-sc-kwh" style="font-size:14px;letter-spacing:-.3px">${summary.latestInvoice ? formatDate(summary.latestInvoice.rechnungsdatum) : "—"}</div>
-          <div class="hero-sc-meta">${summary.latestInvoice ? daysAgo(summary.latestInvoice.invoiceDate) : "—"}</div>
-        </div>
       </div>
     </div>
   `;
