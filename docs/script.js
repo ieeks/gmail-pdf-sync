@@ -996,7 +996,6 @@ function renderOverview() {
           <div class="kpi-dual-loc">Aspangstr.</div>
         </div>
       </div>
-      <div class="kpi-dual-footer">pro Standort · letzte Rechnung</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon-float amber">
