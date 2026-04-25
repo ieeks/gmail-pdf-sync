@@ -41,9 +41,7 @@ pip3 install pdfplumber python-dotenv
 cp .env.example .env
 # GMAIL_APP_PASSWORD eintragen (myaccount.google.com/apppasswords)
 
-# 3. Zählpunkte eintragen (siehe Abschnitt unten)
-
-# 4. Einmalig testen
+# 3. Einmalig testen
 python3 ~/Developer/gmail-pdf-sync/gmail_invoices.py
 ```
 
@@ -51,15 +49,15 @@ Der tägliche Sync läuft via GitHub Actions (`.github/workflows/sync.yml`, 07:0
 
 ---
 
-## Zählpunkte eintragen (PFLICHT — einmalig)
+## Zählpunkte (beide eingetragen ✓)
 
-Die Zählpunktnummern stehen auf Seite 2 der Verbund-Rechnung, Zeile „Zählpunkt: AT002...".
-Beide Nummern in `extract_verbund.py` unter `ZAEHLPUNKTE` eintragen:
+Die Zählpunktnummern stehen auf Seite 2 der Verbund-Rechnung, Zeile „Zählpunkt: AT...".
+Beide Nummern sind in `extract_verbund.py` unter `ZAEHLPUNKTE` eingetragen:
 
 ```python
 ZAEHLPUNKTE = {
-    "AT00200000000000000000000001": "rennweg",        # ← echte Nummer eintragen
-    "AT0010000000000000001000015183029": "aspangstrasse",  # ← eingetragen
+    "AT0010000000000000001000015277856": "rennweg",
+    "AT0010000000000000001000015183029": "aspangstrasse",
 }
 ```
 

@@ -57,18 +57,7 @@ cp .env.example .env
 
 Gmail App-Passwort: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 
-### 3. Zählpunkte eintragen
-
-In `extract_verbund.py` die Nummern aus Seite 2 der Verbund-Rechnung eintragen:
-
-```python
-ZAEHLPUNKTE = {
-    "AT002...": "rennweg",
-    "AT002...": "aspangstrasse",
-}
-```
-
-### 4. Einmalig testen
+### 3. Einmalig testen
 
 ```bash
 python3 gmail_invoices.py
