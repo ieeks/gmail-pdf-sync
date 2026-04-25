@@ -1225,7 +1225,6 @@ function renderSettings() {
   const settings = state.settings;
   document.getElementById("gmailAccount").value = settings.gmailAccount;
   document.getElementById("gmailLabel").value = settings.gmailLabel;
-  document.getElementById("syncFrequency").value = settings.syncFrequency;
   document.getElementById("currency").value = settings.currency;
   document.getElementById("meterRennweg").value = settings.meterRennweg;
   document.getElementById("meterAspang").value = settings.meterAspang;
@@ -1455,7 +1454,6 @@ function attachEvents() {
     state.settings = {
       gmailAccount: document.getElementById("gmailAccount").value.trim(),
       gmailLabel: document.getElementById("gmailLabel").value.trim(),
-      syncFrequency: document.getElementById("syncFrequency").value,
       currency: document.getElementById("currency").value,
       meterRennweg: document.getElementById("meterRennweg").value.trim(),
       meterAspang: document.getElementById("meterAspang").value.trim(),

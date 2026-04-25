@@ -535,6 +535,7 @@ input,select,textarea{font-family:inherit}
   font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:var(--ink);
   padding:0 12px;cursor:pointer;appearance:none;outline:none;
 }
+.field-info-val{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--slate);display:block;padding:9px 0 1px}
 .meter-points-grid{display:flex;gap:12px;margin-top:8px}
 .meter-point{flex:1}
 .meter-point-card{padding:8px 12px;border-radius:8px;background:#fafbfc;margin-top:6px}
