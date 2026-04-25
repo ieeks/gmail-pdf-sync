@@ -9,6 +9,7 @@
 - [x] GitHub Repo erstellt → https://github.com/ieeks/gmail-pdf-sync
 - [x] GitHub Pages aktiviert → https://manuel-app.dev/gmail-pdf-sync/
 - [x] Zählpunkt Aspangstraße eingetragen: `AT0010000000000000001000015183029`
+- [x] Zählpunkt Rennweg eingetragen: `AT0010000000000000001000015277856`
 - [x] Dashboard: `index.html` + `styles.css` + `script.js` aufgeteilt
 - [x] **VoltMetric Pro Redesign** — komplettes Redesign auf VoltMetric Pro Design System
   - Plain CSS (kein Tailwind, kein Build-Step mehr)
@@ -29,15 +30,6 @@
   - `renderOverview()` neu: füllt heroCard, rwCard, asCard, kpiGrid, recentLogs, kostenVergleich, topKennzahlen
   - `daysAgo()` helper, Event-Delegation für dynamisch gerenderte Elemente
   - `voltmetric-preview.html` als Design-Referenz im Repo behalten
-
----
-
----
-
-## Offen — Zählpunkt Rennweg
-
-- [ ] Zählpunkt Rennweg in `extract_verbund.py` eintragen
-  - Steht auf Seite 2 der Verbund-Rechnung, Zeile „Zählpunkt: AT..."
 
 ---
 
