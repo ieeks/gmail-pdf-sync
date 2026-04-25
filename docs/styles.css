@@ -149,13 +149,12 @@ input,select,textarea{font-family:inherit}
 
 /* ── Topbar ─────────────────────────────────────────────────────── */
 .topbar{
-  padding:18px 28px 14px;border-bottom:1px solid #edf0f5;
+  padding:12px 28px 11px;border-bottom:1px solid #edf0f5;
   background:rgba(245,248,252,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   position:sticky;top:0;z-index:10;flex-shrink:0;
   display:flex;align-items:flex-end;gap:12px;
 }
 .topbar-text{min-width:0;flex:1}
-.topbar-super{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);opacity:0.7;margin-bottom:4px}
 .topbar-title-row{display:flex;align-items:center;gap:9px}
 .topbar-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;color:var(--ink);line-height:1;margin:0}
 .topbar-badge{font-size:10px;font-weight:600;padding:2px 8px;background:#e8ecf2;border-radius:7px;color:var(--slate)}
