@@ -44,7 +44,7 @@ def get_firestore_db():
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 ZAEHLPUNKTE = {
-    "AT00200000000000000000000001": "rennweg",        # ← echte Nummer eintragen
+    "AT0010000000000000001000015277856": "rennweg",
     "AT0010000000000000001000015183029": "aspangstrasse",
 }
 
