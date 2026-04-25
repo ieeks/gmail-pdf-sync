@@ -460,6 +460,11 @@ function buildMonthlySeries(data) {
     .slice(-18);
 }
 
+function monthsInPeriod(entry) {
+  const days = (entry.toDate - entry.fromDate) / (1000 * 60 * 60 * 24);
+  return Math.max(1, days / 30.44);
+}
+
 function getSummary(data) {
   const latestRennweg = getLatestEntry(data.rennweg);
   const latestAspang = getLatestEntry(data.aspangstrasse);
@@ -468,6 +473,8 @@ function getSummary(data) {
     totalCost: sumEntries(data.entries, "gesamt_inkl_ust"),
     avgRennweg: latestRennweg.centsPerKwh,
     avgAspang: latestAspang.centsPerKwh,
+    monthlyRennweg: latestRennweg.gesamt_inkl_ust / monthsInPeriod(latestRennweg),
+    monthlyAspang: latestAspang.gesamt_inkl_ust / monthsInPeriod(latestAspang),
     totalTaxes: sumEntries(data.entries, "steuern"),
     totalNetwork: sumEntries(data.entries, "netzgebuehren"),
     latestInvoice: data.entries[0],
@@ -978,18 +985,18 @@ function renderOverview() {
   const wallboxThisYear = state.wallbox.byYear[new Date().getFullYear()] || 0;
   document.getElementById("kpiGrid").innerHTML = `
     <div class="kpi-card">
-      <div class="kpi-label">Ø Kosten / kWh <i class="kpi-label-info">i</i></div>
+      <div class="kpi-label">Ø Monatliche Kosten</div>
       <div class="kpi-dual">
         <div>
-          <div class="kpi-dual-val teal">${formatNumber(summary.avgRennweg, 1)} ct/kWh</div>
+          <div class="kpi-dual-val teal">${formatNumber(summary.monthlyRennweg, 0)} <span style="font-size:11px;font-weight:400">€</span></div>
           <div class="kpi-dual-loc">Rennweg</div>
         </div>
         <div>
-          <div class="kpi-dual-val amber">${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
+          <div class="kpi-dual-val amber">${formatNumber(summary.monthlyAspang, 0)} <span style="font-size:11px;font-weight:400">€</span></div>
           <div class="kpi-dual-loc">Aspangstr.</div>
         </div>
       </div>
-      <div class="kpi-dual-footer">Beide Standorte</div>
+      <div class="kpi-dual-footer">pro Standort · letzte Rechnung</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon-float amber">
