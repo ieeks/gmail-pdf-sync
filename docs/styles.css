@@ -566,12 +566,6 @@ input,select,textarea{font-family:inherit}
 .btn-save:active{transform:scale(0.97)}
 .settings-notice{font-size:11px;color:var(--slate-l)}
 .settings-notice.saved{color:var(--teal)}
-.btn-add-point{
-  padding:6px 14px;border-radius:8px;
-  border:1px solid var(--teal);background:rgba(0,194,168,0.07);color:var(--teal-dk);
-  font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;transition:opacity 0.15s;
-}
-.btn-add-point:hover{opacity:0.75}
 
 /* ── Modal ──────────────────────────────────────────────────────── */
 .modal-shell{position:fixed;inset:0;z-index:60}

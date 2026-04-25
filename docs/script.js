@@ -1474,9 +1474,7 @@ function attachEvents() {
     showToast(savedToFirestore ? "In Firestore gespeichert." : "Lokal gespeichert — Firestore nicht erreichbar.");
   });
 
-  document.getElementById("addPointButton").addEventListener("click", () => {
-    showToast("Prototype only. Add-point flow can be wired to your final config model.");
-  });
+
 
   const livePulseToggle = document.getElementById("livePulseToggle");
   const livePulseCb = document.getElementById("livePulse");
