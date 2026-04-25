@@ -142,14 +142,15 @@ Tailwind und `docs/src/input.css` sind nicht mehr in Verwendung.
 ├─────────────────────────┤  (col 2,      │
 │  charts-row (col 1,     │   rows 2+3)   │
 │   row 3): 2 Charts      │  Insights +   │
-│                         │  Tarif        │
+│                         │  topKennzahlen│
 ├─────────────────────────┴───────────────┤
 │  bottom-row (1/-1): recentLogs ·        │
-│  kostenVergleich · topKennzahlen        │
+│  kostenVergleich · Tarif-Simulation     │
 └─────────────────────────────────────────┘
 ```
 `renderOverview()` befüllt: `#heroCard`, `#rwCard`, `#asCard`, `#kpiGrid`, `#recentLogs`, `#kostenVergleich`, `#topKennzahlen`  
-Right-Panel (Insights + Tarif-Simulation) ist statisches HTML in `index.html`.
+Right-Panel hat Insights (statisch) + `#topKennzahlen` (dynamisch).  
+Tarif-Simulation ist statisches HTML in der Bottom-Row.
 
 **Mobile Layout:**
 - Unter 768px zeigt Overview die Mobile Glance View (kein Chart)
