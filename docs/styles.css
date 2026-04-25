@@ -131,7 +131,7 @@ input,select,textarea{font-family:inherit}
 .sidebar-collapsed .sidebar-logo-text{width:0;opacity:0;pointer-events:none}
 .sidebar-collapsed .sidebar-toggle-btn{margin-left:0}
 .sidebar-collapsed .toggle-chevron{transform:rotate(180deg)}
-.sidebar-collapsed .sidebar-user{justify-content:center}
+.sidebar-collapsed .sidebar-user{justify-content:center;background:transparent;border-color:transparent;margin:8px 0 4px;padding:8px 0}
 .sidebar-collapsed .sidebar-user-info{width:0;opacity:0;overflow:hidden;pointer-events:none}
 .sidebar-collapsed .nav-item{justify-content:center;gap:0;padding:10px}
 .sidebar-collapsed .nav-label{width:0;opacity:0;overflow:hidden;pointer-events:none}
@@ -294,11 +294,12 @@ input,select,textarea{font-family:inherit}
 .kpi-icon-float.indigo{background:rgba(99,102,241,.10);color:#6366F1}
 .kpi-label{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:6px;padding-right:32px;display:flex;align-items:center;gap:5px}
 .kpi-label-info{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;border:1.5px solid var(--subtle);color:var(--subtle);font-size:9px;font-style:normal;cursor:default}
-.kpi-dual{display:flex;gap:16px;margin-bottom:4px}
-.kpi-dual-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;letter-spacing:-.3px;line-height:1.2;white-space:nowrap}
+.kpi-dual{display:flex;gap:12px;margin-bottom:4px}
+.kpi-dual>div{min-width:0;flex:1}
+.kpi-dual-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;letter-spacing:-.3px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi-dual-val.teal{color:var(--teal)}
 .kpi-dual-val.amber{color:var(--amber)}
-.kpi-dual-loc{font-size:11px;font-weight:700;color:var(--text);margin-top:2px}
+.kpi-dual-loc{font-size:11px;font-weight:700;color:var(--text);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kpi-dual-footer{font-size:10.5px;color:var(--subtle);margin-top:4px}
 .kpi-val{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;letter-spacing:-1px;line-height:1;color:var(--text);margin-bottom:3px}
 .kpi-val .ku{font-size:13px;font-weight:300;color:var(--muted);letter-spacing:0}

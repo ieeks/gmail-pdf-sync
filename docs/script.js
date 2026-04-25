@@ -986,7 +986,7 @@ function renderOverview() {
         </div>
         <div>
           <div class="kpi-dual-val amber">${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
-          <div class="kpi-dual-loc">Aspangstraße</div>
+          <div class="kpi-dual-loc">Aspangstr.</div>
         </div>
       </div>
       <div class="kpi-dual-footer">Beide Standorte</div>
