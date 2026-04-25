@@ -96,6 +96,7 @@ const DEMO_DATA = {
 const STORAGE_KEYS = {
   activeScreen: "voltmetric-active-screen",
   settings: "voltmetric-prototype-settings",
+  sidebarCollapsed: "voltmetric-sidebar-collapsed",
 };
 
 const SCREEN_META = {
@@ -1351,6 +1352,20 @@ function closeModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
+function initSidebarToggle() {
+  const sidebar = document.getElementById("sidebar");
+  const btn = document.getElementById("sidebarToggleBtn");
+  try {
+    if (localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === "true") {
+      sidebar.classList.add("sidebar-collapsed");
+    }
+  } catch (_e) {}
+  btn.addEventListener("click", () => {
+    const collapsed = sidebar.classList.toggle("sidebar-collapsed");
+    try { localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, collapsed); } catch (_e) {}
+  });
+}
+
 function attachEvents() {
   domCache.screens = Array.from(document.querySelectorAll("[data-screen]"));
   domCache.navButtons = Array.from(document.querySelectorAll("[data-screen-target]"));
@@ -1360,6 +1375,8 @@ function attachEvents() {
       activateScreen(button.dataset.screenTarget);
     });
   });
+
+  initSidebarToggle();
 
   document.getElementById("manualSyncButton").addEventListener("click", () => {
     showToast(state.data.demo ? "Demo mode active. JSON files are empty or unavailable." : "Live JSON loaded successfully.");

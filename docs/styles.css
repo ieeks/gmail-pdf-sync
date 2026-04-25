@@ -29,6 +29,7 @@ input,select,textarea{font-family:inherit}
   --hero-1:    #003D35;
   --hero-2:    #007A6A;
   --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
   --text:      #0F172A;
   --muted:     #64748B;
   --subtle:    #94A3B8;
@@ -57,16 +58,25 @@ input,select,textarea{font-family:inherit}
   width:var(--sidebar-w);flex-shrink:0;background:#111827;
   display:flex;flex-direction:column;border-right:none;
   padding:0;overflow-y:auto;z-index:20;height:100vh;
+  transition:width 0.22s cubic-bezier(0.4,0,0.2,1);overflow-x:hidden;
 }
-.sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06);min-width:0}
 .sidebar-logo-mark{
   width:32px;height:32px;border-radius:8px;flex-shrink:0;
   background:linear-gradient(135deg,var(--teal),var(--teal-deep));
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 2px 8px rgba(0,194,168,.35);
 }
-.sidebar-logo-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;letter-spacing:.5px}
-.sidebar-logo-sub{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-top:1px}
+.sidebar-logo-text{flex:1;min-width:0;overflow:hidden;transition:opacity 0.15s,width 0.22s}
+.sidebar-logo-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;letter-spacing:.5px;white-space:nowrap}
+.sidebar-logo-sub{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-top:1px;white-space:nowrap}
+.sidebar-toggle-btn{
+  flex-shrink:0;width:26px;height:26px;border-radius:6px;margin-left:auto;
+  display:flex;align-items:center;justify-content:center;
+  color:#6B7280;transition:background var(--tr),color var(--tr);
+}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.08);color:#E5E7EB}
+.toggle-chevron{transition:transform 0.22s cubic-bezier(0.4,0,0.2,1);flex-shrink:0}
 
 .sidebar-user{
   margin:12px 12px 6px;padding:10px 12px;border-radius:10px;
@@ -79,19 +89,22 @@ input,select,textarea{font-family:inherit}
   display:flex;align-items:center;justify-content:center;
   font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:#9CA3AF;
 }
-.sidebar-user-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#F9FAFB}
-.sidebar-user-role{font-size:10.5px;color:#6B7280;margin-top:1px}
+.sidebar-user-info{min-width:0;overflow:hidden;transition:opacity 0.15s}
+.sidebar-user-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#F9FAFB;white-space:nowrap}
+.sidebar-user-role{font-size:10.5px;color:#6B7280;margin-top:1px;white-space:nowrap}
 
 .sidebar-nav{display:flex;flex-direction:column;gap:2px;flex:1;padding:8px 10px}
 .nav-item{
   display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
   width:100%;text-align:left;
   font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;font-size:13px;color:#9CA3AF;
-  transition:background var(--tr),color var(--tr);
+  transition:background var(--tr),color var(--tr);overflow:hidden;
 }
 .nav-item:hover{background:rgba(255,255,255,.06);color:#E5E7EB}
 .nav-item-active{background:rgba(0,194,168,.15);color:#5EEAD4;font-weight:600}
 .nav-dot{display:none}
+.nav-icon{flex-shrink:0}
+.nav-label{white-space:nowrap;overflow:hidden;transition:opacity 0.15s}
 
 .sidebar-footer{border-top:1px solid rgba(255,255,255,.06);padding:14px 12px;display:flex;flex-direction:column;gap:6px}
 .sidebar-status{padding:0}
@@ -111,6 +124,25 @@ input,select,textarea{font-family:inherit}
 .sidebar-links{display:flex;gap:16px;padding-top:8px;border-top:1px solid rgba(255,255,255,.05)}
 .sidebar-link{font-size:11px;color:#6B7280;transition:color 0.15s}
 .sidebar-link:hover{color:#9CA3AF}
+
+/* ── Collapsed sidebar ─────────────────────────────────────────── */
+.sidebar-collapsed{width:var(--sidebar-w-collapsed)}
+.sidebar-collapsed .sidebar-logo{justify-content:center;padding:20px 0 16px;gap:0}
+.sidebar-collapsed .sidebar-logo-text{width:0;opacity:0;pointer-events:none}
+.sidebar-collapsed .sidebar-toggle-btn{margin-left:0}
+.sidebar-collapsed .toggle-chevron{transform:rotate(180deg)}
+.sidebar-collapsed .sidebar-user{justify-content:center}
+.sidebar-collapsed .sidebar-user-info{width:0;opacity:0;overflow:hidden;pointer-events:none}
+.sidebar-collapsed .nav-item{justify-content:center;gap:0;padding:10px}
+.sidebar-collapsed .nav-label{width:0;opacity:0;overflow:hidden;pointer-events:none}
+.sidebar-collapsed .sidebar-footer{align-items:center;padding:14px 8px}
+.sidebar-collapsed .sidebar-live-row{justify-content:center}
+.sidebar-collapsed .sidebar-live-label,
+.sidebar-collapsed .sidebar-data-mode,
+.sidebar-collapsed .sidebar-last-update{display:none}
+.sidebar-collapsed .btn-sync{padding:9px;gap:0}
+.sidebar-collapsed .btn-sync-label{display:none}
+.sidebar-collapsed .sidebar-links{display:none}
 
 /* ── Main content ──────────────────────────────────────────────── */
 .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
