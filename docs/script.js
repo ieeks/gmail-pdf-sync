@@ -1159,11 +1159,17 @@ function renderDetail() {
 }
 
 function renderArchiveFilters() {
-  const years = [...new Set(state.data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
+  const years = [...new Set(state.data.entries.map((e) => e.year))].sort((a, b) => b - a);
   const select = document.getElementById("archiveYear");
   const current = state.archive.year;
-  select.innerHTML = `<option value="all">Alle Jahre</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
-  select.value = years.includes(Number(current)) ? current : "all";
+  const validValues = ["all", "12m", "24m", ...years.map(String)];
+  select.innerHTML = [
+    `<option value="all">Alle</option>`,
+    `<option value="12m">Letzte 12 Monate</option>`,
+    `<option value="24m">Letzte 24 Monate</option>`,
+    ...years.map((y) => `<option value="${y}">${y}</option>`),
+  ].join("");
+  select.value = validValues.includes(String(current)) ? current : "all";
 }
 
 function getFilteredArchiveEntries() {
@@ -1176,7 +1182,12 @@ function getFilteredArchiveEntries() {
       formatDate(entry.zeitraumVon),
       formatDate(entry.zeitraumBis),
     ].join(" ").toLowerCase().includes(term);
-    const matchesYear = state.archive.year === "all" || String(entry.year) === String(state.archive.year);
+    const now = Date.now();
+    const matchesYear =
+      state.archive.year === "all" ? true :
+      state.archive.year === "12m" ? entry.invoiceDate >= new Date(now - 365 * 24 * 60 * 60 * 1000) :
+      state.archive.year === "24m" ? entry.invoiceDate >= new Date(now - 2 * 365 * 24 * 60 * 60 * 1000) :
+      String(entry.year) === String(state.archive.year);
     const matchesLocation = state.archive.location === "all" || entry.location === state.archive.location;
     return matchesSearch && matchesYear && matchesLocation;
   });
