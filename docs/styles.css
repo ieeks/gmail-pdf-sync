@@ -502,6 +502,34 @@ input,select,textarea{font-family:inherit}
 .btn-pdf-as{border:1px solid var(--amber);background:rgba(245,158,11,0.06);color:var(--amber-dk)}
 .archive-empty{padding:32px;text-align:center;font-size:13px;color:var(--slate-l)}
 
+/* ── Archive: Mobile Card Layout (< 768px) ─────────────────────── */
+@media (max-width:767px){
+  .archive-table-head{display:none}
+
+  .archive-table-row{
+    display:flex;flex-direction:column;
+    gap:6px;padding:12px 14px;
+    border-bottom:1px solid #f0f3f7;
+    border-radius:0;
+  }
+
+  .archive-card-top{
+    display:flex;align-items:center;
+    justify-content:space-between;gap:8px;
+  }
+
+  .archive-card-numbers{
+    display:flex;align-items:baseline;
+    gap:10px;margin-top:2px;
+    flex-wrap:wrap;
+  }
+
+  .archive-card-numbers .archive-row-kwh::after{content:"·";margin-left:10px;color:#cbd5e1}
+  .archive-card-numbers .archive-row-net::after {content:"·";margin-left:10px;color:#cbd5e1}
+
+  .btn-pdf{display:none}
+}
+
 /* ── Settings screen ───────────────────────────────────────────── */
 .settings-grid{display:flex;gap:14px;align-items:flex-start}
 .settings-col-left{flex:2;display:flex;flex-direction:column;gap:14px}

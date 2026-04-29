@@ -1199,22 +1199,33 @@ function renderArchiveTable() {
 
   container.innerHTML = entries.map((entry) => `
     <div class="archive-table-row" data-entry-id="${entry.id}">
-      <div>
-        <div class="archive-row-id">${entry.rechnungsnummer}</div>
-        <div class="archive-row-date">${formatDate(entry.rechnungsdatum)}</div>
-      </div>
-      <div>
+
+      <!-- Desktop: Spalten 1+2 | Mobile: Zeile 1 (ID links, Badge rechts) -->
+      <div class="archive-card-top">
+        <div>
+          <div class="archive-row-id">${entry.rechnungsnummer}</div>
+          <div class="archive-row-date">${formatDate(entry.rechnungsdatum)}</div>
+        </div>
         <span class="loc-badge ${entry.location === "rennweg" ? "loc-badge-rw" : "loc-badge-as"}">
           <span class="loc-badge-dot"></span>${entry.locationLabel}
         </span>
       </div>
+
+      <!-- Desktop: Spalte 3 | Mobile: Zeile 2 -->
       <div class="archive-row-period">${formatDate(entry.zeitraumVon)} – ${formatDate(entry.zeitraumBis)}</div>
-      <div class="archive-row-kwh">${formatNumber(entry.kwh)}</div>
-      <div class="archive-row-net">${formatCurrency(entry.energiekosten)}</div>
-      <div class="archive-row-total">${formatCurrency(entry.gesamt_inkl_ust)}</div>
+
+      <!-- Desktop: Spalten 4+5+6 | Mobile: Zeile 3 (Zahlen nebeneinander mit · Trennern) -->
+      <div class="archive-card-numbers">
+        <span class="archive-row-kwh">${formatNumber(entry.kwh)} kWh</span>
+        <span class="archive-row-net">${formatCurrency(entry.energiekosten)}</span>
+        <span class="archive-row-total">${formatCurrency(entry.gesamt_inkl_ust)}</span>
+      </div>
+
+      <!-- Desktop: Spalte 7 | Mobile: display:none via CSS -->
       <div>
         <button class="btn-pdf ${entry.location === "rennweg" ? "btn-pdf-rw" : "btn-pdf-as"}" type="button">Open</button>
       </div>
+
     </div>
   `).join("");
 
