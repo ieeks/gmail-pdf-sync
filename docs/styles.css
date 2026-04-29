@@ -510,7 +510,7 @@ input,select,textarea{font-family:inherit}
     display:flex;flex-direction:column;
     gap:6px;padding:12px 14px;
     border-bottom:1px solid #f0f3f7;
-    border-radius:0;
+    border-radius:0;text-align:left;
   }
 
   .archive-card-top{
