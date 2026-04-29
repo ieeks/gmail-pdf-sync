@@ -23,6 +23,13 @@
   - Settings-Notice zeigt "Firestore · HH:MM" oder "Lokal · HH:MM"
 
 - [x] **Firestore-Regeln gesetzt** — `haushalte/`, `config/`, `invoices/` alle auf `allow read, write: if true`
+- [x] **Onboarding Wizard** (2026-04-29) — 6-schrittiger Modal-Overlay für neue User
+  - Erscheint beim ersten Besuch automatisch (`localStorage: voltmetric-onboarding-done`)
+  - Steps: Willkommen · Overview · Insights (inkl. Wallbox) · Billing Archive · Automatik · Fertig
+  - ESC schließt ohne zu persistieren, „Tour wiederholen" Button in Settings
+- [x] **Archive Mobile Fix** (2026-04-29) — Card-Layout statt 7-Spalten-Grid auf < 768px
+  - Header ausgeblendet, Row wird flex-column Card
+  - Zeile 1: Rechnungsnummer + Location Badge; Zeile 2: Zeitraum; Zeile 3: kWh · Energy · Total
 
 - [x] **VoltMetric Pro → Production** — Preview auf `docs/` migriert (2026-04-25)
   - Dunkle Sidebar `#111827`, neues CSS Design System (tokens, shadows, radius vars)

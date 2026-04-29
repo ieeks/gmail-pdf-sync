@@ -156,9 +156,50 @@ Tarif-Simulation ist statisches HTML in der Bottom-Row.
 - Unter 768px zeigt Overview die Mobile Glance View (kein Chart)
 - Alle anderen Tabs zeigen Desktop-Layout via `body.m-desktop-screen`
 - Navigation: `#mobileBottomNav` (fixierte Tab-Bar unten)
+- **Billing Archive auf Mobile:** Card-Layout statt 7-Spalten-Grid
+  - `.archive-table-head` ausgeblendet
+  - `.archive-table-row` wird `flex-direction: column` Card
+  - `.archive-card-top`: Rechnungsnummer links, Location Badge rechts
+  - `.archive-card-numbers`: kWh · Energiekosten · Gesamt in einer Zeile
+  - `.btn-pdf` (Open-Button) auf Mobile ausgeblendet
 
 **GitHub Pages aktivieren:**
 → GitHub Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
+
+---
+
+## Onboarding Wizard
+
+Beim ersten Besuch erscheint automatisch ein 6-schrittiger Modal-Overlay.
+
+**localStorage-Key:** `voltmetric-onboarding-done`  
+Nicht in `STORAGE_KEYS` eingetragen — eigene Konstante `ONBOARDING_KEY`.
+
+**Trigger:** `initOnboarding()` wird am Ende von `init()` nach `renderApp()` aufgerufen.
+
+**6 Schritte:**
+1. Willkommen — Projekt-Intro, Badge „Keine App nötig"
+2. Overview — KPIs, Hero Cards, Charts
+3. Insights — 18-Monats-Trends inkl. Wallbox-Daten
+4. Billing Archive — filterbares Rechnungsarchiv
+5. Automatik — Gmail-Sync + Wallbox-Import täglich 07:00 Uhr (Info-Box)
+6. Fertig — Abschluss, setzt `localStorage`
+
+**Funktionen:**
+- `showOnboarding()` — setzt Step 0, zeigt Overlay mit Fade-In
+- `hideOnboarding()` — Fade-Out, dann `display:none` via `transitionend`
+- `completeOnboarding()` — setzt localStorage + hideOnboarding
+- `renderOnboardingStep(step)` — befüllt DOM, Progress Dots, Prev/Next Handler
+- `initOnboarding()` — registriert ESC-Handler, zeigt Wizard wenn Key fehlt
+
+**ESC:** Schließt Modal OHNE localStorage zu setzen → erscheint beim nächsten Besuch wieder.
+
+**„Tour wiederholen":** Button in Settings (statisches HTML, `prototype-note` Panel):
+```js
+localStorage.removeItem('voltmetric-onboarding-done'); showOnboarding();
+```
+
+**Neu testen:** In DevTools Console `localStorage.removeItem('voltmetric-onboarding-done')` → Reload.
 
 ---
 
@@ -283,3 +324,15 @@ anonymisierte Zahlen und sind bedenkenlos public.
 → Nach `loadData()` muss `destroyCharts()` aufgerufen werden und `state.computed` neu befüllt werden
 → `state.computed.yearly = buildYearBuckets(state.data.entries)`
 → `state.computed.monthly = buildMonthlySeries(state.data)`
+
+**Archive auf Mobile zeigt 7-Spalten-Tabelle statt Cards**
+→ Browser-Cache leeren (Cmd+Shift+R) — `@media (max-width:767px)` Block in `styles.css` prüfen
+→ `.archive-table-head { display:none }` und `.archive-table-row { display:flex; flex-direction:column }` müssen greifen
+
+**Onboarding erscheint nicht beim ersten Besuch**
+→ `localStorage.getItem('voltmetric-onboarding-done')` in DevTools prüfen — falls gesetzt: `removeItem` + Reload
+→ `initOnboarding()` wird am Ende von `init()` aufgerufen — Console auf JS-Fehler prüfen
+
+**Onboarding erscheint immer wieder obwohl abgeschlossen**
+→ `localStorage.setItem('voltmetric-onboarding-done', 'true')` wird in `completeOnboarding()` gesetzt
+→ Sicherstellen dass der „Dashboard öffnen"-Button auf Step 5 `completeOnboarding()` aufruft

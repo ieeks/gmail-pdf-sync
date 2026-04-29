@@ -74,6 +74,10 @@ Aktiviert unter: Repo → Settings → Pages → Source: Branch `main`, Folder `
 **Firebase:** Settings werden in Firestore `wallbox-manuel` unter `config/settings` gespeichert.  
 Wallbox-Daten kommen aus `haushalte/haushalt.charges[]` im selben Projekt.
 
+**Onboarding:** Beim ersten Besuch erscheint automatisch ein 6-schrittiger Wizard der neue User durch das Dashboard führt. Danach nicht mehr sichtbar. Jederzeit über Settings → „Tour wiederholen" neu starten.
+
+**Mobile:** Alle Screens sind für < 768px optimiert. Das Billing Archive zeigt auf Mobile ein kompaktes Card-Layout statt der Desktop-Tabelle.
+
 ---
 
 ## Datenschutz
