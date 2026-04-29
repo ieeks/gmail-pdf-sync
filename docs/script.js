@@ -96,6 +96,7 @@ const DEMO_DATA = {
 const STORAGE_KEYS = {
   activeScreen: "voltmetric-active-screen",
   settings: "voltmetric-prototype-settings",
+  sidebarCollapsed: "voltmetric-sidebar-collapsed",
 };
 
 const SCREEN_META = {
@@ -459,6 +460,11 @@ function buildMonthlySeries(data) {
     .slice(-18);
 }
 
+function monthsInPeriod(entry) {
+  const days = (entry.toDate - entry.fromDate) / (1000 * 60 * 60 * 24);
+  return Math.max(1, days / 30.44);
+}
+
 function getSummary(data) {
   const latestRennweg = getLatestEntry(data.rennweg);
   const latestAspang = getLatestEntry(data.aspangstrasse);
@@ -467,6 +473,8 @@ function getSummary(data) {
     totalCost: sumEntries(data.entries, "gesamt_inkl_ust"),
     avgRennweg: latestRennweg.centsPerKwh,
     avgAspang: latestAspang.centsPerKwh,
+    monthlyRennweg: latestRennweg.gesamt_inkl_ust / monthsInPeriod(latestRennweg),
+    monthlyAspang: latestAspang.gesamt_inkl_ust / monthsInPeriod(latestAspang),
     totalTaxes: sumEntries(data.entries, "steuern"),
     totalNetwork: sumEntries(data.entries, "netzgebuehren"),
     latestInvoice: data.entries[0],
@@ -977,18 +985,17 @@ function renderOverview() {
   const wallboxThisYear = state.wallbox.byYear[new Date().getFullYear()] || 0;
   document.getElementById("kpiGrid").innerHTML = `
     <div class="kpi-card">
-      <div class="kpi-label">Ø Kosten / kWh <i class="kpi-label-info">i</i></div>
+      <div class="kpi-label">Ø Monatliche Kosten</div>
       <div class="kpi-dual">
         <div>
-          <div class="kpi-dual-val teal">${formatNumber(summary.avgRennweg, 1)} ct/kWh</div>
+          <div class="kpi-dual-val teal">${formatNumber(summary.monthlyRennweg, 0)} <span style="font-size:11px;font-weight:400">€</span></div>
           <div class="kpi-dual-loc">Rennweg</div>
         </div>
         <div>
-          <div class="kpi-dual-val amber">${formatNumber(summary.avgAspang, 1)} ct/kWh</div>
-          <div class="kpi-dual-loc">Aspangstraße</div>
+          <div class="kpi-dual-val amber">${formatNumber(summary.monthlyAspang, 0)} <span style="font-size:11px;font-weight:400">€</span></div>
+          <div class="kpi-dual-loc">Aspangstr.</div>
         </div>
       </div>
-      <div class="kpi-dual-footer">Beide Standorte</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-icon-float amber">
@@ -1151,11 +1158,17 @@ function renderDetail() {
 }
 
 function renderArchiveFilters() {
-  const years = [...new Set(state.data.entries.map((entry) => entry.year))].sort((a, b) => b - a);
+  const years = [...new Set(state.data.entries.map((e) => e.year))].sort((a, b) => b - a);
   const select = document.getElementById("archiveYear");
   const current = state.archive.year;
-  select.innerHTML = `<option value="all">Alle Jahre</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
-  select.value = years.includes(Number(current)) ? current : "all";
+  const validValues = ["all", "12m", "24m", ...years.map(String)];
+  select.innerHTML = [
+    `<option value="all">Alle</option>`,
+    `<option value="12m">Letzte 12 Monate</option>`,
+    `<option value="24m">Letzte 24 Monate</option>`,
+    ...years.map((y) => `<option value="${y}">${y}</option>`),
+  ].join("");
+  select.value = validValues.includes(String(current)) ? current : "all";
 }
 
 function getFilteredArchiveEntries() {
@@ -1168,7 +1181,12 @@ function getFilteredArchiveEntries() {
       formatDate(entry.zeitraumVon),
       formatDate(entry.zeitraumBis),
     ].join(" ").toLowerCase().includes(term);
-    const matchesYear = state.archive.year === "all" || String(entry.year) === String(state.archive.year);
+    const now = Date.now();
+    const matchesYear =
+      state.archive.year === "all" ? true :
+      state.archive.year === "12m" ? entry.invoiceDate >= new Date(now - 365 * 24 * 60 * 60 * 1000) :
+      state.archive.year === "24m" ? entry.invoiceDate >= new Date(now - 2 * 365 * 24 * 60 * 60 * 1000) :
+      String(entry.year) === String(state.archive.year);
     const matchesLocation = state.archive.location === "all" || entry.location === state.archive.location;
     return matchesSearch && matchesYear && matchesLocation;
   });
@@ -1207,7 +1225,6 @@ function renderSettings() {
   const settings = state.settings;
   document.getElementById("gmailAccount").value = settings.gmailAccount;
   document.getElementById("gmailLabel").value = settings.gmailLabel;
-  document.getElementById("syncFrequency").value = settings.syncFrequency;
   document.getElementById("currency").value = settings.currency;
   document.getElementById("meterRennweg").value = settings.meterRennweg;
   document.getElementById("meterAspang").value = settings.meterAspang;
@@ -1351,6 +1368,20 @@ function closeModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
+function initSidebarToggle() {
+  const sidebar = document.getElementById("sidebar");
+  const btn = document.getElementById("sidebarToggleBtn");
+  try {
+    if (localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === "true") {
+      sidebar.classList.add("sidebar-collapsed");
+    }
+  } catch (_e) {}
+  btn.addEventListener("click", () => {
+    const collapsed = sidebar.classList.toggle("sidebar-collapsed");
+    try { localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, collapsed); } catch (_e) {}
+  });
+}
+
 function attachEvents() {
   domCache.screens = Array.from(document.querySelectorAll("[data-screen]"));
   domCache.navButtons = Array.from(document.querySelectorAll("[data-screen-target]"));
@@ -1360,6 +1391,8 @@ function attachEvents() {
       activateScreen(button.dataset.screenTarget);
     });
   });
+
+  initSidebarToggle();
 
   document.getElementById("manualSyncButton").addEventListener("click", () => {
     showToast(state.data.demo ? "Demo mode active. JSON files are empty or unavailable." : "Live JSON loaded successfully.");
@@ -1421,7 +1454,6 @@ function attachEvents() {
     state.settings = {
       gmailAccount: document.getElementById("gmailAccount").value.trim(),
       gmailLabel: document.getElementById("gmailLabel").value.trim(),
-      syncFrequency: document.getElementById("syncFrequency").value,
       currency: document.getElementById("currency").value,
       meterRennweg: document.getElementById("meterRennweg").value.trim(),
       meterAspang: document.getElementById("meterAspang").value.trim(),
@@ -1439,9 +1471,7 @@ function attachEvents() {
     showToast(savedToFirestore ? "In Firestore gespeichert." : "Lokal gespeichert — Firestore nicht erreichbar.");
   });
 
-  document.getElementById("addPointButton").addEventListener("click", () => {
-    showToast("Prototype only. Add-point flow can be wired to your final config model.");
-  });
+
 
   const livePulseToggle = document.getElementById("livePulseToggle");
   const livePulseCb = document.getElementById("livePulse");
@@ -1575,6 +1605,142 @@ function renderApp() {
   activateScreen(state.activeScreen);
 }
 
+// ONBOARDING — Phase-0-Analyse:
+// - STORAGE_KEYS: kein Konflikt, voltmetric-onboarding-done ist neu
+// - init()-Hook: nach renderApp(), bevor User-Interaktion möglich ist
+// - ESC schließt ohne localStorage zu setzen (zeigt beim nächsten Besuch wieder)
+// - Step 3 um Wallbox-Hinweis erweitert: loadWallboxData() existiert + detailTrendChart zeigt Wallbox-Daten
+// - Settings-Button: statisches HTML in index.html (prototype-note Panel), nicht in renderSettings()
+
+const ONBOARDING_KEY = "voltmetric-onboarding-done";
+let onboardingStep = 0;
+
+const ONBOARDING_STEPS_DATA = [
+  {
+    icon: "⚡",
+    title: "Willkommen bei VoltMetric Pro",
+    text: "Dieses Dashboard zeigt unseren Stromverbrauch für beide Haushalte — Rennweg und Aspangstraße. Die Daten kommen direkt von Verbund und werden täglich automatisch aktualisiert.",
+    badge: "Keine App nötig — läuft im Browser",
+    info: null,
+  },
+  {
+    icon: "🏠",
+    title: "Overview — dein Energie-Überblick",
+    text: "Der Overview zeigt auf einen Blick: aktueller Verbrauch, Kosten und wie sich beide Haushalte im Vergleich schlagen. Die KPIs oben zeigen die wichtigsten Kennzahlen des letzten Abrechnungszeitraums.",
+    badge: null,
+    info: null,
+  },
+  {
+    icon: "📈",
+    title: "Insights — Trends & Verläufe",
+    text: "Im Insights-Tab siehst du monatliche Verbrauchskurven, Kostenverlauf und den direkten Vergleich zwischen Rennweg und Aspangstraße über 18 Monate — inklusive Wallbox-Ladedaten vom E-Auto.",
+    badge: null,
+    info: null,
+  },
+  {
+    icon: "🗂️",
+    title: "Billing Archive — alle Rechnungen",
+    text: "Hier findest du alle Verbund-Rechnungen im Überblick — filterbar nach Jahr und Haushalt. Jede Rechnung zeigt Verbrauch (kWh), Kosten und Zeitraum.",
+    badge: null,
+    info: null,
+  },
+  {
+    icon: "🤖",
+    title: "Läuft automatisch — jeden Tag",
+    text: "Du musst nichts tun. Jeden Morgen um 7:00 Uhr holt das System neue Rechnungen aus Gmail, liest die Zahlen aus und aktualisiert das Dashboard. Auch Wallbox-Ladedaten von der Aspangstraße werden automatisch eingelesen.",
+    badge: null,
+    info: "Gmail: manuel.rechnungen@gmail.com · Aktualisierung: täglich 07:00 Uhr",
+  },
+  {
+    icon: "✅",
+    title: "Alles klar — viel Spaß!",
+    text: "Du weißt jetzt alles was du brauchst. Schau einfach rein wenn du wissen willst was der Strom gerade kostet. 😊",
+    badge: null,
+    info: null,
+  },
+];
+
+function showOnboarding() {
+  onboardingStep = 0;
+  renderOnboardingStep(0);
+  const overlay = document.getElementById("onboardingOverlay");
+  overlay.style.display = "flex";
+  requestAnimationFrame(() => overlay.classList.add("is-visible"));
+}
+
+function hideOnboarding() {
+  const overlay = document.getElementById("onboardingOverlay");
+  overlay.classList.remove("is-visible");
+  overlay.addEventListener("transitionend", () => {
+    overlay.style.display = "none";
+  }, { once: true });
+}
+
+function completeOnboarding() {
+  localStorage.setItem(ONBOARDING_KEY, "true");
+  hideOnboarding();
+}
+
+function renderOnboardingStep(step) {
+  const data = ONBOARDING_STEPS_DATA[step];
+  const total = ONBOARDING_STEPS_DATA.length;
+
+  document.getElementById("onboardingIcon").textContent = data.icon;
+  document.getElementById("onboardingTitle").textContent = data.title;
+  document.getElementById("onboardingText").textContent = data.text;
+
+  const badgeEl = document.getElementById("onboardingBadge");
+  if (data.badge) {
+    badgeEl.textContent = data.badge;
+    badgeEl.style.display = "inline-block";
+  } else {
+    badgeEl.style.display = "none";
+  }
+
+  const infoEl = document.getElementById("onboardingInfo");
+  if (data.info) {
+    infoEl.textContent = data.info;
+    infoEl.style.display = "block";
+  } else {
+    infoEl.style.display = "none";
+  }
+
+  const dotsContainer = document.getElementById("onboardingDots");
+  dotsContainer.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<span class="ob-dot${i === step ? " ob-dot-active" : ""}"></span>`
+  ).join("");
+
+  const prevBtn = document.getElementById("onboardingPrev");
+  prevBtn.style.display = step === 0 ? "none" : "";
+  prevBtn.onclick = () => { onboardingStep -= 1; renderOnboardingStep(onboardingStep); };
+
+  const nextBtn = document.getElementById("onboardingNext");
+  if (step === total - 1) {
+    nextBtn.textContent = "Dashboard öffnen";
+    nextBtn.onclick = completeOnboarding;
+  } else {
+    nextBtn.textContent = "Weiter →";
+    nextBtn.onclick = () => { onboardingStep += 1; renderOnboardingStep(onboardingStep); };
+  }
+
+  const hintEl = document.getElementById("onboardingReplayHint");
+  hintEl.style.display = step === total - 1 ? "block" : "none";
+}
+
+function initOnboarding() {
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const overlay = document.getElementById("onboardingOverlay");
+    if (overlay && overlay.classList.contains("is-visible")) {
+      hideOnboarding();
+    }
+  });
+
+  if (!localStorage.getItem(ONBOARDING_KEY)) {
+    showOnboarding();
+  }
+}
+
 async function init() {
   [state.data, state.wallbox, state.settings] = await Promise.all([
     loadData(),
@@ -1585,6 +1751,7 @@ async function init() {
   state.computed.monthly = buildMonthlySeries(state.data);
   attachEvents();
   renderApp();
+  initOnboarding();
 }
 
 init();

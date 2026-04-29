@@ -29,6 +29,7 @@ input,select,textarea{font-family:inherit}
   --hero-1:    #003D35;
   --hero-2:    #007A6A;
   --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
   --text:      #0F172A;
   --muted:     #64748B;
   --subtle:    #94A3B8;
@@ -57,16 +58,25 @@ input,select,textarea{font-family:inherit}
   width:var(--sidebar-w);flex-shrink:0;background:#111827;
   display:flex;flex-direction:column;border-right:none;
   padding:0;overflow-y:auto;z-index:20;height:100vh;
+  transition:width 0.22s cubic-bezier(0.4,0,0.2,1);overflow-x:hidden;
 }
-.sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,.06);min-width:0}
 .sidebar-logo-mark{
   width:32px;height:32px;border-radius:8px;flex-shrink:0;
   background:linear-gradient(135deg,var(--teal),var(--teal-deep));
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 2px 8px rgba(0,194,168,.35);
 }
-.sidebar-logo-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;letter-spacing:.5px}
-.sidebar-logo-sub{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-top:1px}
+.sidebar-logo-text{flex:1;min-width:0;overflow:hidden;transition:opacity 0.15s,width 0.22s}
+.sidebar-logo-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;letter-spacing:.5px;white-space:nowrap}
+.sidebar-logo-sub{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-top:1px;white-space:nowrap}
+.sidebar-toggle-btn{
+  flex-shrink:0;width:26px;height:26px;border-radius:6px;margin-left:auto;
+  display:flex;align-items:center;justify-content:center;
+  color:#6B7280;transition:background var(--tr),color var(--tr);
+}
+.sidebar-toggle-btn:hover{background:rgba(255,255,255,.08);color:#E5E7EB}
+.toggle-chevron{transition:transform 0.22s cubic-bezier(0.4,0,0.2,1);flex-shrink:0}
 
 .sidebar-user{
   margin:12px 12px 6px;padding:10px 12px;border-radius:10px;
@@ -79,19 +89,22 @@ input,select,textarea{font-family:inherit}
   display:flex;align-items:center;justify-content:center;
   font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:#9CA3AF;
 }
-.sidebar-user-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#F9FAFB}
-.sidebar-user-role{font-size:10.5px;color:#6B7280;margin-top:1px}
+.sidebar-user-info{min-width:0;overflow:hidden;transition:opacity 0.15s}
+.sidebar-user-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#F9FAFB;white-space:nowrap}
+.sidebar-user-role{font-size:10.5px;color:#6B7280;margin-top:1px;white-space:nowrap}
 
 .sidebar-nav{display:flex;flex-direction:column;gap:2px;flex:1;padding:8px 10px}
 .nav-item{
   display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
   width:100%;text-align:left;
   font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;font-size:13px;color:#9CA3AF;
-  transition:background var(--tr),color var(--tr);
+  transition:background var(--tr),color var(--tr);overflow:hidden;
 }
 .nav-item:hover{background:rgba(255,255,255,.06);color:#E5E7EB}
 .nav-item-active{background:rgba(0,194,168,.15);color:#5EEAD4;font-weight:600}
 .nav-dot{display:none}
+.nav-icon{flex-shrink:0}
+.nav-label{white-space:nowrap;overflow:hidden;transition:opacity 0.15s}
 
 .sidebar-footer{border-top:1px solid rgba(255,255,255,.06);padding:14px 12px;display:flex;flex-direction:column;gap:6px}
 .sidebar-status{padding:0}
@@ -112,18 +125,36 @@ input,select,textarea{font-family:inherit}
 .sidebar-link{font-size:11px;color:#6B7280;transition:color 0.15s}
 .sidebar-link:hover{color:#9CA3AF}
 
+/* ── Collapsed sidebar ─────────────────────────────────────────── */
+.sidebar-collapsed{width:var(--sidebar-w-collapsed)}
+.sidebar-collapsed .sidebar-logo{justify-content:center;padding:20px 0 16px;gap:0}
+.sidebar-collapsed .sidebar-logo-text{width:0;opacity:0;pointer-events:none}
+.sidebar-collapsed .sidebar-toggle-btn{margin-left:0}
+.sidebar-collapsed .toggle-chevron{transform:rotate(180deg)}
+.sidebar-collapsed .sidebar-user{justify-content:center;background:transparent;border-color:transparent;margin:8px 0 4px;padding:8px 0}
+.sidebar-collapsed .sidebar-user-info{width:0;opacity:0;overflow:hidden;pointer-events:none}
+.sidebar-collapsed .nav-item{justify-content:center;gap:0;padding:10px}
+.sidebar-collapsed .nav-label{width:0;opacity:0;overflow:hidden;pointer-events:none}
+.sidebar-collapsed .sidebar-footer{align-items:center;padding:14px 8px}
+.sidebar-collapsed .sidebar-live-row{justify-content:center}
+.sidebar-collapsed .sidebar-live-label,
+.sidebar-collapsed .sidebar-data-mode,
+.sidebar-collapsed .sidebar-last-update{display:none}
+.sidebar-collapsed .btn-sync{padding:9px;gap:0}
+.sidebar-collapsed .btn-sync-label{display:none}
+.sidebar-collapsed .sidebar-links{display:none}
+
 /* ── Main content ──────────────────────────────────────────────── */
 .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
 /* ── Topbar ─────────────────────────────────────────────────────── */
 .topbar{
-  padding:18px 28px 14px;border-bottom:1px solid #edf0f5;
+  padding:12px 28px 11px;border-bottom:1px solid #edf0f5;
   background:rgba(245,248,252,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   position:sticky;top:0;z-index:10;flex-shrink:0;
   display:flex;align-items:flex-end;gap:12px;
 }
 .topbar-text{min-width:0;flex:1}
-.topbar-super{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--slate);opacity:0.7;margin-bottom:4px}
 .topbar-title-row{display:flex;align-items:center;gap:9px}
 .topbar-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;color:var(--ink);line-height:1;margin:0}
 .topbar-badge{font-size:10px;font-weight:600;padding:2px 8px;background:#e8ecf2;border-radius:7px;color:var(--slate)}
@@ -189,9 +220,9 @@ input,select,textarea{font-family:inherit}
 .hero-row{grid-column:1/-1;display:grid;grid-template-columns:1.7fr 0.8fr 0.8fr;gap:14px}
 .hero-card{
   background:linear-gradient(140deg,var(--hero-1) 0%,var(--hero-2) 100%);
-  border-radius:var(--r-xl);padding:22px 24px;color:#fff;
+  border-radius:var(--r-xl);padding:18px 22px;color:#fff;
   display:flex;flex-direction:column;justify-content:space-between;
-  position:relative;overflow:hidden;box-shadow:var(--sh);min-height:176px;
+  position:relative;overflow:hidden;box-shadow:var(--sh);
 }
 .hero-card::before{
   content:'';position:absolute;top:-50px;right:-40px;
@@ -201,9 +232,9 @@ input,select,textarea{font-family:inherit}
 }
 .hero-eyebrow{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:6px}
 .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.hero-kwh{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:500;letter-spacing:-2px;line-height:1;color:#fff}
+.hero-kwh{font-family:'IBM Plex Mono',monospace;font-size:40px;font-weight:500;letter-spacing:-2px;line-height:1;color:#fff}
 .hero-kwh-u{font-size:18px;font-weight:300;letter-spacing:0;opacity:.55;margin-left:3px}
-.hero-eur{font-family:'IBM Plex Mono',monospace;font-size:14px;color:rgba(255,255,255,.55);margin-top:5px;letter-spacing:-.3px}
+.hero-eur{font-family:'IBM Plex Mono',monospace;font-size:13px;color:rgba(255,255,255,.55);margin-top:3px;letter-spacing:-.3px}
 .hero-trend{
   display:flex;align-items:center;gap:5px;
   background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.28);
@@ -212,11 +243,11 @@ input,select,textarea{font-family:inherit}
   white-space:nowrap;flex-shrink:0;
 }
 .hero-trend svg{width:11px;height:11px}
-.hero-subcards{display:flex;gap:10px;margin-top:16px}
-.hero-sc{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 12px;transition:background var(--tr)}
+.hero-subcards{display:flex;gap:8px;margin-top:10px}
+.hero-sc{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:8px 10px;transition:background var(--tr)}
 .hero-sc:hover{background:rgba(255,255,255,.12)}
-.hero-sc-label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:6px}
-.hero-sc-kwh{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;color:#fff;letter-spacing:-.5px}
+.hero-sc-label{font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.40);margin-bottom:3px}
+.hero-sc-kwh{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:rgba(255,255,255,.9);letter-spacing:-.5px}
 .hero-sc-kwh span{font-size:11px;font-weight:300;opacity:.5;margin-left:2px}
 .hero-sc-meta{font-size:10.5px;color:rgba(255,255,255,.45);margin-top:3px;font-family:'IBM Plex Mono',monospace}
 
@@ -262,11 +293,12 @@ input,select,textarea{font-family:inherit}
 .kpi-icon-float.indigo{background:rgba(99,102,241,.10);color:#6366F1}
 .kpi-label{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:6px;padding-right:32px;display:flex;align-items:center;gap:5px}
 .kpi-label-info{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;border:1.5px solid var(--subtle);color:var(--subtle);font-size:9px;font-style:normal;cursor:default}
-.kpi-dual{display:flex;gap:16px;margin-bottom:4px}
-.kpi-dual-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;letter-spacing:-.3px;line-height:1.2;white-space:nowrap}
+.kpi-dual{display:flex;gap:12px;margin-bottom:4px}
+.kpi-dual>div{min-width:0;flex:1}
+.kpi-dual-val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;letter-spacing:-.3px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi-dual-val.teal{color:var(--teal)}
 .kpi-dual-val.amber{color:var(--amber)}
-.kpi-dual-loc{font-size:11px;font-weight:700;color:var(--text);margin-top:2px}
+.kpi-dual-loc{font-size:11px;font-weight:700;color:var(--text);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kpi-dual-footer{font-size:10.5px;color:var(--subtle);margin-top:4px}
 .kpi-val{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;letter-spacing:-1px;line-height:1;color:var(--text);margin-bottom:3px}
 .kpi-val .ku{font-size:13px;font-weight:300;color:var(--muted);letter-spacing:0}
@@ -534,12 +566,6 @@ input,select,textarea{font-family:inherit}
 .btn-save:active{transform:scale(0.97)}
 .settings-notice{font-size:11px;color:var(--slate-l)}
 .settings-notice.saved{color:var(--teal)}
-.btn-add-point{
-  padding:6px 14px;border-radius:8px;
-  border:1px solid var(--teal);background:rgba(0,194,168,0.07);color:var(--teal-dk);
-  font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;transition:opacity 0.15s;
-}
-.btn-add-point:hover{opacity:0.75}
 
 /* ── Modal ──────────────────────────────────────────────────────── */
 .modal-shell{position:fixed;inset:0;z-index:60}
@@ -696,4 +722,113 @@ input,select,textarea{font-family:inherit}
 
 @media (min-width:768px){
   .modal-body{grid-template-columns:1.2fr 0.8fr}
+}
+
+/* ================================================================
+   ONBOARDING WIZARD
+   Phase-0: Design-Tokens aus :root genutzt (--teal, --teal-dk,
+   --ink, --subtle, --r-xl, --tr). Sidebar-Farbe #111827 direkt
+   referenziert, da kein CSS-Variable dafür existiert.
+   ================================================================ */
+
+.onboarding-overlay{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(13,27,46,0.85);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  padding:16px;
+  opacity:0;transition:opacity 0.25s ease;
+}
+.onboarding-overlay.is-visible{opacity:1}
+
+.onboarding-modal{
+  background:#111827;
+  border:1px solid rgba(0,194,168,0.2);
+  border-radius:var(--r-xl);
+  max-width:480px;width:100%;
+  padding:28px 28px 24px;
+  box-shadow:0 24px 60px rgba(13,27,46,0.5);
+  display:flex;flex-direction:column;gap:20px;
+}
+
+.onboarding-progress{display:flex;justify-content:center;gap:6px}
+.ob-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:transparent;border:1.5px solid #374151;
+  transition:width 0.2s ease,background 0.2s ease,border-color 0.2s ease,border-radius 0.2s ease;
+  flex-shrink:0;
+}
+.ob-dot-active{
+  width:20px;border-radius:4px;
+  background:var(--teal);border-color:var(--teal);
+}
+
+.onboarding-content{
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;gap:10px;
+}
+.onboarding-icon{font-size:3rem;line-height:1;margin-bottom:2px}
+.onboarding-title{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:1.35rem;font-weight:700;color:#fff;
+  margin:0;line-height:1.3;
+}
+.onboarding-text{
+  font-size:0.925rem;color:var(--subtle);
+  line-height:1.65;margin:0;max-width:380px;
+}
+.onboarding-badge{
+  display:inline-block;padding:4px 12px;border-radius:20px;
+  background:rgba(0,194,168,0.12);border:1px solid rgba(0,194,168,0.3);
+  color:var(--teal);font-size:0.8rem;font-weight:600;
+  font-family:'Plus Jakarta Sans',sans-serif;margin-top:2px;
+}
+.onboarding-info-box{
+  background:rgba(0,194,168,0.08);border-left:3px solid var(--teal);
+  border-radius:6px;padding:10px 14px;
+  font-size:0.825rem;color:var(--subtle);
+  text-align:left;line-height:1.6;width:100%;margin-top:4px;
+}
+
+.onboarding-footer{display:flex;gap:10px}
+.onboarding-btn-primary{
+  flex:1;padding:11px 20px;border-radius:8px;
+  background:var(--teal);color:var(--ink);
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;
+  transition:opacity var(--tr);
+}
+.onboarding-btn-primary:hover{opacity:0.88}
+.onboarding-btn-secondary{
+  padding:11px 16px;border-radius:8px;
+  border:1px solid #374151;color:#64748B;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;
+  background:transparent;
+  transition:border-color var(--tr),color var(--tr);
+}
+.onboarding-btn-secondary:hover{border-color:#4B5563;color:#94A3B8}
+
+.onboarding-replay-hint{
+  text-align:center;font-size:0.75rem;color:#4B5563;margin:0;
+}
+
+/* Tour-Wiederholen Button in Settings */
+.ob-replay-row{
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid #f0f3f7;
+}
+.ob-replay-btn{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:12px;font-weight:600;
+  color:var(--teal-dk);background:none;padding:0;
+  transition:color var(--tr);
+  display:inline-flex;align-items:center;gap:4px;
+}
+.ob-replay-btn:hover{color:var(--teal)}
+
+@media (max-width:767px){
+  .onboarding-modal{
+    width:calc(100% - 32px);
+    max-height:90vh;overflow-y:auto;
+    padding:22px 20px 20px;
+  }
 }
