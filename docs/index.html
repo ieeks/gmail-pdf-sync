@@ -459,6 +459,9 @@
                   <button class="btn-save" form="settingsForm" type="submit">Save changes</button>
                   <span class="settings-notice" id="settingsNotice">Noch nichts gespeichert.</span>
                 </div>
+                <div class="ob-replay-row">
+                  <button class="ob-replay-btn" type="button" onclick="localStorage.removeItem('voltmetric-onboarding-done'); showOnboarding();">↩ Tour wiederholen</button>
+                </div>
               </div>
             </div>
 
@@ -535,6 +538,27 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
+
+  <!-- ============================================================
+       ONBOARDING WIZARD
+       ============================================================ -->
+  <div id="onboardingOverlay" class="onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" style="display:none">
+    <div class="onboarding-modal">
+      <div class="onboarding-progress" id="onboardingDots"></div>
+      <div class="onboarding-content">
+        <div class="onboarding-icon" id="onboardingIcon"></div>
+        <h2 class="onboarding-title" id="onboardingTitle"></h2>
+        <p class="onboarding-text" id="onboardingText"></p>
+        <span class="onboarding-badge" id="onboardingBadge" style="display:none"></span>
+        <div class="onboarding-info-box" id="onboardingInfo" style="display:none"></div>
+      </div>
+      <div class="onboarding-footer">
+        <button id="onboardingPrev" class="onboarding-btn-secondary" type="button">Zurück</button>
+        <button id="onboardingNext" class="onboarding-btn-primary" type="button">Weiter →</button>
+      </div>
+      <p class="onboarding-replay-hint" id="onboardingReplayHint" style="display:none">Tour jederzeit in den Einstellungen wiederholen</p>
+    </div>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
