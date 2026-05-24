@@ -6,10 +6,10 @@ Ausstehende Aufgaben und zukünftige Features. Reihenfolge = grobe Priorität.
 
 ## Aufräumen (Quick Wins)
 
-- [ ] **Tailwind-Reste löschen** — `docs/package.json`, `docs/tailwind.config.js`, `docs/src/input.css` werden laut CLAUDE.md nicht mehr genutzt. `.gitignore` entsprechend kürzen.
+- [x] **Tailwind-Reste löschen** — `docs/package.json`, `docs/tailwind.config.js`, `docs/src/input.css` werden laut CLAUDE.md nicht mehr genutzt. `.gitignore` entsprechend gekürzt.
 - [ ] **Mockups archivieren** — `MOCKUP_mobile.html` und `voltmetric-preview.html` aus dem Root entfernen oder nach `docs/_archive/` verschieben.
-- [ ] **`requirements.txt` pinnen** — Versions-Locks für `pdfplumber` und `firebase-admin` (reproduzierbare Builds).
-- [ ] **Erste echte Rechnungen importieren** — Sync läuft, `data/*.json` ist aber leer. Einmal manuell triggern und prüfen ob Rechnungen ankommen.
+- [x] **`requirements.txt` pinnen** — `pdfplumber==0.11.9`, `firebase-admin==7.4.0`.
+- [ ] **Erste echte Rechnungen importieren** — sobald Verbund-Rechnungen im Gmail-Postfach landen, einmal manuell triggern.
 
 ---
 
