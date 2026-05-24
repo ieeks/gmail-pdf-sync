@@ -36,7 +36,7 @@
   - Overview: CSS Grid mit Hero-Row, KPI-Grid, Right-Panel (statisch), Charts-Row, Bottom-Row
   - `renderOverview()` neu: füllt heroCard, rwCard, asCard, kpiGrid, recentLogs, kostenVergleich, topKennzahlen
   - `daysAgo()` helper, Event-Delegation für dynamisch gerenderte Elemente
-  - `voltmetric-preview.html` als Design-Referenz im Repo behalten
+  - `voltmetric-preview.html` als Design-Referenz im Repo behalten (jetzt in `docs/_archive/`)
 
 ---
 
