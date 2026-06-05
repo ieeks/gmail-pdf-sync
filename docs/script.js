@@ -1451,6 +1451,14 @@ function attachEvents() {
   document.getElementById("invoiceModal").addEventListener("click", (event) => {
     if (event.target.closest("[data-close-modal='true']")) {
       closeModal();
+      return;
+    }
+    const btn = event.target.closest(".pdf-action-btn");
+    if (!btn) return;
+    if (btn.title === "Zoom") {
+      document.getElementById("modalPreview").classList.toggle("faux-pdf-zoomed");
+    } else if (btn.title === "Download") {
+      showToast("PDF liegt in iCloud Drive — kein Web-Download verfügbar.");
     }
   });
 
