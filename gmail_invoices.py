@@ -25,6 +25,9 @@ GMAIL_LABEL        = "Rechnungen"              # exakter Label-Name in Gmail
 PDF_TEMP_DIR       = Path(tempfile.mkdtemp())
 
 EXTRACT_SCRIPT     = SCRIPT_DIR / "extract_verbund.py"
+
+# E-Mails werden nur verarbeitet wenn Subject oder Absender einen dieser Begriffe enthält
+VERBUND_KEYWORDS   = ["verbund", "energierechnung"]
 # ───────────────────────────────────────────────────────────────────────────────
 
 MONTH_NAMES = {
@@ -50,6 +53,12 @@ def safe_filename(name: str) -> str:
     """Sonderzeichen aus Dateinamen entfernen."""
     keep = " ._-"
     return "".join(c if (c.isalnum() or c in keep) else "_" for c in name).strip()
+
+
+def is_verbund_email(subject: str, sender: str) -> bool:
+    """Prüft ob Subject oder Absender auf eine Verbund-Rechnung hinweist."""
+    combined = (subject + " " + sender).lower()
+    return any(kw in combined for kw in VERBUND_KEYWORDS)
 
 
 def list_labels(mail: imaplib.IMAP4_SSL) -> None:
@@ -178,7 +187,17 @@ def main() -> None:
     total_pdfs = 0
 
     for msg_id in msg_ids:
-        print(f"\nVerarbeite E-Mail ID {msg_id.decode()} ...")
+        # Erst nur Header laden und auf Verbund-Keywords prüfen
+        _, hdr_data = mail.fetch(msg_id, "(BODY[HEADER.FIELDS (SUBJECT FROM)])")
+        hdr_msg  = email.message_from_bytes(hdr_data[0][1])
+        subject  = decode_str(hdr_msg.get("Subject", ""))
+        sender   = decode_str(hdr_msg.get("From", ""))
+
+        if not is_verbund_email(subject, sender):
+            print(f"  Übersprungen (kein Verbund): {subject[:70]}")
+            continue
+
+        print(f"\nVerarbeite E-Mail ID {msg_id.decode()} — {subject[:70]}")
         saved = download_pdfs(mail, msg_id)
 
         # E-Mail als gelesen markieren
