@@ -1456,6 +1456,15 @@ function attachEvents() {
 
   document.getElementById("closeModalButton").addEventListener("click", closeModal);
 
+  document.getElementById("modalVerifyBtn").addEventListener("click", () => {
+    closeModal();
+    showToast("Daten bestätigt ✓");
+  });
+
+  document.getElementById("modalEditBtn").addEventListener("click", () => {
+    showToast("Manuelle Bearbeitung noch nicht verfügbar.");
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeModal();
   });
