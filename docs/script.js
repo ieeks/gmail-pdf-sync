@@ -399,6 +399,23 @@ function wallboxKwhInPeriod(fromDate, toDate) {
   }, 0);
 }
 
+// Wallbox-Ladungen NACH dem letzten abgerechneten Zeitraum — noch nicht abgerechnet.
+// Diese kWh kennen wir exakt (aus charges[]), aber es gibt noch keinen Gesamtverbrauch
+// zum Vergleich, daher wird hierfür bewusst KEIN Prozentwert gebildet.
+function wallboxUnbilled(afterDate) {
+  let kwh = 0;
+  let count = 0;
+  let firstDate = null;
+  (state.wallbox.charges || []).forEach((c) => {
+    if (parseDate(c.date) > afterDate) {
+      kwh += c.kwh;
+      count += 1;
+      if (!firstDate || c.date < firstDate) firstDate = c.date;
+    }
+  });
+  return { kwh, count, firstDate };
+}
+
 function sumEntries(entries, key) {
   return entries.reduce((sum, entry) => sum + entry[key], 0);
 }
@@ -592,16 +609,27 @@ function renderWallboxKennzahl() {
     el.classList.add("hidden");
     return;
   }
-  // Wallbox-kWh aus genau dem Abrechnungszeitraum der jüngsten Rechnung — gleicher Zeitraum für Zähler und Nenner
-  const wallboxKwh = wallboxKwhInPeriod(latestAspang.fromDate, latestAspang.toDate);
-  if (wallboxKwh === 0) {
+  // Abgerechnete Periode: Wallbox-kWh aus genau dem Zeitraum der jüngsten Rechnung (Zähler + Nenner gleich)
+  const billedKwh = wallboxKwhInPeriod(latestAspang.fromDate, latestAspang.toDate);
+  const periodConsumption = latestAspang.kwh || 0;
+  const pct = periodConsumption > 0 ? Math.round((billedKwh / periodConsumption) * 100) : 0;
+  // Laufend: Ladungen nach dem letzten Abrechnungsende — exakte kWh, aber (noch) kein Prozentwert
+  const unbilled = wallboxUnbilled(latestAspang.toDate);
+
+  const tags = [];
+  if (billedKwh > 0) {
+    tags.push(`<span class="tag tag-teal">⚡ ${formatNumber(billedKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Abrechnungszeitraums` : ""}</span>`);
+  }
+  if (unbilled.kwh > 0) {
+    const ladungen = `${unbilled.count} ${unbilled.count === 1 ? "Ladung" : "Ladungen"}`;
+    tags.push(`<span class="tag tag-amber">⚡ ${formatNumber(unbilled.kwh, 1)} kWh laufend · ${ladungen} (noch nicht abgerechnet)</span>`);
+  }
+  if (tags.length === 0) {
     el.classList.add("hidden");
     return;
   }
-  const periodConsumption = latestAspang.kwh || 0;
-  const pct = periodConsumption > 0 ? Math.round((wallboxKwh / periodConsumption) * 100) : 0;
   el.classList.remove("hidden");
-  el.innerHTML = `<span class="tag tag-teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Abrechnungszeitraums` : ""}</span>`;
+  el.innerHTML = tags.join(" ");
 }
 
 function renderOverviewCharts() {
@@ -1591,26 +1619,35 @@ function renderMobileGlance() {
       </div>`;
   }
 
-  // Wallbox card — Wallbox-kWh aus genau dem Abrechnungszeitraum der jüngsten Aspang-Rechnung
-  const wallboxKwh = wallboxKwhInPeriod(summary.latestAspang.fromDate, summary.latestAspang.toDate);
+  // Wallbox card — abgerechnete Periode (mit %) + laufend, noch nicht abgerechnet (absolut, ohne %)
+  const billedKwh = wallboxKwhInPeriod(summary.latestAspang.fromDate, summary.latestAspang.toDate);
+  const unbilled = wallboxUnbilled(summary.latestAspang.toDate);
   const mWallboxCard = document.getElementById("mWallboxCard");
   if (mWallboxCard) {
-    if (wallboxKwh > 0) {
+    if (billedKwh > 0 || unbilled.kwh > 0) {
       const periodConsumption = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh : 1;
-      const pct = Math.min(100, Math.round((wallboxKwh / periodConsumption) * 100));
-      mWallboxCard.style.display = "";
-      mWallboxCard.innerHTML = `
-        <div class="m-wallbox-header">
-          <span class="m-wallbox-title">Wallbox · Aspangstr.</span>
-          <span class="m-wallbox-kwh">⚡ ${formatNumber(wallboxKwh, 1)} kWh</span>
-        </div>
+      const pct = Math.min(100, Math.round((billedKwh / periodConsumption) * 100));
+      const billedBlock = billedKwh > 0 ? `
         <div class="m-progress-track">
           <div class="m-progress-fill" style="width:${pct}%"></div>
         </div>
         <div class="m-progress-labels">
           <span class="m-prog-label">${pct}% des Abrechnungszeitraums</span>
           <span class="m-prog-val">BYD Seal U</span>
-        </div>`;
+        </div>` : "";
+      const ladungen = `${unbilled.count} ${unbilled.count === 1 ? "Ladung" : "Ladungen"}`;
+      const unbilledBlock = unbilled.kwh > 0 ? `
+        <div class="m-progress-labels">
+          <span class="m-prog-label">+ ${formatNumber(unbilled.kwh, 1)} kWh laufend · ${ladungen} (noch nicht abgerechnet)</span>
+        </div>` : "";
+      mWallboxCard.style.display = "";
+      mWallboxCard.innerHTML = `
+        <div class="m-wallbox-header">
+          <span class="m-wallbox-title">Wallbox · Aspangstr.</span>
+          <span class="m-wallbox-kwh">⚡ ${formatNumber(billedKwh, 1)} kWh</span>
+        </div>
+        ${billedBlock}
+        ${unbilledBlock}`;
     } else {
       mWallboxCard.style.display = "none";
     }
