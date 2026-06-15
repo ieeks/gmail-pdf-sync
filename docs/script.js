@@ -583,8 +583,9 @@ function renderWallboxKennzahl() {
     return;
   }
   const latestAspang = state.data.aspangstrasse[state.data.aspangstrasse.length - 1];
-  const monthlyAvg = latestAspang ? latestAspang.kwh / 12 : 0;
-  const pct = monthlyAvg > 0 ? Math.round((wallboxKwh / monthlyAvg) * 100) : 0;
+  // latestAspang.kwh ist bereits der Monatsverbrauch (Rechnungen sind monatlich) — nicht durch 12 teilen
+  const monthlyConsumption = latestAspang ? latestAspang.kwh : 0;
+  const pct = monthlyConsumption > 0 ? Math.round((wallboxKwh / monthlyConsumption) * 100) : 0;
   el.classList.remove("hidden");
   el.innerHTML = `<span class="tag tag-teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Monatsverbrauchs` : ""}</span>`;
 }
@@ -1582,8 +1583,9 @@ function renderMobileGlance() {
   const mWallboxCard = document.getElementById("mWallboxCard");
   if (mWallboxCard) {
     if (wallboxKwh > 0) {
-      const monthlyAvg = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh / 12 : 1;
-      const pct = Math.min(100, Math.round((wallboxKwh / monthlyAvg) * 100));
+      // latestAspang.kwh ist bereits der Monatsverbrauch (Rechnungen sind monatlich) — nicht durch 12 teilen
+      const monthlyConsumption = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh : 1;
+      const pct = Math.min(100, Math.round((wallboxKwh / monthlyConsumption) * 100));
       mWallboxCard.style.display = "";
       mWallboxCard.innerHTML = `
         <div class="m-wallbox-header">
