@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "rechnungsdatum": "2026-06-07",
+    "zeitraum_von": "2026-04-30",
+    "zeitraum_bis": "2026-05-31",
+    "kwh": 252.79,
+    "energiekosten": 35.71,
+    "netzgebuehren": 25.52,
+    "steuern": 7.53,
+    "gesamt_inkl_ust": 72.7,
+    "rechnungsnummer": "3102601272256"
+  }
+]
