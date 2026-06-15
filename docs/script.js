@@ -160,11 +160,11 @@ const state = {
   },
   settings: { ...DEFAULT_SETTINGS }, // overwritten in init() after Firestore load
   modalEntryId: null,
-  user: null, // Firebase-Auth-User (nur ALLOWED_EMAIL), sonst null
+  user: null, // Firebase-Auth-User (nur ALLOWED_EMAILS), sonst null
 };
 
-// Nur dieser Account darf Original-PDFs sehen (zusätzlich abgesichert über Storage-Regeln)
-const ALLOWED_EMAIL = "manuel.rechnungen@gmail.com";
+// Nur diese Accounts dürfen Original-PDFs sehen (zusätzlich abgesichert über Storage-Regeln)
+const ALLOWED_EMAILS = ["manuel.koblischek@gmail.com", "zolguita@gmail.com"];
 
 // ── Firebase helper ──────────────────────────────────────────────
 function getFirebaseApp() {
@@ -210,7 +210,7 @@ function getStorage() {
 }
 
 function isAllowedUser() {
-  return !!(state.user && state.user.email === ALLOWED_EMAIL);
+  return !!(state.user && ALLOWED_EMAILS.includes(state.user.email));
 }
 
 // Aktualisiert ein offenes Modal nach Login/Logout
@@ -225,7 +225,7 @@ function initAuth() {
   const auth = getAuth();
   if (!auth) return;
   auth.onAuthStateChanged((user) => {
-    if (user && user.email !== ALLOWED_EMAIL) {
+    if (user && !ALLOWED_EMAILS.includes(user.email)) {
       // Fremde Accounts sofort wieder abmelden — kein Zugriff auf PDFs
       auth.signOut();
       state.user = null;

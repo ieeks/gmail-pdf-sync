@@ -114,7 +114,7 @@ eingeloggt (eigener Account) erscheint zusätzlich das Original-PDF.
 - [x] Firestore-Dokument um Feld `pdfPath` ergänzt (nur Firestore, nicht in `data/*.json`)
 - [x] `pdfPath` durch `normalizeEntries()` ins Frontend durchgereicht
 - [x] Firebase Auth (Google) im Dashboard: `getAuth()`, `initAuth()`, `signIn()`,
-  `signOutUser()`, Zugriff auf `ALLOWED_EMAIL` beschränkt
+  `signOutUser()`, Zugriff auf `ALLOWED_EMAILS` beschränkt
 - [x] PDF-Einbettung im Modal via `getStorage().ref(pdfPath).getDownloadURL()` → `<iframe>`
   (`showInvoicePdf()`); Button nur sichtbar wenn `pdfPath` vorhanden → graceful Fallback auf C
 - [x] `firebase-auth-compat` + `firebase-storage-compat` SDKs in `index.html`
@@ -128,7 +128,7 @@ eingeloggt (eigener Account) erscheint zusätzlich das Original-PDF.
 - [ ] **Authentication → Google-Provider aktivieren**
 - [ ] **Authorized domains:** `manuel-app.dev` hinzufügen
 - [ ] **Service-Account-Rechte prüfen:** `FIREBASE_SERVICE_ACCOUNT` braucht *Storage Object Admin*
-- [ ] Falls Login-Adresse ≠ `manuel.rechnungen@gmail.com`: `ALLOWED_EMAIL` in `script.js`
-  und die E-Mail in `storage.rules` anpassen
+- [ ] Erlaubte Accounts: `manuel.koblischek@gmail.com`, `zolguita@gmail.com`
+  (in `ALLOWED_EMAILS` in `script.js` und in `storage.rules` gepflegt — bei Änderung beide anpassen)
 - [ ] Bereits vorhandene PDFs einmalig neu durch `extract_verbund.py` laufen lassen,
   damit `pdfPath` in Firestore gesetzt wird (oder beim nächsten Sync automatisch)

@@ -8,7 +8,10 @@ service firebase.storage {
 
     match /invoices/{file} {
       allow read: if request.auth != null
-                  && request.auth.token.email == "manuel.rechnungen@gmail.com";
+                  && request.auth.token.email in [
+                       "manuel.koblischek@gmail.com",
+                       "zolguita@gmail.com"
+                     ];
       allow write: if false;
     }
 
