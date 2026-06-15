@@ -6,6 +6,7 @@ Verwendung:
     python3 extract_verbund.py /pfad/zur/rechnung.pdf
 """
 
+import base64
 import json
 import os
 import re
@@ -43,25 +44,29 @@ def get_firestore_db():
         return None
 
 
-# Bucket für Original-PDFs (privat, nur via Firebase Auth lesbar — siehe Storage-Regeln)
-STORAGE_BUCKET = "wallbox-manuel.firebasestorage.app"
+# Firestore-Dokumente sind auf 1 MiB begrenzt; Base64 vergrößert ~33 %.
+# Bis ~750 KB Roh-PDF passt es sicher in ein Dokument.
+MAX_PDF_BYTES = 750_000
 
 
-def upload_pdf_to_storage(pdf_path: Path, rechnungsnummer: str) -> str | None:
-    """Lädt das Original-PDF nach invoices/{rechnungsnummer}.pdf in Firebase Storage.
-    Gibt den Storage-Pfad zurück oder None (z. B. wenn kein Service Account / Storage)."""
-    if get_firestore_db() is None:  # stellt sicher, dass firebase_admin initialisiert ist
-        return None
+def store_pdf_in_firestore(db, pdf_path: Path, rechnungsnummer: str) -> bool:
+    """Speichert das Original-PDF Base64-kodiert in invoice_pdfs/{rechnungsnummer}.
+    Privat (nur berechtigte Accounts lesen — siehe firestore.rules). Kein Storage/Blaze nötig."""
     try:
-        from firebase_admin import storage as fb_storage
-        blob_path = f"invoices/{rechnungsnummer}.pdf"
-        blob = fb_storage.bucket(STORAGE_BUCKET).blob(blob_path)
-        blob.upload_from_filename(str(pdf_path), content_type="application/pdf")
-        print(f"  Storage: {blob_path} hochgeladen.")
-        return blob_path
+        raw = pdf_path.read_bytes()
+        if len(raw) > MAX_PDF_BYTES:
+            print(f"  PDF zu groß für Firestore ({len(raw)} Bytes > {MAX_PDF_BYTES}), übersprungen.")
+            return False
+        b64 = base64.b64encode(raw).decode("ascii")
+        db.collection("invoice_pdfs").document(rechnungsnummer).set({
+            "data": b64,
+            "contentType": "application/pdf",
+        })
+        print(f"  Firestore: invoice_pdfs/{rechnungsnummer} ({len(raw)} Bytes) gespeichert.")
+        return True
     except Exception as exc:
-        print(f"  Storage-Upload fehlgeschlagen (nicht kritisch): {exc}")
-        return None
+        print(f"  PDF-Speicherung fehlgeschlagen (nicht kritisch): {exc}")
+        return False
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 ZAEHLPUNKTE = {
@@ -230,11 +235,10 @@ def process_pdf(pdf_path: Path) -> bool:
     if db:
         try:
             doc = {**data, "location": haushalt}
-            # Original-PDF privat in Storage ablegen und Pfad referenzieren (Option A).
-            # pdfPath landet NUR in Firestore, nicht in den öffentlichen data/*.json.
-            pdf_storage_path = upload_pdf_to_storage(pdf_path, rechnungsnummer)
-            if pdf_storage_path:
-                doc["pdfPath"] = pdf_storage_path
+            # Original-PDF privat als Base64 in invoice_pdfs/ ablegen (Option A, ohne Storage/Blaze).
+            # hasPdf landet nur in Firestore, nicht in den öffentlichen data/*.json.
+            if store_pdf_in_firestore(db, pdf_path, rechnungsnummer):
+                doc["hasPdf"] = True
             db.collection("invoices").document(rechnungsnummer).set(doc)
             print(f"  Firestore: invoices/{rechnungsnummer} geschrieben.")
         except Exception as exc:

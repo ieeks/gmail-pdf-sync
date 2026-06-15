@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Firestore-Regeln für wallbox-manuel
+// - Rechnungs-ZAHLEN (invoices), Settings (config) und Wallbox (haushalte) bleiben offen,
+//   wie bisher — enthalten nur anonymisierte/unkritische Daten.
+// - Die Original-PDFs (Base64) in invoice_pdfs/ sind PRIVAT: nur berechtigte Accounts
+//   dürfen lesen. Geschrieben wird ausschließlich über das Admin SDK (Python-Sync),
+//   das die Regeln umgeht — daher write: if false.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /invoices/{doc} {
+      allow read, write: if true;
+    }
+
+    match /config/{doc} {
+      allow read, write: if true;
+    }
+
+    match /haushalte/{doc} {
+      allow read, write: if true;
+    }
+
+    match /invoice_pdfs/{doc} {
+      allow read: if request.auth != null
+                  && request.auth.token.email in [
+                       "manuel.koblischek@gmail.com",
+                       "zolguita@gmail.com"
+                     ];
+      allow write: if false;
+    }
+  }
+}

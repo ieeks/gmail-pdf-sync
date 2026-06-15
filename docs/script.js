@@ -161,6 +161,7 @@ const state = {
   settings: { ...DEFAULT_SETTINGS }, // overwritten in init() after Firestore load
   modalEntryId: null,
   user: null, // Firebase-Auth-User (nur ALLOWED_EMAILS), sonst null
+  pdfObjectUrl: null, // aktiver Object-URL des eingebetteten PDFs (zum Freigeben)
 };
 
 // Nur diese Accounts dürfen Original-PDFs sehen (zusätzlich abgesichert über Storage-Regeln)
@@ -194,16 +195,6 @@ function getAuth() {
   if (!app || typeof firebase.auth === "undefined") return null;
   try {
     return firebase.auth(app);
-  } catch (_e) {
-    return null;
-  }
-}
-
-function getStorage() {
-  const app = getFirebaseApp();
-  if (!app || typeof firebase.storage === "undefined") return null;
-  try {
-    return firebase.storage(app);
   } catch (_e) {
     return null;
   }
@@ -266,21 +257,41 @@ async function signOutUser() {
   showToast("Abgemeldet.");
 }
 
-// Lädt das Original-PDF aus Firebase Storage und bettet es im Modal ein
+// Wandelt einen Base64-String in einen Blob (für die PDF-Anzeige aus Firestore)
+function base64ToBlob(b64, type) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type });
+}
+
+// Gibt einen evtl. offenen PDF-Object-URL frei (Speicher)
+function revokePdfUrl() {
+  if (state.pdfObjectUrl) {
+    URL.revokeObjectURL(state.pdfObjectUrl);
+    state.pdfObjectUrl = null;
+  }
+}
+
+// Lädt das Original-PDF (Base64) aus Firestore und bettet es im Modal ein
 async function showInvoicePdf(entry) {
-  const storage = getStorage();
-  if (!storage || !entry.pdfPath) {
+  const db = getFirestoreDb();
+  if (!db || !entry.hasPdf || !isAllowedUser()) {
     showToast("Original-PDF nicht verfügbar.");
     return;
   }
   const preview = document.getElementById("modalPreview");
   preview.innerHTML = `<div class="pdf-loading">Lade Original-PDF …</div>`;
   try {
-    const url = await storage.ref(entry.pdfPath).getDownloadURL();
+    const doc = await db.collection("invoice_pdfs").doc(entry.rechnungsnummer).get();
+    if (!doc.exists || !doc.data().data) throw new Error("kein PDF-Dokument");
+    revokePdfUrl();
+    const blob = base64ToBlob(doc.data().data, doc.data().contentType || "application/pdf");
+    state.pdfObjectUrl = URL.createObjectURL(blob);
     preview.innerHTML = `
       <div class="pdf-frame-wrap">
         <button class="pdf-back-btn" data-action="pdf-back" type="button">← Übersicht</button>
-        <iframe class="pdf-frame" src="${url}" title="Original-Rechnung ${entry.rechnungsnummer}"></iframe>
+        <iframe class="pdf-frame" src="${state.pdfObjectUrl}" title="Original-Rechnung ${entry.rechnungsnummer}"></iframe>
       </div>`;
   } catch (_e) {
     preview.innerHTML = buildModalPreview(entry);
@@ -412,7 +423,7 @@ function normalizeEntries(entries, location) {
         steuern: toNumber(entry.steuern),
         gesamt_inkl_ust: total,
         centsPerKwh: kwh > 0 ? (total / kwh) * 100 : 0,
-        pdfPath: entry.pdfPath || null, // nur aus Firestore; ermöglicht Original-PDF (Option A)
+        hasPdf: !!entry.hasPdf, // nur aus Firestore; Original-PDF in invoice_pdfs/{rechnungsnummer}
       };
     })
     .sort((a, b) => a.invoiceDate - b.invoiceDate);
@@ -1468,10 +1479,10 @@ function invoiceCardHtml(entry) {
   `;
 }
 
-// PDF-Zugang: nur wenn die Rechnung ein Original-PDF hat (pdfPath aus Firestore).
+// PDF-Zugang: nur wenn die Rechnung ein Original-PDF hat (hasPdf aus Firestore).
 // Solange keine PDFs hochgeladen sind, ist dieser Block leer → reiner Option-C-Fallback.
 function pdfAccessHtml(entry) {
-  if (!entry.pdfPath) return "";
+  if (!entry.hasPdf) return "";
   if (isAllowedUser()) {
     return `
       <div class="pdf-access">
@@ -1578,6 +1589,7 @@ function openModal(entryId) {
 }
 
 function closeModal() {
+  revokePdfUrl();
   const modal = document.getElementById("invoiceModal");
   modal.classList.add("hidden");
   modal.setAttribute("aria-hidden", "true");
@@ -1663,7 +1675,7 @@ function attachEvents() {
       switch (actionEl.dataset.action) {
         case "pdf-login": signIn(); break;
         case "pdf-show": if (entry) showInvoicePdf(entry); break;
-        case "pdf-back": if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry); break;
+        case "pdf-back": revokePdfUrl(); if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry); break;
         case "signout": signOutUser(); break;
       }
       return;

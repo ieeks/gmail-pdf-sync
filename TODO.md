@@ -102,33 +102,37 @@ Wenn das Dashboard jemals öffentlich oder multi-user werden soll:
   (`printInvoice()` → Browser „Als PDF speichern")
 - [x] Zeigt nur anonymisierte Zahlen — keine personenbezogenen Daten, kein Datenschutz-Risiko
 
-### Option A — Original-PDF anzeigen (Code fertig, Console-Schritte offen)
+### Option A — Original-PDF anzeigen (Firestore-Base64, kein Storage/Blaze)
 
-Ziel: das **echte** Verbund-PDF im Modal anzeigen. PDFs enthalten personenbezogene
-Daten → bleiben privat (Firebase Storage + Auth). Public bleibt Option C; nur
-eingeloggt (eigener Account) erscheint zusätzlich das Original-PDF.
+Ziel: das **echte** Verbund-PDF im Modal anzeigen. Das PDF wird Base64-kodiert in
+Firestore (`invoice_pdfs/{rechnungsnummer}`) abgelegt — **kein Firebase Storage,
+kein Blaze-Plan nötig**, nur der vorhandene Spark-Plan. Public bleibt Option C; nur
+eingeloggt (berechtigter Account) erscheint zusätzlich das Original-PDF.
+
+Limit: Firestore-Dokument max. 1 MiB → Roh-PDF bis ~750 KB (Base64 +33 %). Verbund-PDFs
+(100–400 KB) passen problemlos; größere werden übersprungen.
 
 **Code — erledigt (2026-06-15):**
-- [x] PDF-Upload im Python-Sync nach `invoices/{rechnungsnummer}.pdf`
-  (`upload_pdf_to_storage()` in `extract_verbund.py`)
-- [x] Firestore-Dokument um Feld `pdfPath` ergänzt (nur Firestore, nicht in `data/*.json`)
-- [x] `pdfPath` durch `normalizeEntries()` ins Frontend durchgereicht
+- [x] PDF Base64 in Firestore `invoice_pdfs/{rechnungsnummer}` (`store_pdf_in_firestore()` in `extract_verbund.py`)
+- [x] Invoice-Dokument bekommt `hasPdf: true` (nur Firestore, nicht in `data/*.json`)
+- [x] `hasPdf` durch `normalizeEntries()` ins Frontend durchgereicht
 - [x] Firebase Auth (Google) im Dashboard: `getAuth()`, `initAuth()`, `signIn()`,
   `signOutUser()`, Zugriff auf `ALLOWED_EMAILS` beschränkt
-- [x] PDF-Einbettung im Modal via `getStorage().ref(pdfPath).getDownloadURL()` → `<iframe>`
-  (`showInvoicePdf()`); Button nur sichtbar wenn `pdfPath` vorhanden → graceful Fallback auf C
-- [x] `firebase-auth-compat` + `firebase-storage-compat` SDKs in `index.html`
-- [x] `storage.rules` als Source of Truth im Repo
-- [x] `.gitignore` (`*.pdf`) bleibt — PDFs liegen ausschließlich privat in Storage, nie im Git
+- [x] PDF-Anzeige im Modal: Firestore-Doc → Base64 → Blob → Object-URL → `<iframe>`
+  (`showInvoicePdf()`, `base64ToBlob()`); Object-URL wird wieder freigegeben (`revokePdfUrl()`)
+- [x] Button nur sichtbar wenn `hasPdf` vorhanden → graceful Fallback auf C
+- [x] `firebase-auth-compat` SDK in `index.html` (Storage-SDK nicht nötig)
+- [x] `firestore.rules` als Source of Truth im Repo (`invoice_pdfs` privat)
+- [x] `.gitignore` (`*.pdf`) bleibt — PDFs liegen nur privat in Firestore, nie im Git
 
 **Manuell in der Firebase Console (einmalig, danach läuft alles):**
-- [ ] **Firebase Storage aktivieren** (Build → Storage → Get started)
-- [ ] **Storage-Regeln deployen** — `firebase deploy --only storage` (nutzt `storage.rules`)
-  oder Regeltext aus `storage.rules` in der Console einfügen
 - [ ] **Authentication → Google-Provider aktivieren**
 - [ ] **Authorized domains:** `manuel-app.dev` hinzufügen
-- [ ] **Service-Account-Rechte prüfen:** `FIREBASE_SERVICE_ACCOUNT` braucht *Storage Object Admin*
+- [ ] **Firestore-Regeln deployen** — `firebase deploy --only firestore:rules` (nutzt `firestore.rules`)
+  oder Regeln aus `firestore.rules` in der Console einfügen (wichtig: `invoice_pdfs` privat!)
 - [ ] Erlaubte Accounts: `manuel.koblischek@gmail.com`, `zolguita@gmail.com`
-  (in `ALLOWED_EMAILS` in `script.js` und in `storage.rules` gepflegt — bei Änderung beide anpassen)
+  (in `ALLOWED_EMAILS` in `script.js` **und** in `firestore.rules` gepflegt — bei Änderung beide anpassen)
 - [ ] Bereits vorhandene PDFs einmalig neu durch `extract_verbund.py` laufen lassen,
-  damit `pdfPath` in Firestore gesetzt wird (oder beim nächsten Sync automatisch)
+  damit `hasPdf` + `invoice_pdfs` gesetzt werden (oder beim nächsten Sync automatisch)
+
+> Kein Firebase Storage und kein Blaze-Plan nötig — alles im kostenlosen Spark-Plan.
