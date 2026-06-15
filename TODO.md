@@ -38,6 +38,14 @@
   - `daysAgo()` helper, Event-Delegation für dynamisch gerenderte Elemente
   - `voltmetric-preview.html` als Design-Referenz im Repo behalten (jetzt in `docs/_archive/`)
 
+- [x] **Wallbox periodengenau** (2026-06-15, PR #7 + #8) — erste echte Rechnungen validiert + Wallbox-Logik korrigiert
+  - **Datenvalidierung:** beide echten Verbund-Rechnungen 1:1 korrekt im Tool; Tarif V-Strom ÖSTERREICH (15 ct/kWh inkl. USt., 4,79 €/Mon Grundpreis, −3,6 ct/kWh Rabatt) stimmt exakt mit den Rechnungen
+  - **Bug 1 — Wallbox-Prozent zeigte 100 %:** `/12` aus altem Jahresrechnungs-Modell entfernt (Rechnungen sind monatlich); Anteil jetzt periodengenau auf den Abrechnungszeitraum bezogen
+  - Wallbox-Card trennt **„abgerechnet"** (mit %) und **„laufend, noch nicht abgerechnet"** (absolute kWh + Anzahl Ladungen, ohne %)
+  - **Bug 2 — Consumption Runway widersprüchlich** (Wallbox > Gesamt, Haushalt 0, Phantom-April): eine Rechnung gehört jetzt zu genau einem Monat (`representativeMonth`, kein Verschmieren über Kalendermonate); Wallbox überall nur innerhalb der Abrechnungszeiträume (`wallboxKwhInPeriod` → `aspangWallboxKwh`) in `buildMonthlySeries`, `buildYearBuckets`, Insights- und Overview-Chart sowie KPI-Kachel
+  - Vorvertragliche Wallbox-Ladungen (alter Anbieter, Jahresvertrag, April) bleiben überall außen vor
+  - Neue Helfer: `wallboxKwhInPeriod()`, `wallboxUnbilled()`, `representativeMonth()`; `loadWallboxData()` liefert zusätzlich rohe `charges[]`; ungenutzte `eachMonthBetween` entfernt
+
 ---
 
 ## Phase 2 — Rechnungsdaten in Firestore ✓
