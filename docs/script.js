@@ -160,17 +160,131 @@ const state = {
   },
   settings: { ...DEFAULT_SETTINGS }, // overwritten in init() after Firestore load
   modalEntryId: null,
+  user: null, // Firebase-Auth-User (nur ALLOWED_EMAILS), sonst null
 };
 
+// Nur diese Accounts dürfen Original-PDFs sehen (zusätzlich abgesichert über Storage-Regeln)
+const ALLOWED_EMAILS = ["manuel.koblischek@gmail.com", "zolguita@gmail.com"];
+
 // ── Firebase helper ──────────────────────────────────────────────
-function getFirestoreDb() {
+function getFirebaseApp() {
   if (typeof firebase === "undefined") return null;
   try {
-    const existing = firebase.apps.find((a) => a.name === "voltmetric-wallbox");
-    const app = existing || firebase.initializeApp(WALLBOX_FIREBASE_CONFIG, "voltmetric-wallbox");
+    return (
+      firebase.apps.find((a) => a.name === "voltmetric-wallbox") ||
+      firebase.initializeApp(WALLBOX_FIREBASE_CONFIG, "voltmetric-wallbox")
+    );
+  } catch (_e) {
+    return null;
+  }
+}
+
+function getFirestoreDb() {
+  const app = getFirebaseApp();
+  if (!app) return null;
+  try {
     return firebase.firestore(app);
   } catch (_e) {
     return null;
+  }
+}
+
+function getAuth() {
+  const app = getFirebaseApp();
+  if (!app || typeof firebase.auth === "undefined") return null;
+  try {
+    return firebase.auth(app);
+  } catch (_e) {
+    return null;
+  }
+}
+
+function getStorage() {
+  const app = getFirebaseApp();
+  if (!app || typeof firebase.storage === "undefined") return null;
+  try {
+    return firebase.storage(app);
+  } catch (_e) {
+    return null;
+  }
+}
+
+function isAllowedUser() {
+  return !!(state.user && ALLOWED_EMAILS.includes(state.user.email));
+}
+
+// Aktualisiert ein offenes Modal nach Login/Logout
+function refreshOpenModal() {
+  const modal = document.getElementById("invoiceModal");
+  if (!state.modalEntryId || !modal || modal.classList.contains("hidden")) return;
+  const entry = getEntryById(state.modalEntryId);
+  if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry);
+}
+
+function initAuth() {
+  const auth = getAuth();
+  if (!auth) return;
+  auth.onAuthStateChanged((user) => {
+    if (user && !ALLOWED_EMAILS.includes(user.email)) {
+      // Fremde Accounts sofort wieder abmelden — kein Zugriff auf PDFs
+      auth.signOut();
+      state.user = null;
+      showToast("Kein Zugriff für diesen Account.");
+      refreshOpenModal();
+      return;
+    }
+    state.user = user || null;
+    refreshOpenModal();
+  });
+}
+
+async function signIn() {
+  const auth = getAuth();
+  if (!auth) {
+    showToast("Login derzeit nicht verfügbar.");
+    return;
+  }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (_e) {
+    showToast("Login abgebrochen oder nicht verfügbar.");
+  }
+}
+
+async function signOutUser() {
+  const auth = getAuth();
+  if (auth) {
+    try {
+      await auth.signOut();
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+  state.user = null;
+  refreshOpenModal();
+  showToast("Abgemeldet.");
+}
+
+// Lädt das Original-PDF aus Firebase Storage und bettet es im Modal ein
+async function showInvoicePdf(entry) {
+  const storage = getStorage();
+  if (!storage || !entry.pdfPath) {
+    showToast("Original-PDF nicht verfügbar.");
+    return;
+  }
+  const preview = document.getElementById("modalPreview");
+  preview.innerHTML = `<div class="pdf-loading">Lade Original-PDF …</div>`;
+  try {
+    const url = await storage.ref(entry.pdfPath).getDownloadURL();
+    preview.innerHTML = `
+      <div class="pdf-frame-wrap">
+        <button class="pdf-back-btn" data-action="pdf-back" type="button">← Übersicht</button>
+        <iframe class="pdf-frame" src="${url}" title="Original-Rechnung ${entry.rechnungsnummer}"></iframe>
+      </div>`;
+  } catch (_e) {
+    preview.innerHTML = buildModalPreview(entry);
+    showToast("PDF konnte nicht geladen werden.");
   }
 }
 
@@ -298,6 +412,7 @@ function normalizeEntries(entries, location) {
         steuern: toNumber(entry.steuern),
         gesamt_inkl_ust: total,
         centsPerKwh: kwh > 0 ? (total / kwh) * 100 : 0,
+        pdfPath: entry.pdfPath || null, // nur aus Firestore; ermöglicht Original-PDF (Option A)
       };
     })
     .sort((a, b) => a.invoiceDate - b.invoiceDate);
@@ -1353,6 +1468,23 @@ function invoiceCardHtml(entry) {
   `;
 }
 
+// PDF-Zugang: nur wenn die Rechnung ein Original-PDF hat (pdfPath aus Firestore).
+// Solange keine PDFs hochgeladen sind, ist dieser Block leer → reiner Option-C-Fallback.
+function pdfAccessHtml(entry) {
+  if (!entry.pdfPath) return "";
+  if (isAllowedUser()) {
+    return `
+      <div class="pdf-access">
+        <button class="pdf-orig-btn" data-action="pdf-show" type="button">Original-PDF anzeigen</button>
+        <div class="pdf-auth-line">Angemeldet · <button class="gen-inv-link" data-action="signout" type="button">Abmelden</button></div>
+      </div>`;
+  }
+  return `
+    <div class="pdf-access">
+      <button class="pdf-orig-btn" data-action="pdf-login" type="button">Original-PDF anzeigen (Login)</button>
+    </div>`;
+}
+
 function buildModalPreview(entry) {
   return `
     <div class="gen-invoice" id="genInvoice">
@@ -1373,6 +1505,7 @@ function buildModalPreview(entry) {
           </svg>
         </button>
       </div>
+      ${pdfAccessHtml(entry)}
     </div>
   `;
 }
@@ -1522,6 +1655,17 @@ function attachEvents() {
   document.getElementById("invoiceModal").addEventListener("click", (event) => {
     if (event.target.closest("[data-close-modal='true']")) {
       closeModal();
+      return;
+    }
+    const actionEl = event.target.closest("[data-action]");
+    if (actionEl) {
+      const entry = getEntryById(state.modalEntryId);
+      switch (actionEl.dataset.action) {
+        case "pdf-login": signIn(); break;
+        case "pdf-show": if (entry) showInvoicePdf(entry); break;
+        case "pdf-back": if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry); break;
+        case "signout": signOutUser(); break;
+      }
       return;
     }
     const btn = event.target.closest(".pdf-action-btn");
@@ -1860,6 +2004,7 @@ async function init() {
   attachEvents();
   renderApp();
   initOnboarding();
+  initAuth();
 }
 
 init();

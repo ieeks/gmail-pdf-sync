@@ -42,6 +42,27 @@ def get_firestore_db():
         print(f"  Firebase Admin init fehlgeschlagen: {exc}")
         return None
 
+
+# Bucket für Original-PDFs (privat, nur via Firebase Auth lesbar — siehe Storage-Regeln)
+STORAGE_BUCKET = "wallbox-manuel.firebasestorage.app"
+
+
+def upload_pdf_to_storage(pdf_path: Path, rechnungsnummer: str) -> str | None:
+    """Lädt das Original-PDF nach invoices/{rechnungsnummer}.pdf in Firebase Storage.
+    Gibt den Storage-Pfad zurück oder None (z. B. wenn kein Service Account / Storage)."""
+    if get_firestore_db() is None:  # stellt sicher, dass firebase_admin initialisiert ist
+        return None
+    try:
+        from firebase_admin import storage as fb_storage
+        blob_path = f"invoices/{rechnungsnummer}.pdf"
+        blob = fb_storage.bucket(STORAGE_BUCKET).blob(blob_path)
+        blob.upload_from_filename(str(pdf_path), content_type="application/pdf")
+        print(f"  Storage: {blob_path} hochgeladen.")
+        return blob_path
+    except Exception as exc:
+        print(f"  Storage-Upload fehlgeschlagen (nicht kritisch): {exc}")
+        return None
+
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 ZAEHLPUNKTE = {
     "AT0010000000000000001000015277856": "rennweg",
@@ -209,6 +230,11 @@ def process_pdf(pdf_path: Path) -> bool:
     if db:
         try:
             doc = {**data, "location": haushalt}
+            # Original-PDF privat in Storage ablegen und Pfad referenzieren (Option A).
+            # pdfPath landet NUR in Firestore, nicht in den öffentlichen data/*.json.
+            pdf_storage_path = upload_pdf_to_storage(pdf_path, rechnungsnummer)
+            if pdf_storage_path:
+                doc["pdfPath"] = pdf_storage_path
             db.collection("invoices").document(rechnungsnummer).set(doc)
             print(f"  Firestore: invoices/{rechnungsnummer} geschrieben.")
         except Exception as exc:
