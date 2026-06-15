@@ -151,7 +151,7 @@ const state = {
   activeScreen: getStoredActiveScreen(),
   charts: {},
   data: null,
-  wallbox: { byMonth: {}, byYear: {} },
+  wallbox: { byMonth: {}, byYear: {}, charges: [] },
   computed: { yearly: null, monthly: null },
   archive: {
     search: "",
@@ -374,17 +374,29 @@ async function loadWallboxData() {
     const charges = doc.data().charges || [];
     const byMonth = {};
     const byYear = {};
+    const items = [];
     charges.forEach((c) => {
       if (!c.date || !c.kwh) return;
       const month = c.date.substring(0, 7);
       const year = Number(c.date.substring(0, 4));
-      byMonth[month] = (byMonth[month] || 0) + Number(c.kwh);
-      byYear[year] = (byYear[year] || 0) + Number(c.kwh);
+      const kwh = Number(c.kwh);
+      byMonth[month] = (byMonth[month] || 0) + kwh;
+      byYear[year] = (byYear[year] || 0) + kwh;
+      items.push({ date: c.date, kwh });
     });
-    return { byMonth, byYear };
+    return { byMonth, byYear, charges: items };
   } catch (_err) {
-    return { byMonth: {}, byYear: {} };
+    return { byMonth: {}, byYear: {}, charges: [] };
   }
+}
+
+// Summiert Wallbox-Ladungen, deren Datum in den Abrechnungszeitraum [fromDate, toDate] fällt.
+// So ist der Wallbox-Anteil periodengenau auf dieselbe Rechnung bezogen (nicht Kalendermonat).
+function wallboxKwhInPeriod(fromDate, toDate) {
+  return (state.wallbox.charges || []).reduce((sum, c) => {
+    const d = parseDate(c.date);
+    return d >= fromDate && d <= toDate ? sum + c.kwh : sum;
+  }, 0);
 }
 
 function sumEntries(entries, key) {
@@ -575,19 +587,21 @@ function baseChartOptions() {
 function renderWallboxKennzahl() {
   const el = document.getElementById("wallboxKennzahl");
   if (!el) return;
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
+  const latestAspang = state.data.aspangstrasse[state.data.aspangstrasse.length - 1];
+  if (!latestAspang) {
+    el.classList.add("hidden");
+    return;
+  }
+  // Wallbox-kWh aus genau dem Abrechnungszeitraum der jüngsten Rechnung — gleicher Zeitraum für Zähler und Nenner
+  const wallboxKwh = wallboxKwhInPeriod(latestAspang.fromDate, latestAspang.toDate);
   if (wallboxKwh === 0) {
     el.classList.add("hidden");
     return;
   }
-  const latestAspang = state.data.aspangstrasse[state.data.aspangstrasse.length - 1];
-  // latestAspang.kwh ist bereits der Monatsverbrauch (Rechnungen sind monatlich) — nicht durch 12 teilen
-  const monthlyConsumption = latestAspang ? latestAspang.kwh : 0;
-  const pct = monthlyConsumption > 0 ? Math.round((wallboxKwh / monthlyConsumption) * 100) : 0;
+  const periodConsumption = latestAspang.kwh || 0;
+  const pct = periodConsumption > 0 ? Math.round((wallboxKwh / periodConsumption) * 100) : 0;
   el.classList.remove("hidden");
-  el.innerHTML = `<span class="tag tag-teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Monatsverbrauchs` : ""}</span>`;
+  el.innerHTML = `<span class="tag tag-teal">⚡ ${formatNumber(wallboxKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Abrechnungszeitraums` : ""}</span>`;
 }
 
 function renderOverviewCharts() {
@@ -1577,15 +1591,13 @@ function renderMobileGlance() {
       </div>`;
   }
 
-  // Wallbox card
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const wallboxKwh = state.wallbox.byMonth[currentMonth] || 0;
+  // Wallbox card — Wallbox-kWh aus genau dem Abrechnungszeitraum der jüngsten Aspang-Rechnung
+  const wallboxKwh = wallboxKwhInPeriod(summary.latestAspang.fromDate, summary.latestAspang.toDate);
   const mWallboxCard = document.getElementById("mWallboxCard");
   if (mWallboxCard) {
     if (wallboxKwh > 0) {
-      // latestAspang.kwh ist bereits der Monatsverbrauch (Rechnungen sind monatlich) — nicht durch 12 teilen
-      const monthlyConsumption = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh : 1;
-      const pct = Math.min(100, Math.round((wallboxKwh / monthlyConsumption) * 100));
+      const periodConsumption = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh : 1;
+      const pct = Math.min(100, Math.round((wallboxKwh / periodConsumption) * 100));
       mWallboxCard.style.display = "";
       mWallboxCard.innerHTML = `
         <div class="m-wallbox-header">
@@ -1596,7 +1608,7 @@ function renderMobileGlance() {
           <div class="m-progress-fill" style="width:${pct}%"></div>
         </div>
         <div class="m-progress-labels">
-          <span class="m-prog-label">${pct}% des Monatsverbrauchs</span>
+          <span class="m-prog-label">${pct}% des Abrechnungszeitraums</span>
           <span class="m-prog-val">BYD Seal U</span>
         </div>`;
     } else {
