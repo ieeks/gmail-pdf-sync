@@ -102,27 +102,33 @@ Wenn das Dashboard jemals öffentlich oder multi-user werden soll:
   (`printInvoice()` → Browser „Als PDF speichern")
 - [x] Zeigt nur anonymisierte Zahlen — keine personenbezogenen Daten, kein Datenschutz-Risiko
 
-### Option A — Original-PDF anzeigen (später, optional)
+### Option A — Original-PDF anzeigen (Code fertig, Console-Schritte offen)
 
 Ziel: das **echte** Verbund-PDF im Modal anzeigen. PDFs enthalten personenbezogene
-Daten → **muss** privat bleiben. **Voraussetzung: Phase 3 (Firebase Auth).**
+Daten → bleiben privat (Firebase Storage + Auth). Public bleibt Option C; nur
+eingeloggt (eigener Account) erscheint zusätzlich das Original-PDF.
 
-**Was zu tun ist:**
-- [ ] **Firebase Storage aktivieren** (Bucket `wallbox-manuel.firebasestorage.app` ist bereits konfiguriert)
-- [ ] **Upload im Python-Sync:** in `gmail_invoices.py`/`extract_verbund.py` das PDF nach
-  `invoices/{rechnungsnummer}.pdf` hochladen (firebase-admin `bucket.blob(...).upload_from_filename`)
-- [ ] **Firestore-Dokument** der Rechnung um Feld `pdfPath` (Storage-Pfad) ergänzen
-- [ ] **Storage-Regeln** (PDF privat, Schreiben nur via Admin SDK):
-  ```
-  match /invoices/{file} {
-    allow read: if request.auth != null
-                && request.auth.token.email == "manuel.rechnungen@gmail.com";
-    allow write: if false;
-  }
-  ```
-- [ ] **Firebase Auth (Google)** + Login-Gate (siehe Phase 3); Zugriff auf eigene Adresse einschränken
-- [ ] **Dashboard:** nach Login für Einträge mit `pdfPath` via `getDownloadURL()` das PDF in
-  `<iframe>`/PDF.js einbetten; „Download"-Button auf diese URL umstellen
-- [ ] **Fallback-Strategie:** öffentlich weiter die generierte Ansicht (Option C);
-  nur eingeloggt erscheint zusätzlich das Original-PDF
-- [ ] **Hinweis:** `.gitignore` (`*.pdf`) bleibt — PDFs liegen ausschließlich privat in Storage, nie im Git
+**Code — erledigt (2026-06-15):**
+- [x] PDF-Upload im Python-Sync nach `invoices/{rechnungsnummer}.pdf`
+  (`upload_pdf_to_storage()` in `extract_verbund.py`)
+- [x] Firestore-Dokument um Feld `pdfPath` ergänzt (nur Firestore, nicht in `data/*.json`)
+- [x] `pdfPath` durch `normalizeEntries()` ins Frontend durchgereicht
+- [x] Firebase Auth (Google) im Dashboard: `getAuth()`, `initAuth()`, `signIn()`,
+  `signOutUser()`, Zugriff auf `ALLOWED_EMAIL` beschränkt
+- [x] PDF-Einbettung im Modal via `getStorage().ref(pdfPath).getDownloadURL()` → `<iframe>`
+  (`showInvoicePdf()`); Button nur sichtbar wenn `pdfPath` vorhanden → graceful Fallback auf C
+- [x] `firebase-auth-compat` + `firebase-storage-compat` SDKs in `index.html`
+- [x] `storage.rules` als Source of Truth im Repo
+- [x] `.gitignore` (`*.pdf`) bleibt — PDFs liegen ausschließlich privat in Storage, nie im Git
+
+**Manuell in der Firebase Console (einmalig, danach läuft alles):**
+- [ ] **Firebase Storage aktivieren** (Build → Storage → Get started)
+- [ ] **Storage-Regeln deployen** — `firebase deploy --only storage` (nutzt `storage.rules`)
+  oder Regeltext aus `storage.rules` in der Console einfügen
+- [ ] **Authentication → Google-Provider aktivieren**
+- [ ] **Authorized domains:** `manuel-app.dev` hinzufügen
+- [ ] **Service-Account-Rechte prüfen:** `FIREBASE_SERVICE_ACCOUNT` braucht *Storage Object Admin*
+- [ ] Falls Login-Adresse ≠ `manuel.rechnungen@gmail.com`: `ALLOWED_EMAIL` in `script.js`
+  und die E-Mail in `storage.rules` anpassen
+- [ ] Bereits vorhandene PDFs einmalig neu durch `extract_verbund.py` laufen lassen,
+  damit `pdfPath` in Firestore gesetzt wird (oder beim nächsten Sync automatisch)

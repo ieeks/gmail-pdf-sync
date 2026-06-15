@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Firebase Storage Regeln für wallbox-manuel
+// Original-Rechnungs-PDFs sind privat: nur der eigene Account darf lesen.
+// Schreiben passiert ausschließlich über das Admin SDK (Python-Sync), das die Regeln umgeht.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /invoices/{file} {
+      allow read: if request.auth != null
+                  && request.auth.token.email == "manuel.rechnungen@gmail.com";
+      allow write: if false;
+    }
+
+    // Alles andere standardmäßig gesperrt
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
