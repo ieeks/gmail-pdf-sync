@@ -432,6 +432,7 @@ function buildYearBuckets(entries) {
         year: entry.year,
         rennwegKwh: 0,
         aspangKwh: 0,
+        aspangWallboxKwh: 0,
         rennwegCost: 0,
         aspangCost: 0,
       });
@@ -441,6 +442,10 @@ function buildYearBuckets(entries) {
     const kwhKey = entry.location === "rennweg" ? "rennwegKwh" : "aspangKwh";
     bucket[costKey] += entry.gesamt_inkl_ust;
     bucket[kwhKey] += entry.kwh;
+    if (entry.location === "aspangstrasse") {
+      // Nur Wallbox-kWh, die in den Abrechnungszeitraum dieser Rechnung fallen (Teil des Gesamtverbrauchs)
+      bucket.aspangWallboxKwh += wallboxKwhInPeriod(entry.fromDate, entry.toDate);
+    }
   });
   return [...map.values()].sort((a, b) => a.year - b.year);
 }
@@ -449,39 +454,37 @@ function monthKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function eachMonthBetween(startDate, endDate) {
-  const months = [];
-  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-  while (cursor <= end) {
-    months.push(new Date(cursor));
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-  return months.length ? months : [new Date(startDate)];
+// Eine Rechnung gehört zu genau EINEM Monat (dem, in dem die Mitte des Abrechnungs-
+// zeitraums liegt) — sonst wird z. B. eine Rechnung 30.04–31.05 fälschlich auf
+// April und Mai aufgeteilt und erzeugt Phantom-Verbrauch im April.
+function representativeMonth(fromDate, toDate) {
+  const mid = new Date((fromDate.getTime() + toDate.getTime()) / 2);
+  return new Date(mid.getFullYear(), mid.getMonth(), 1);
 }
 
 function buildMonthlySeries(data) {
   const map = new Map();
   data.entries.forEach((entry) => {
-    const months = eachMonthBetween(entry.fromDate, entry.toDate);
-    const kwhPerMonth = entry.kwh / months.length;
-    const costPerMonth = entry.gesamt_inkl_ust / months.length;
-    months.forEach((month) => {
-      const key = monthKey(month);
-      if (!map.has(key)) {
-        map.set(key, {
-          label: new Date(month),
-          rennwegKwh: 0,
-          aspangKwh: 0,
-          rennwegCost: 0,
-          aspangCost: 0,
-        });
-      }
-      const bucket = map.get(key);
-      const prefix = entry.location === "rennweg" ? "rennweg" : "aspang";
-      bucket[`${prefix}Kwh`] += kwhPerMonth;
-      bucket[`${prefix}Cost`] += costPerMonth;
-    });
+    const month = representativeMonth(entry.fromDate, entry.toDate);
+    const key = monthKey(month);
+    if (!map.has(key)) {
+      map.set(key, {
+        label: new Date(month),
+        rennwegKwh: 0,
+        aspangKwh: 0,
+        aspangWallboxKwh: 0,
+        rennwegCost: 0,
+        aspangCost: 0,
+      });
+    }
+    const bucket = map.get(key);
+    const prefix = entry.location === "rennweg" ? "rennweg" : "aspang";
+    bucket[`${prefix}Kwh`] += entry.kwh;
+    bucket[`${prefix}Cost`] += entry.gesamt_inkl_ust;
+    if (entry.location === "aspangstrasse") {
+      // Wallbox-kWh aus genau dem Abrechnungszeitraum dieser Rechnung (Teil des Gesamtverbrauchs)
+      bucket.aspangWallboxKwh += wallboxKwhInPeriod(entry.fromDate, entry.toDate);
+    }
   });
 
   return [...map.values()]
@@ -649,14 +652,14 @@ function renderOverviewCharts() {
         },
         {
           label: "Aspangstr. Haushalt",
-          data: yearly.map((bucket) => Math.max(0, bucket.aspangKwh - (state.wallbox.byYear[bucket.year] || 0))),
+          data: yearly.map((bucket) => Math.max(0, bucket.aspangKwh - bucket.aspangWallboxKwh)),
           backgroundColor: "rgba(245,158,11,0.75)",
           borderRadius: 0,
           stack: "aspang",
         },
         {
           label: "Aspangstr. Wallbox",
-          data: yearly.map((bucket) => state.wallbox.byYear[bucket.year] || 0),
+          data: yearly.map((bucket) => bucket.aspangWallboxKwh),
           backgroundColor: "rgba(109,212,200,0.82)",
           borderRadius: 6,
           stack: "aspang",
@@ -676,7 +679,7 @@ function renderOverviewCharts() {
             label(context) {
               if (context.dataset.label === "Aspangstr. Wallbox") {
                 const bucket = yearly[context.dataIndex];
-                const wbKwh = state.wallbox.byYear[bucket.year] || 0;
+                const wbKwh = bucket.aspangWallboxKwh;
                 const hausKwh = Math.max(0, bucket.aspangKwh - wbKwh);
                 if (wbKwh > 0) {
                   return `Aspangstr.: ${formatNumber(wbKwh)} kWh Wallbox · ${formatNumber(hausKwh)} kWh Haushalt · ${formatNumber(bucket.aspangKwh)} kWh gesamt`;
@@ -787,10 +790,7 @@ function renderDetailCharts() {
         },
         {
           label: "Aspangstr. Haushalt",
-          data: monthly.map((bucket) => {
-            const wbKwh = state.wallbox.byMonth[monthKey(bucket.label)] || 0;
-            return Math.max(0, bucket.aspangKwh - wbKwh);
-          }),
+          data: monthly.map((bucket) => Math.max(0, bucket.aspangKwh - bucket.aspangWallboxKwh)),
           backgroundColor: "rgba(245,158,11,0.70)",
           borderRadius: 0,
           stack: "aspang",
@@ -798,7 +798,7 @@ function renderDetailCharts() {
         },
         {
           label: "Aspangstr. Wallbox",
-          data: monthly.map((bucket) => state.wallbox.byMonth[monthKey(bucket.label)] || 0),
+          data: monthly.map((bucket) => bucket.aspangWallboxKwh),
           backgroundColor: "rgba(109,212,200,0.75)",
           borderRadius: 4,
           stack: "aspang",
@@ -819,8 +819,7 @@ function renderDetailCharts() {
             label(context) {
               if (context.dataset.label === "Aspangstr. Wallbox") {
                 const bucket = monthly[context.dataIndex];
-                const mk = monthKey(bucket.label);
-                const wbKwh = state.wallbox.byMonth[mk] || 0;
+                const wbKwh = bucket.aspangWallboxKwh;
                 const hausKwh = Math.max(0, bucket.aspangKwh - wbKwh);
                 if (wbKwh > 0) {
                   return `Aspangstr.: ${formatNumber(wbKwh)} kWh Wallbox · ${formatNumber(hausKwh)} kWh Haushalt · ${formatNumber(bucket.aspangKwh)} kWh gesamt`;
@@ -1025,7 +1024,10 @@ function renderOverview() {
   `;
 
   // ④ KPI Grid
-  const wallboxThisYear = state.wallbox.byYear[new Date().getFullYear()] || 0;
+  // Wallbox passend zur Runway: nur Ladungen innerhalb abgerechneter Zeiträume dieses Jahres
+  const currentYear = new Date().getFullYear();
+  const yearBucket = state.computed.yearly.find((b) => b.year === currentYear);
+  const wallboxThisYear = yearBucket ? yearBucket.aspangWallboxKwh : 0;
   document.getElementById("kpiGrid").innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label">Ø Monatliche Kosten</div>
@@ -1062,7 +1064,7 @@ function renderOverview() {
       </div>
       <div class="kpi-label">Wallbox (Aspangstr.)</div>
       <div class="kpi-val">${formatNumber(wallboxThisYear, 1)} <span class="ku">kWh</span></div>
-      <div class="kpi-sub-label">dieses Jahr</div>
+      <div class="kpi-sub-label">dieses Jahr · abgerechnet</div>
     </div>
   `;
 
