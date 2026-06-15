@@ -89,3 +89,40 @@ Wenn das Dashboard jemals öffentlich oder multi-user werden soll:
 - [ ] Firebase Auth aktivieren (Google Login)
 - [ ] Firestore-Regeln von `if true` auf `if request.auth != null` ändern
 - [ ] Login-Screen in `index.html` ergänzen
+
+---
+
+## Rechnungs-Anzeige im Archive
+
+### Option C — generierte Ansicht ✓ (2026-06-15)
+
+- [x] Faux-PDF-Platzhalter im Modal durch echte, datengetriebene Rechnungs-Ansicht ersetzt
+  (`invoiceCardHtml()` / `buildModalPreview()` in `script.js`, `.gen-invoice` in `styles.css`)
+- [x] „Download"-Button öffnet die Ansicht in einem eigenen Fenster und ruft den Druckdialog auf
+  (`printInvoice()` → Browser „Als PDF speichern")
+- [x] Zeigt nur anonymisierte Zahlen — keine personenbezogenen Daten, kein Datenschutz-Risiko
+
+### Option A — Original-PDF anzeigen (später, optional)
+
+Ziel: das **echte** Verbund-PDF im Modal anzeigen. PDFs enthalten personenbezogene
+Daten → **muss** privat bleiben. **Voraussetzung: Phase 3 (Firebase Auth).**
+
+**Was zu tun ist:**
+- [ ] **Firebase Storage aktivieren** (Bucket `wallbox-manuel.firebasestorage.app` ist bereits konfiguriert)
+- [ ] **Upload im Python-Sync:** in `gmail_invoices.py`/`extract_verbund.py` das PDF nach
+  `invoices/{rechnungsnummer}.pdf` hochladen (firebase-admin `bucket.blob(...).upload_from_filename`)
+- [ ] **Firestore-Dokument** der Rechnung um Feld `pdfPath` (Storage-Pfad) ergänzen
+- [ ] **Storage-Regeln** (PDF privat, Schreiben nur via Admin SDK):
+  ```
+  match /invoices/{file} {
+    allow read: if request.auth != null
+                && request.auth.token.email == "manuel.rechnungen@gmail.com";
+    allow write: if false;
+  }
+  ```
+- [ ] **Firebase Auth (Google)** + Login-Gate (siehe Phase 3); Zugriff auf eigene Adresse einschränken
+- [ ] **Dashboard:** nach Login für Einträge mit `pdfPath` via `getDownloadURL()` das PDF in
+  `<iframe>`/PDF.js einbetten; „Download"-Button auf diese URL umstellen
+- [ ] **Fallback-Strategie:** öffentlich weiter die generierte Ansicht (Option C);
+  nur eingeloggt erscheint zusätzlich das Original-PDF
+- [ ] **Hinweis:** `.gitignore` (`*.pdf`) bleibt — PDFs liegen ausschließlich privat in Storage, nie im Git

@@ -1328,60 +1328,86 @@ function getEntryById(id) {
   return state.data.entries.find((entry) => entry.id === id);
 }
 
+// Generierte, datengetriebene Rechnungs-Ansicht (keine Original-PDF) — nur anonymisierte Zahlen.
+function invoiceCardHtml(entry) {
+  return `
+    <div class="gen-inv-head">
+      <div class="gen-inv-brand">Verbund</div>
+      <div class="tag ${entry.location === "rennweg" ? "tag-teal" : "tag-amber"}">${entry.locationLabel}</div>
+    </div>
+    <div class="gen-inv-title">Abrechnung — Strom</div>
+    <div class="gen-inv-sub">Rechnung ${entry.rechnungsnummer}</div>
+    <div class="gen-inv-meta">
+      <div><span>Rechnungsdatum</span><b>${formatDate(entry.rechnungsdatum)}</b></div>
+      <div><span>Zeitraum</span><b>${formatPeriod(entry)}</b></div>
+      <div><span>Verbrauch</span><b>${formatNumber(entry.kwh)} kWh</b></div>
+      <div><span>Ø Preis brutto</span><b>${formatNumber(entry.centsPerKwh, 1)} ct/kWh</b></div>
+    </div>
+    <div class="gen-inv-rows">
+      <div class="gen-inv-row"><span>Energiekosten (netto)</span><span>${formatCurrency(entry.energiekosten)}</span></div>
+      <div class="gen-inv-row"><span>Netzgebühren (netto)</span><span>${formatCurrency(entry.netzgebuehren)}</span></div>
+      <div class="gen-inv-row"><span>Steuern &amp; Abgaben (netto)</span><span>${formatCurrency(entry.steuern)}</span></div>
+      <div class="gen-inv-row gen-inv-total"><span>Gesamtbetrag inkl. USt.</span><span>${formatCurrency(entry.gesamt_inkl_ust)}</span></div>
+    </div>
+    <div class="gen-inv-foot">Generierte Zusammenfassung aus den extrahierten Werten — keine Original-PDF. Bonus &amp; 20 % USt. sind im Gesamtbetrag enthalten, daher ergeben die Netto-Positionen nicht exakt die Summe.</div>
+  `;
+}
+
 function buildModalPreview(entry) {
   return `
-    <div class="faux-pdf" data-watermark="VERBUND">
-      <div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:1.5rem">
-        <div style="display:flex;flex-direction:column;gap:0.5rem">
-          <div class="pdf-line" style="height:16px;width:6rem"></div>
-          <div class="pdf-line" style="height:11px;width:9rem"></div>
-        </div>
-        <div style="width:40px;height:40px;border-radius:10px;background:rgba(0,194,168,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-            <path d="M9 2L6 9H9L8 16L12 9H9Z" fill="rgba(0,194,168,0.85)"/>
-          </svg>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:2rem">
-        <div class="pdf-line" style="height:10px;width:100%"></div>
-        <div class="pdf-line" style="height:10px;width:80%"></div>
-        <div class="pdf-line" style="height:10px;width:60%"></div>
-      </div>
-      <div class="pdf-block-grid">
-        <div class="pdf-block"></div>
-        <div class="pdf-block"></div>
-        <div class="pdf-block"></div>
-      </div>
-      <div class="pdf-invoice-box">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#96a8bc;margin-bottom:4px">Invoice</div>
-            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;color:#0D1B2E">${entry.rechnungsnummer}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#96a8bc;margin-bottom:4px">Total</div>
-            <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:#009e88">${formatCurrency(entry.gesamt_inkl_ust)}</div>
-          </div>
-        </div>
-      </div>
+    <div class="gen-invoice" id="genInvoice">
+      ${invoiceCardHtml(entry)}
       <div class="pdf-actions">
-        <div class="pdf-action-btn" title="Zoom">
+        <button class="pdf-action-btn" title="Zoom" type="button" aria-label="Vergrößern">
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.3"/>
             <path d="M12 12L16 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
             <line x1="7.5" y1="5.2" x2="7.5" y2="9.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
             <line x1="5.2" y1="7.5" x2="9.8" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
-        </div>
-        <div class="pdf-action-btn" title="Download">
+        </button>
+        <button class="pdf-action-btn" title="Download" type="button" aria-label="Als PDF drucken">
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
             <path d="M9 2.5V11M5.5 8L9 11.5L12.5 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M2.5 14.5H15.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
-        </div>
+        </button>
       </div>
     </div>
   `;
+}
+
+// Öffnet die generierte Rechnungs-Ansicht in einem eigenen Fenster und ruft den Druckdialog auf
+// (dort „Als PDF speichern"). Bewusst kein Original-PDF — nur die anonymisierten Zahlen.
+function printInvoice(entry) {
+  const win = window.open("", "_blank", "width=760,height=960");
+  if (!win) {
+    showToast("Pop-up blockiert — bitte erlauben, um als PDF zu drucken.");
+    return;
+  }
+  win.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Rechnung ${entry.rechnungsnummer}</title><style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0D1B2E;padding:40px;background:#fff}
+    .gen-invoice{max-width:32rem;margin:0 auto}
+    .gen-inv-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .gen-inv-brand{font-weight:800;font-size:24px;color:#143C8C}
+    .tag{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:#eef2f7;color:#0D1B2E}
+    .gen-inv-title{font-weight:800;font-size:18px}
+    .gen-inv-sub{font-family:monospace;font-size:12px;color:#5b6b7f;margin-bottom:20px}
+    .gen-inv-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+    .gen-inv-meta>div{display:flex;flex-direction:column;gap:3px}
+    .gen-inv-meta span{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#96a8bc}
+    .gen-inv-meta b{font-family:monospace;font-size:14px}
+    .gen-inv-row{display:flex;justify-content:space-between;padding:10px 0;font-size:14px;border-bottom:1px solid #f0f3f7}
+    .gen-inv-row span:last-child{font-family:monospace;font-weight:600}
+    .gen-inv-total{border-bottom:none;border-top:2px solid #e4e9f0;font-weight:800;padding-top:12px}
+    .gen-inv-total span:last-child{color:#009e88;font-size:17px}
+    .gen-inv-foot{margin-top:16px;font-size:11px;line-height:1.5;color:#96a8bc}
+    @media print{body{padding:0}}
+  </style></head><body><div class="gen-invoice">${invoiceCardHtml(entry)}</div></body></html>`);
+  win.document.close();
+  // setTimeout statt onload: bei document.write-Dokumenten feuert onload nicht zuverlässig
+  setTimeout(() => { win.focus(); win.print(); }, 350);
 }
 
 function openModal(entryId) {
@@ -1503,7 +1529,8 @@ function attachEvents() {
     if (btn.title === "Zoom") {
       document.getElementById("modalPreview").classList.toggle("faux-pdf-zoomed");
     } else if (btn.title === "Download") {
-      showToast("PDF liegt in iCloud Drive — kein Web-Download verfügbar.");
+      const entry = getEntryById(state.modalEntryId);
+      if (entry) printInvoice(entry);
     }
   });
 
