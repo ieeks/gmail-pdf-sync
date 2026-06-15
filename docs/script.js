@@ -1024,7 +1024,10 @@ function renderOverview() {
   `;
 
   // ④ KPI Grid
-  const wallboxThisYear = state.wallbox.byYear[new Date().getFullYear()] || 0;
+  // Wallbox passend zur Runway: nur Ladungen innerhalb abgerechneter Zeiträume dieses Jahres
+  const currentYear = new Date().getFullYear();
+  const yearBucket = state.computed.yearly.find((b) => b.year === currentYear);
+  const wallboxThisYear = yearBucket ? yearBucket.aspangWallboxKwh : 0;
   document.getElementById("kpiGrid").innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label">Ø Monatliche Kosten</div>
@@ -1061,7 +1064,7 @@ function renderOverview() {
       </div>
       <div class="kpi-label">Wallbox (Aspangstr.)</div>
       <div class="kpi-val">${formatNumber(wallboxThisYear, 1)} <span class="ku">kWh</span></div>
-      <div class="kpi-sub-label">dieses Jahr</div>
+      <div class="kpi-sub-label">dieses Jahr · abgerechnet</div>
     </div>
   `;
 
