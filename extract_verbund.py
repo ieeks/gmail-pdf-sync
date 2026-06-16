@@ -223,12 +223,11 @@ def process_pdf(pdf_path: Path) -> bool:
 
     existing = [e.get("rechnungsnummer") for e in entries]
     if rechnungsnummer in existing:
-        print(f"  Bereits verarbeitet (Rechnungsnummer {rechnungsnummer}), übersprungen.")
-        return False
-
-    # Eintrag anhängen
-    entries.append(data)
-    save_json(json_path, entries)
+        # JSON nicht duplizieren, aber Firestore/PDF trotzdem sicherstellen (Backfill bestehender Rechnungen)
+        print(f"  Bereits in JSON (Rechnungsnummer {rechnungsnummer}) — JSON unverändert, Firestore/PDF wird sichergestellt.")
+    else:
+        entries.append(data)
+        save_json(json_path, entries)
 
     # Firestore: Dokument schreiben (wenn Service Account verfügbar)
     db = get_firestore_db()
