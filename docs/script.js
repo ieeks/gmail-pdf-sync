@@ -229,7 +229,21 @@ function initAuth() {
   const auth = getAuth();
   if (!auth) return;
   // Ergebnis eines Redirect-Logins (mobil) nach dem Zurückkommen auswerten
-  auth.getRedirectResult().catch((err) => {
+  auth.getRedirectResult().then((result) => {
+    if (result && result.user && ALLOWED_EMAILS.includes(result.user.email)) {
+      state.user = result.user;
+      // Vor dem Redirect gemerkte Rechnung wieder öffnen und PDF direkt zeigen
+      const intentId = sessionStorage.getItem("pdfIntent");
+      if (intentId) {
+        sessionStorage.removeItem("pdfIntent");
+        const entry = getEntryById(intentId);
+        if (entry) {
+          openModal(entry.id);
+          showInvoicePdf(entry);
+        }
+      }
+    }
+  }).catch((err) => {
     if (err && err.code && err.code !== "auth/no-auth-event") showToast(authErrorMessage(err));
   });
   auth.onAuthStateChanged((user) => {
@@ -323,9 +337,13 @@ async function showInvoicePdf(entry) {
         <button class="pdf-back-btn" data-action="pdf-back" type="button">← Übersicht</button>
         <iframe class="pdf-frame" src="${state.pdfObjectUrl}" title="Original-Rechnung ${entry.rechnungsnummer}"></iframe>
       </div>`;
-  } catch (_e) {
+  } catch (err) {
     preview.innerHTML = buildModalPreview(entry);
-    showToast("PDF konnte nicht geladen werden.");
+    if (err && err.code === "permission-denied") {
+      showToast("Keine Leseberechtigung — Firestore-Regeln (invoice_pdfs) veröffentlicht?");
+    } else {
+      showToast("PDF konnte nicht geladen werden.");
+    }
   }
 }
 
@@ -1703,7 +1721,7 @@ function attachEvents() {
     if (actionEl) {
       const entry = getEntryById(state.modalEntryId);
       switch (actionEl.dataset.action) {
-        case "pdf-login": signIn(); break;
+        case "pdf-login": if (entry) sessionStorage.setItem("pdfIntent", entry.id); signIn(); break;
         case "pdf-show": if (entry) showInvoicePdf(entry); break;
         case "pdf-back": revokePdfUrl(); if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry); break;
         case "signout": signOutUser(); break;
