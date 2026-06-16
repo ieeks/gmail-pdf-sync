@@ -212,10 +212,6 @@ function refreshOpenModal() {
   if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry);
 }
 
-function isMobileDevice() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
-}
-
 // Übersetzt Firebase-Auth-Fehlercodes in verständliche Hinweise (zur Diagnose)
 function authErrorMessage(err) {
   const code = err && err.code;
@@ -260,7 +256,7 @@ function initAuth() {
   });
 }
 
-async function signIn() {
+async function signIn(entry) {
   const auth = getAuth();
   if (!auth) {
     showToast("Login derzeit nicht verfügbar.");
@@ -268,16 +264,28 @@ async function signIn() {
   }
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
-    if (isMobileDevice()) {
-      // Mobil: Redirect statt Popup (Popups sind auf iOS/Android-Browsern unzuverlässig)
-      await auth.signInWithRedirect(provider);
-    } else {
-      await auth.signInWithPopup(provider);
+    // Popup statt Redirect: vermeidet den Safari-/iOS-Loop (getRedirectResult ist dort
+    // wegen domänenübergreifendem Auth-Handler oft leer). Popup gibt den User direkt zurück.
+    const result = await auth.signInWithPopup(provider);
+    if (result && result.user) {
+      if (!ALLOWED_EMAILS.includes(result.user.email)) {
+        await auth.signOut();
+        state.user = null;
+        showToast("Kein Zugriff für diesen Account.");
+        return;
+      }
+      state.user = result.user;
+      refreshOpenModal();
+      if (entry) showInvoicePdf(entry); // direkt nach Login das gewünschte PDF zeigen
     }
   } catch (err) {
-    // Bei Popup-Problemen auf Redirect ausweichen
     const code = err && err.code;
-    if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      return; // Nutzer hat selbst abgebrochen — keine Meldung nötig
+    }
+    if (code === "auth/popup-blocked") {
+      // Popup geblockt → als Fallback auf Redirect ausweichen (Absicht merken)
+      if (entry) sessionStorage.setItem("pdfIntent", entry.id);
       try {
         await auth.signInWithRedirect(provider);
         return;
@@ -1721,7 +1729,7 @@ function attachEvents() {
     if (actionEl) {
       const entry = getEntryById(state.modalEntryId);
       switch (actionEl.dataset.action) {
-        case "pdf-login": if (entry) sessionStorage.setItem("pdfIntent", entry.id); signIn(); break;
+        case "pdf-login": signIn(entry); break;
         case "pdf-show": if (entry) showInvoicePdf(entry); break;
         case "pdf-back": revokePdfUrl(); if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry); break;
         case "signout": signOutUser(); break;
