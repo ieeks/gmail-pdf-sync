@@ -212,9 +212,26 @@ function refreshOpenModal() {
   if (entry) document.getElementById("modalPreview").innerHTML = buildModalPreview(entry);
 }
 
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+}
+
+// Übersetzt Firebase-Auth-Fehlercodes in verständliche Hinweise (zur Diagnose)
+function authErrorMessage(err) {
+  const code = err && err.code;
+  if (code === "auth/operation-not-allowed") return "Google-Login ist in Firebase noch nicht aktiviert.";
+  if (code === "auth/unauthorized-domain") return "Diese Domain ist in Firebase nicht freigegeben (Authorized domains).";
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return "Login abgebrochen.";
+  return `Login nicht möglich${code ? ` (${code})` : ""}.`;
+}
+
 function initAuth() {
   const auth = getAuth();
   if (!auth) return;
+  // Ergebnis eines Redirect-Logins (mobil) nach dem Zurückkommen auswerten
+  auth.getRedirectResult().catch((err) => {
+    if (err && err.code && err.code !== "auth/no-auth-event") showToast(authErrorMessage(err));
+  });
   auth.onAuthStateChanged((user) => {
     if (user && !ALLOWED_EMAILS.includes(user.email)) {
       // Fremde Accounts sofort wieder abmelden — kein Zugriff auf PDFs
@@ -235,11 +252,24 @@ async function signIn() {
     showToast("Login derzeit nicht verfügbar.");
     return;
   }
+  const provider = new firebase.auth.GoogleAuthProvider();
   try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-  } catch (_e) {
-    showToast("Login abgebrochen oder nicht verfügbar.");
+    if (isMobileDevice()) {
+      // Mobil: Redirect statt Popup (Popups sind auf iOS/Android-Browsern unzuverlässig)
+      await auth.signInWithRedirect(provider);
+    } else {
+      await auth.signInWithPopup(provider);
+    }
+  } catch (err) {
+    // Bei Popup-Problemen auf Redirect ausweichen
+    const code = err && err.code;
+    if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      try {
+        await auth.signInWithRedirect(provider);
+        return;
+      } catch (_e2) { /* fällt unten in die Meldung */ }
+    }
+    showToast(authErrorMessage(err));
   }
 }
 
