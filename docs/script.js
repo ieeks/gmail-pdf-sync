@@ -342,8 +342,12 @@ async function showInvoicePdf(entry) {
     state.pdfObjectUrl = URL.createObjectURL(blob);
     preview.innerHTML = `
       <div class="pdf-frame-wrap">
-        <button class="pdf-back-btn" data-action="pdf-back" type="button">← Übersicht</button>
+        <div class="pdf-frame-bar">
+          <button class="pdf-back-btn" data-action="pdf-back" type="button">← Übersicht</button>
+          <a class="pdf-open-link" href="${state.pdfObjectUrl}" target="_blank" rel="noopener">Ganzes PDF öffnen ↗</a>
+        </div>
         <iframe class="pdf-frame" src="${state.pdfObjectUrl}" title="Original-Rechnung ${entry.rechnungsnummer}"></iframe>
+        <div class="pdf-frame-hint">Mehrseitig? Über „Ganzes PDF öffnen" alle Seiten anzeigen.</div>
       </div>`;
   } catch (err) {
     preview.innerHTML = buildModalPreview(entry);

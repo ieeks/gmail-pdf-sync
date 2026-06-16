@@ -654,9 +654,13 @@ input,select,textarea{font-family:inherit}
 .gen-inv-link{background:none;border:none;padding:0;color:var(--teal-dk);font-weight:700;font-size:10px;cursor:pointer;text-decoration:underline}
 .pdf-loading{max-width:26rem;margin:0 auto;padding:3rem 1rem;text-align:center;color:var(--slate);font-size:13px}
 .pdf-frame-wrap{display:flex;flex-direction:column;gap:10px;height:100%;min-height:30rem}
-.pdf-back-btn{align-self:flex-start;background:#fff;border:1px solid #e4e9f0;border-radius:8px;padding:7px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:12px;color:var(--ink);cursor:pointer}
+.pdf-frame-bar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pdf-back-btn{background:#fff;border:1px solid #e4e9f0;border-radius:8px;padding:7px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:12px;color:var(--ink);cursor:pointer}
 .pdf-back-btn:hover{background:#f4f7fb}
+.pdf-open-link{border:1px solid rgba(20,60,140,0.2);background:rgba(20,60,140,0.06);border-radius:8px;padding:7px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:12px;color:#143C8C;text-decoration:none;white-space:nowrap}
+.pdf-open-link:hover{background:rgba(20,60,140,0.12)}
 .pdf-frame{width:100%;flex:1;min-height:28rem;border:1px solid #e4e9f0;border-radius:10px;background:#fff}
+.pdf-frame-hint{font-size:10px;color:var(--slate-l);text-align:center}
 
 /* ── Toast ──────────────────────────────────────────────────────── */
 .toast{position:fixed;bottom:6.2rem;right:1rem;z-index:70;border-radius:10px;background:rgba(13,27,46,0.92);padding:0.9rem 1rem;color:#fff;font-size:13px;box-shadow:0 18px 34px -20px rgba(13,27,46,0.6)}
