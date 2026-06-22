@@ -1,0 +1,7 @@
+# Primaerweg: offizielle WSTW-API (robust, kein Login-Scraping)
+wiener-netze-smart-meter-api>=0.1.4
+# Fallback (Web-Login mit PKCE-Fix), nur falls offizielle Credentials noch nicht da:
+# git+https://github.com/florianL21/vienna-smartmeter.git
+google-cloud-firestore>=2.16
+google-auth>=2.30
+python-dotenv>=1.0   # laedt lokale .env (login_probe.py / smartmeter_importer.py)

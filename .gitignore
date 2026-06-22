@@ -16,3 +16,6 @@ __pycache__/
 .venv/
 venv/
 
+# smartmeter — Firebase Service-Account (nur als GitHub-Secret, nie im Repo)
+sa.json
+
