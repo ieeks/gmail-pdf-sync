@@ -5,6 +5,10 @@ on:
     - cron: "15 6 * * *"   # taeglich 06:15 UTC (Daten vom Vortag liegen vor)
   workflow_dispatch:
     inputs:
+      probe:
+        description: "1 = nur Credentials testen (login_probe, kein Firestore-Write). Leer = normaler Lauf."
+        required: false
+        default: ""
       backfill:
         description: "1 = kompletten verfuegbaren Zeitraum (~3 Jahre) ziehen. Leer = normaler Lauf."
         required: false
@@ -23,7 +27,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r smartmeter/requirements.txt
+      - name: Credential probe
+        if: ${{ github.event.inputs.probe == '1' }}
+        env:
+          WN_CLIENT_ID: ${{ secrets.WN_CLIENT_ID }}
+          WN_CLIENT_SECRET: ${{ secrets.WN_CLIENT_SECRET }}
+          WN_API_KEY: ${{ secrets.WN_API_KEY }}
+        run: python smartmeter/scripts/login_probe.py
       - name: Run importer
+        if: ${{ github.event.inputs.probe != '1' }}
         env:
           WN_CLIENT_ID: ${{ secrets.WN_CLIENT_ID }}
           WN_CLIENT_SECRET: ${{ secrets.WN_CLIENT_SECRET }}
