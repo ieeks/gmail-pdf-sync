@@ -1,0 +1,48 @@
+name: Smart Meter Sync
+
+on:
+  schedule:
+    - cron: "15 6 * * *"   # taeglich 06:15 UTC (Daten vom Vortag liegen vor)
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "1 = nur Credentials testen (login_probe, kein Firestore-Write). Leer = normaler Lauf."
+        required: false
+        default: ""
+      backfill:
+        description: "1 = kompletten verfuegbaren Zeitraum (~3 Jahre) ziehen. Leer = normaler Lauf."
+        required: false
+        default: ""
+
+concurrency:
+  group: smartmeter-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r smartmeter/requirements.txt
+      - name: Credential probe
+        if: ${{ github.event.inputs.probe == '1' }}
+        env:
+          WN_CLIENT_ID: ${{ secrets.WN_CLIENT_ID }}
+          WN_CLIENT_SECRET: ${{ secrets.WN_CLIENT_SECRET }}
+          WN_API_KEY: ${{ secrets.WN_API_KEY }}
+        run: python smartmeter/scripts/login_probe.py
+      - name: Run importer
+        if: ${{ github.event.inputs.probe != '1' }}
+        env:
+          WN_CLIENT_ID: ${{ secrets.WN_CLIENT_ID }}
+          WN_CLIENT_SECRET: ${{ secrets.WN_CLIENT_SECRET }}
+          WN_API_KEY: ${{ secrets.WN_API_KEY }}
+          ZAEHLPUNKT: ${{ secrets.ZAEHLPUNKT }}
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          OBIS_FILTER: ${{ secrets.OBIS_FILTER }}
+          BACKFILL: ${{ github.event.inputs.backfill }}
+        run: python smartmeter/scripts/smartmeter_importer.py

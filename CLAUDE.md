@@ -336,3 +336,31 @@ anonymisierte Zahlen und sind bedenkenlos public.
 **Onboarding erscheint immer wieder obwohl abgeschlossen**
 → `localStorage.setItem('voltmetric-onboarding-done', 'true')` wird in `completeOnboarding()` gesetzt
 → Sicherstellen dass der „Dashboard öffnen"-Button auf Step 5 `completeOnboarding()` aufruft
+
+---
+
+## smartmeter/ — Wiener-Netze Smart-Meter Sync (eigenständiges Modul)
+
+Optionales Zusatzmodul: zieht täglich die **15-Minuten-Verbrauchswerte** aus dem
+Wiener-Netze-Smart-Meter über die **offizielle WSTW-API** (`wiener-netze-smart-meter-api`)
+und schreibt sie nach Firestore. Komplett getrennt vom PDF/Gmail-Pfad — bricht nichts
+am bestehenden Sync.
+
+```
+smartmeter/
+├── scripts/login_probe.py          ← Credential-Test (ZUERST ausführen)
+├── scripts/smartmeter_importer.py  ← Hauptjob (readings + daily, idempotent)
+├── requirements.txt                ← eigene Deps (google-cloud-firestore, dotenv)
+├── .env.example
+└── README.md                       ← Setup, Secrets, Stolpersteine
+```
+
+- Eigener Workflow: `.github/workflows/smartmeter-sync.yml` (Cron 06:15 UTC).
+  **NICHT** dieselbe Datei wie der Gmail-Sync (`sync.yml`).
+- Firestore-Collections: `smartmeter_readings/<zp>_<iso-ts>` (15 min) und
+  `smartmeter_daily/<zp>_<YYYY-MM-DD>` (Tagessumme). Eigene Collections, kollidiert
+  nicht mit `haushalte/` oder `config/`.
+- Voraussetzung: offizielle API-Credentials (~1–2 Wochen Freischaltzeit) + Opt-in
+  für Viertelstundenwerte. Details in `smartmeter/README.md`.
+- Dashboard-Anbindung (`smartmeter_daily` → VoltMetric Insights) ist ein **separater
+  Task** und noch nicht umgesetzt.
