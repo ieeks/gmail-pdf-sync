@@ -94,7 +94,6 @@ const DEMO_DATA = {
 };
 
 const STORAGE_KEYS = {
-  activeScreen: "voltmetric-active-screen",
   settings: "voltmetric-prototype-settings",
   sidebarCollapsed: "voltmetric-sidebar-collapsed",
 };
@@ -130,14 +129,6 @@ const DEFAULT_SETTINGS = {
   livePulse: true,
 };
 
-function getStoredActiveScreen() {
-  try {
-    return localStorage.getItem(STORAGE_KEYS.activeScreen) || "overview";
-  } catch (_error) {
-    return "overview";
-  }
-}
-
 const WALLBOX_FIREBASE_CONFIG = {
   apiKey: "AIzaSyDkCyR1nFg38VvJi6POYzfVblRuV5OIvwM",
   authDomain: "wallbox-manuel.firebaseapp.com",
@@ -148,7 +139,7 @@ const WALLBOX_FIREBASE_CONFIG = {
 };
 
 const state = {
-  activeScreen: getStoredActiveScreen(),
+  activeScreen: "overview",
   charts: {},
   data: null,
   wallbox: { byMonth: {}, byYear: {}, charges: [] },
@@ -1481,11 +1472,6 @@ const domCache = { screens: null, navButtons: null };
 
 function activateScreen(screen) {
   state.activeScreen = screen;
-  try {
-    localStorage.setItem(STORAGE_KEYS.activeScreen, screen);
-  } catch (_error) {
-    // Ignore storage failures in restricted contexts.
-  }
   domCache.screens.forEach((section) => {
     section.classList.toggle("screen-active", section.dataset.screen === screen);
   });
