@@ -1,8 +1,10 @@
 name: Smart Meter Sync
 
 on:
-  schedule:
-    - cron: "15 6 * * *"   # taeglich 06:15 UTC (Daten vom Vortag liegen vor)
+  # Taeglicher Cron pausiert, bis gueltige log.wien-client_credentials vorliegen
+  # (Businessportal). Reaktivieren: naechste Zeile einkommentieren.
+  # schedule:
+  #   - cron: "15 6 * * *"   # taeglich 06:15 UTC (Daten vom Vortag liegen vor)
   workflow_dispatch:
     inputs:
       probe:
