@@ -1164,18 +1164,19 @@ function computeInsights() {
     };
   }
 
-  // ② Höchster Verbrauch: stärkstes Jahr (beide Standorte kombiniert)
-  const withKwh = yearly.filter((b) => (b.rennwegKwh + b.aspangKwh) > 0);
+  // ② Höchster Verbrauch: verbrauchsstärkster Monat (beide Standorte kombiniert).
+  // Verbund rechnet monatlich ab → die Monatsreihe zeigt echte saisonale Spitzen.
+  const monthly = (state.computed.monthly || []).filter((m) => (m.rennwegKwh + m.aspangKwh) > 0);
   let peakItem;
-  if (withKwh.length === 0) {
+  if (monthly.length === 0) {
     peakItem = { name: "Höchster Verbrauch", valClass: "amber", val: "—", text: "keine Verbrauchsdaten" };
   } else {
-    const peak = withKwh.reduce((a, b) => (b.rennwegKwh + b.aspangKwh) > (a.rennwegKwh + a.aspangKwh) ? b : a);
+    const peak = monthly.reduce((a, b) => (b.rennwegKwh + b.aspangKwh) > (a.rennwegKwh + a.aspangKwh) ? b : a);
     peakItem = {
       name: "Höchster Verbrauch",
       valClass: "amber",
-      val: `${peak.year} · ${formatNumber(peak.rennwegKwh + peak.aspangKwh)} kWh`,
-      text: "stärkstes Verbrauchsjahr, beide Standorte",
+      val: `${formatMonthLabel(peak.label)} · ${formatNumber(peak.rennwegKwh + peak.aspangKwh)} kWh`,
+      text: "verbrauchsstärkster Monat, beide Standorte",
     };
   }
 
