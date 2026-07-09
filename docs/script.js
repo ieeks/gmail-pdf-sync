@@ -1121,8 +1121,107 @@ function renderStatus() {
   pulse.style.display = state.settings.livePulse ? "inline-flex" : "none";
 }
 
+// Feste Icons/Farben für die drei Insight-Kacheln (Reihenfolge = computeInsights()).
+const INSIGHT_ICONS = [
+  { ico: "teal", svg: `<path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>` },
+  { ico: "amber", svg: `<path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>` },
+  { ico: "indigo", svg: `<path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/>` },
+];
+
+// Jahr-über-Jahr-Änderung der Gesamtkosten eines Standorts (letzte zwei Jahre mit Kosten > 0).
+function yoyCostChange(yearly, costKey) {
+  const withCost = yearly.filter((b) => b[costKey] > 0);
+  if (withCost.length < 2) return null;
+  const latest = withCost[withCost.length - 1];
+  const prev = withCost[withCost.length - 2];
+  return {
+    prevYear: prev.year,
+    pct: ((latest[costKey] - prev[costKey]) / prev[costKey]) * 100,
+  };
+}
+
+// Berechnet die drei Insight-Kacheln komplett aus den geladenen Daten.
+// Läuft bei jedem renderOverview() → aktualisiert sich automatisch nach jeder neuen Rechnung.
+function computeInsights() {
+  const yearly = state.computed.yearly || [];
+
+  // ① Kostentrend: Standort mit der größten YoY-Bewegung
+  const candidates = [
+    { loc: "rennweg", ...(yoyCostChange(yearly, "rennwegCost") || {}) },
+    { loc: "aspangstrasse", ...(yoyCostChange(yearly, "aspangCost") || {}) },
+  ].filter((c) => typeof c.pct === "number");
+  let costItem;
+  if (candidates.length === 0) {
+    costItem = { name: "Kostentrend", valClass: "teal", val: "Noch kein Vorjahr", text: "mind. 2 Abrechnungsjahre nötig" };
+  } else {
+    const top = candidates.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct))[0];
+    const up = top.pct >= 0;
+    costItem = {
+      name: up ? "Kosten steigen" : "Kosten sinken",
+      valClass: "teal",
+      val: `${up ? "+" : "−"}${formatNumber(Math.abs(top.pct), 1)} % bei ${locationLabel(top.loc)}`,
+      text: `vs. Vorjahreszeitraum (${top.prevYear})`,
+    };
+  }
+
+  // ② Höchster Verbrauch: stärkstes Jahr (beide Standorte kombiniert)
+  const withKwh = yearly.filter((b) => (b.rennwegKwh + b.aspangKwh) > 0);
+  let peakItem;
+  if (withKwh.length === 0) {
+    peakItem = { name: "Höchster Verbrauch", valClass: "amber", val: "—", text: "keine Verbrauchsdaten" };
+  } else {
+    const peak = withKwh.reduce((a, b) => (b.rennwegKwh + b.aspangKwh) > (a.rennwegKwh + a.aspangKwh) ? b : a);
+    peakItem = {
+      name: "Höchster Verbrauch",
+      valClass: "amber",
+      val: `${peak.year} · ${formatNumber(peak.rennwegKwh + peak.aspangKwh)} kWh`,
+      text: "stärkstes Verbrauchsjahr, beide Standorte",
+    };
+  }
+
+  // ③ Wallbox-Anteil an Aspangstraße (periodengenau aus aspangWallboxKwh)
+  const totalAspangKwh = yearly.reduce((s, b) => s + b.aspangKwh, 0);
+  const totalWallboxKwh = yearly.reduce((s, b) => s + b.aspangWallboxKwh, 0);
+  let wallboxItem;
+  if (totalWallboxKwh > 0 && totalAspangKwh > 0) {
+    wallboxItem = {
+      name: "Wallbox-Anteil",
+      valClass: "indigo",
+      val: `${formatNumber((totalWallboxKwh / totalAspangKwh) * 100, 0)} % des Verbrauchs`,
+      text: "der Aspangstraße kommen von der Wallbox",
+    };
+  } else {
+    wallboxItem = {
+      name: "Wallbox-Anteil",
+      valClass: "indigo",
+      val: "keine Wallbox-Daten",
+      text: "Ladedaten noch nicht verknüpft",
+    };
+  }
+
+  return [costItem, peakItem, wallboxItem];
+}
+
+function renderInsights() {
+  const el = document.getElementById("insightsList");
+  if (!el) return;
+  el.innerHTML = computeInsights().map((it, i) => `
+    <div class="ins-item">
+      <div class="ins-ico ${INSIGHT_ICONS[i].ico}">
+        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">${INSIGHT_ICONS[i].svg}</svg>
+      </div>
+      <div>
+        <div class="ins-name">${it.name}</div>
+        <div class="ins-val ${it.valClass}">${it.val}</div>
+        <div class="ins-text">${it.text}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
 function renderOverview() {
   const summary = getSummary(state.data);
+  renderInsights();
 
   // ① Hero Card
   document.getElementById("heroCard").innerHTML = `

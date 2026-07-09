@@ -171,38 +171,8 @@
             <div class="right-panel">
               <div class="insights-card">
                 <div class="section-title">Insights</div>
-                <div class="insights-list">
-                  <div class="ins-item">
-                    <div class="ins-ico teal">
-                      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
-                    </div>
-                    <div>
-                      <div class="ins-name">Kosten steigen</div>
-                      <div class="ins-val teal">+3,6 % bei Aspangstraße</div>
-                      <div class="ins-text">vs. letzter Vorjahreszeitraum</div>
-                    </div>
-                  </div>
-                  <div class="ins-item">
-                    <div class="ins-ico amber">
-                      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
-                    </div>
-                    <div>
-                      <div class="ins-name">Hoher Verbrauch</div>
-                      <div class="ins-val amber">Dez–Jan Peak</div>
-                      <div class="ins-text">stärkste Monate bei beiden Standorten</div>
-                    </div>
-                  </div>
-                  <div class="ins-item">
-                    <div class="ins-ico indigo">
-                      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/></svg>
-                    </div>
-                    <div>
-                      <div class="ins-name">Wallbox-Anteil</div>
-                      <div class="ins-val indigo">11 % des Verbrauchs</div>
-                      <div class="ins-text">kommen von der Wallbox</div>
-                    </div>
-                  </div>
-                </div>
+                <!-- Dynamisch befuellt von renderInsights() aus state.computed.yearly + Wallbox-Daten -->
+                <div class="insights-list" id="insightsList"></div>
               </div>
               <div id="topKennzahlen"></div>
             </div>
