@@ -674,6 +674,17 @@ function monthsInPeriod(entry) {
   return Math.max(1, days / 30.44);
 }
 
+// Annualisierte Kosten-Run-Rate aus den letzten bis zu 12 Rechnungen eines Standorts.
+// Period-gewichtet (Kosten / abgedeckte Monate * 12) → robust egal ob Monats- oder
+// Jahresrechnungen. Gibt null zurück, wenn keine Rechnungen vorliegen.
+function annualForecast(entries) {
+  const recent = [...entries].sort((a, b) => b.invoiceDate - a.invoiceDate).slice(0, 12);
+  if (recent.length === 0) return null;
+  const cost = recent.reduce((s, e) => s + e.gesamt_inkl_ust, 0);
+  const months = recent.reduce((s, e) => s + monthsInPeriod(e), 0) || 1;
+  return (cost / months) * 12;
+}
+
 function getSummary(data) {
   const latestRennweg = getLatestEntry(data.rennweg);
   const latestAspang = getLatestEntry(data.aspangstrasse);
@@ -1235,6 +1246,13 @@ function renderKostenAufschluesselung() {
   ];
   const gesamt = latest.reduce((s, e) => s + e.gesamt_inkl_ust, 0);
   const denom = rows.reduce((s, r) => s + r.val, 0) || 1;
+  const fcRennweg = annualForecast(state.data.rennweg);
+  const fcAspang = annualForecast(state.data.aspangstrasse);
+  const fcCell = (label, value, cls) => `
+      <div class="fc-item">
+        <div class="fc-lbl">Prognose ${label}</div>
+        <div class="fc-val ${cls}">${value == null ? "—" : `≈ ${formatNumber(value, 0)} €<span>/Jahr</span>`}</div>
+      </div>`;
   el.innerHTML = `
     <div class="kosten-card">
       <div class="section-title">Kostenaufschlüsselung</div>
@@ -1250,6 +1268,10 @@ function renderKostenAufschluesselung() {
       </div>`;
       }).join("")}
       <div class="cmp-avg">Gesamt ${formatNumber(gesamt, 0)} € · letzte Rechnung beider Standorte</div>
+      <div class="fc-strip">
+        ${fcCell("Rennweg", fcRennweg, "teal")}
+        ${fcCell("Aspangstraße", fcAspang, "amber")}
+      </div>
     </div>
   `;
 }
