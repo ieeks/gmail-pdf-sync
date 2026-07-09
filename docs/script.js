@@ -674,6 +674,17 @@ function monthsInPeriod(entry) {
   return Math.max(1, days / 30.44);
 }
 
+// Annualisierte Kosten-Run-Rate aus den letzten bis zu 12 Rechnungen eines Standorts.
+// Period-gewichtet (Kosten / abgedeckte Monate * 12) → robust egal ob Monats- oder
+// Jahresrechnungen. Gibt null zurück, wenn keine Rechnungen vorliegen.
+function annualForecast(entries) {
+  const recent = [...entries].sort((a, b) => b.invoiceDate - a.invoiceDate).slice(0, 12);
+  if (recent.length === 0) return null;
+  const cost = recent.reduce((s, e) => s + e.gesamt_inkl_ust, 0);
+  const months = recent.reduce((s, e) => s + monthsInPeriod(e), 0) || 1;
+  return (cost / months) * 12;
+}
+
 function getSummary(data) {
   const latestRennweg = getLatestEntry(data.rennweg);
   const latestAspang = getLatestEntry(data.aspangstrasse);
@@ -1220,9 +1231,55 @@ function renderInsights() {
   `).join("");
 }
 
+// Zeigt, wofür bezahlt wird: Energie / Netzgebühren / Steuern & Abgaben der jeweils
+// letzten Rechnung beider Standorte. Die drei Felder summieren sich exakt zu gesamt_inkl_ust.
+function renderKostenAufschluesselung() {
+  const el = document.getElementById("kostenAufschluesselung");
+  if (!el) return;
+  const latest = [state.data.rennweg, state.data.aspangstrasse]
+    .map((entries) => getLatestEntry(entries))
+    .filter(Boolean);
+  const rows = [
+    { name: "Energie", val: latest.reduce((s, e) => s + e.energiekosten, 0), cls: "teal" },
+    { name: "Netzgebühren", val: latest.reduce((s, e) => s + e.netzgebuehren, 0), cls: "amber" },
+    { name: "Steuern & Abgaben", val: latest.reduce((s, e) => s + e.steuern, 0), cls: "indigo" },
+  ];
+  const gesamt = latest.reduce((s, e) => s + e.gesamt_inkl_ust, 0);
+  const denom = rows.reduce((s, r) => s + r.val, 0) || 1;
+  const fcRennweg = annualForecast(state.data.rennweg);
+  const fcAspang = annualForecast(state.data.aspangstrasse);
+  const fcCell = (label, value, cls) => `
+      <div class="fc-item">
+        <div class="fc-lbl">Prognose ${label}</div>
+        <div class="fc-val ${cls}">${value == null ? "—" : `≈ ${formatNumber(value, 0)} €<span>/Jahr</span>`}</div>
+      </div>`;
+  el.innerHTML = `
+    <div class="kosten-card">
+      <div class="section-title">Kostenaufschlüsselung</div>
+      ${rows.map((r) => {
+        const pct = Math.round((r.val / denom) * 100);
+        return `
+      <div class="cmp-row">
+        <div class="cmp-label-row">
+          <span class="cmp-name">${r.name}</span>
+          <span class="cmp-val ${r.cls}">${pct} % · ${formatNumber(r.val, 0)} €</span>
+        </div>
+        <div class="cmp-bar-bg"><div class="cmp-bar ${r.cls}" style="width:${pct}%"></div></div>
+      </div>`;
+      }).join("")}
+      <div class="cmp-avg">Gesamt ${formatNumber(gesamt, 0)} € · letzte Rechnung beider Standorte</div>
+      <div class="fc-strip">
+        ${fcCell("Rennweg", fcRennweg, "teal")}
+        ${fcCell("Aspangstraße", fcAspang, "amber")}
+      </div>
+    </div>
+  `;
+}
+
 function renderOverview() {
   const summary = getSummary(state.data);
   renderInsights();
+  renderKostenAufschluesselung();
 
   // ① Hero Card
   document.getElementById("heroCard").innerHTML = `

@@ -145,12 +145,12 @@ Tailwind und `docs/src/input.css` sind nicht mehr in Verwendung.
 │                         │  topKennzahlen│
 ├─────────────────────────┴───────────────┤
 │  bottom-row (1/-1): recentLogs ·        │
-│  kostenVergleich · Tarif-Simulation     │
+│  kostenVergleich · Kostenaufschlüsselung│
 └─────────────────────────────────────────┘
 ```
-`renderOverview()` befüllt: `#heroCard`, `#rwCard`, `#asCard`, `#kpiGrid`, `#recentLogs`, `#kostenVergleich`, `#topKennzahlen`  
-Right-Panel hat Insights (statisch) + `#topKennzahlen` (dynamisch).  
-Tarif-Simulation ist statisches HTML in der Bottom-Row.
+`renderOverview()` befüllt: `#heroCard`, `#rwCard`, `#asCard`, `#kpiGrid`, `#recentLogs`, `#kostenVergleich`, `#topKennzahlen`, `#insightsList`, `#kostenAufschluesselung`  
+Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennzahlen` (dynamisch).  
+`#kostenAufschluesselung` (Bottom-Row) zeigt via `renderKostenAufschluesselung()` die Aufteilung Energie / Netz / Steuern der letzten Rechnung beider Standorte — alles aus echten Daten, kein statisches HTML mehr (die frühere Tarif-Simulation war eine erfundene Nachttarif-Ersparnis und wurde entfernt).
 
 **Mobile Layout:**
 - Unter 768px zeigt Overview die Mobile Glance View (kein Chart)

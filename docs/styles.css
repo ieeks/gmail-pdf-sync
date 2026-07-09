@@ -330,26 +330,6 @@ input,select,textarea{font-family:inherit}
 .btn-all{font-size:12px;font-weight:600;color:var(--teal-dk);background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:4px;font-family:'Plus Jakarta Sans',sans-serif;transition:gap var(--tr),color var(--tr)}
 .btn-all:hover{gap:7px;color:var(--teal)}
 
-/* Tarif Card */
-.tarif-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--sh-sm);transition:transform var(--tr),box-shadow .22s ease}
-.tarif-card:hover{transform:translateY(-1px);box-shadow:var(--sh)}
-.tarif-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
-.tarif-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:700;color:var(--text)}
-.tarif-new-pill{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(0,194,168,.10);color:var(--teal-dk);border:1px solid rgba(0,194,168,.2);padding:2px 7px;border-radius:5px}
-.tarif-desc{font-size:11px;color:var(--muted);margin-bottom:12px}
-.tarif-divider{height:1px;background:var(--border-s);margin-bottom:12px}
-.tarif-provider-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.tarif-provider{font-size:12.5px;font-weight:600;color:var(--text)}
-.tarif-rec-pill{font-size:10px;font-weight:600;color:#6366F1;border:1.5px solid rgba(99,102,241,.3);border-radius:6px;padding:2px 8px}
-.tarif-nums{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-bottom:2px}
-.tarif-cost{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:500;color:#6366F1;letter-spacing:-1px;line-height:1}
-.tarif-cost .tu{font-size:14px;font-weight:300;color:var(--muted);letter-spacing:0}
-.tarif-saving{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#16A34A;letter-spacing:-.5px;text-align:right}
-.tarif-cost-lbl{font-size:10px;color:var(--subtle);margin-bottom:12px}
-.tarif-saving-lbl{font-size:10px;color:#16A34A;text-align:right}
-.tarif-labels{display:flex;justify-content:space-between}
-.btn-tarif-detail{display:flex;align-items:center;gap:4px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-s);border-left:none;border-right:none;border-bottom:none;font-size:12px;font-weight:600;color:var(--teal-dk);background:none;cursor:pointer;padding-left:0;padding-right:0;font-family:'Plus Jakarta Sans',sans-serif;transition:gap var(--tr),color var(--tr);width:100%}
-.btn-tarif-detail:hover{gap:7px;color:var(--teal)}
 
 /* Charts Row */
 .charts-row{grid-column:1;grid-row:3;display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -398,7 +378,16 @@ input,select,textarea{font-family:inherit}
 .cmp-bar{height:100%;border-radius:4px;transition:width .6s ease}
 .cmp-bar.teal{background:var(--teal)}
 .cmp-bar.amber{background:var(--amber)}
+.cmp-val.indigo{color:#4F46E5}
+.cmp-bar.indigo{background:#6366F1}
 .cmp-avg{font-size:10.5px;color:var(--subtle);margin-top:10px}
+.fc-strip{display:flex;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-s)}
+.fc-item{flex:1}
+.fc-lbl{font-size:10px;color:var(--subtle);margin-bottom:3px}
+.fc-val{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;letter-spacing:-.3px}
+.fc-val span{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:0}
+.fc-val.teal{color:var(--teal-dk)}
+.fc-val.amber{color:#B45309}
 
 /* Top Kennzahlen */
 .kennzahlen-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);position:relative}
