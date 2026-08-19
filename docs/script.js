@@ -593,6 +593,23 @@ function wallboxUnbilled(afterDate) {
   return { kwh, count, firstDate };
 }
 
+// Label des tatsächlich abgerechneten Zeitraums — NICHT des heutigen Monats.
+// Die Overview-Zahlen stammen aus den letzten Rechnungen beider Standorte; deren
+// Zeitraum endet typischerweise Wochen vor dem Rechnungs- und Anzeigedatum
+// (Rechnung vom 09.08. deckt den Juli ab). Deckt eine Rechnung mehrere Monate
+// ab (Jahresabrechnung), wird die Spanne ausgeschrieben.
+function billingPeriodLabel(...entries) {
+  const monthYear = (date) =>
+    date.toLocaleDateString("de-AT", { month: "short", year: "numeric" });
+  const valid = entries.filter((entry) => entry && entry.fromDate && entry.toDate);
+  if (valid.length === 0) return monthYear(new Date());
+  const from = new Date(Math.min(...valid.map((entry) => entry.fromDate.getTime())));
+  const to   = new Date(Math.max(...valid.map((entry) => entry.toDate.getTime())));
+  return monthYear(from) === monthYear(to)
+    ? monthYear(to)
+    : `${monthYear(from)} – ${monthYear(to)}`;
+}
+
 function sumEntries(entries, key) {
   return entries.reduce((sum, entry) => sum + entry[key], 0);
 }
@@ -809,7 +826,7 @@ function renderWallboxKennzahl() {
 
   const tags = [];
   if (billedKwh > 0) {
-    tags.push(`<span class="tag tag-teal">⚡ ${formatNumber(billedKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Abrechnungszeitraums` : ""}</span>`);
+    tags.push(`<span class="tag tag-teal">⚡ ${formatNumber(billedKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Verbrauchs` : ""}</span>`);
   }
   if (unbilled.kwh > 0) {
     const ladungen = `${unbilled.count} ${unbilled.count === 1 ? "Ladung" : "Ladungen"}`;
@@ -1953,12 +1970,11 @@ function attachEvents() {
 
 function renderMobileGlance() {
   const summary = getSummary(state.data);
-  const now = new Date();
-  const monthLabel = now.toLocaleDateString("de-AT", { month: "short", year: "numeric" });
+  const monthLabel = billingPeriodLabel(summary.latestRennweg, summary.latestAspang);
 
   // Top bar sub
   const mTopSub = document.getElementById("mTopSub");
-  if (mTopSub) mTopSub.textContent = `${monthLabel} · beide Standorte`;
+  if (mTopSub) mTopSub.textContent = `Abrechnung ${monthLabel} · beide Standorte`;
 
   // Hero: combined latest billing period totals
   const combinedKwh = summary.latestRennweg.kwh + summary.latestAspang.kwh;
@@ -2020,7 +2036,7 @@ function renderMobileGlance() {
           <div class="m-progress-fill" style="width:${pct}%"></div>
         </div>
         <div class="m-progress-labels">
-          <span class="m-prog-label">${pct}% des Abrechnungszeitraums</span>
+          <span class="m-prog-label">${pct}% des Verbrauchs</span>
           <span class="m-prog-val">BYD Seal U</span>
         </div>` : "";
       const ladungen = `${unbilled.count} ${unbilled.count === 1 ? "Ladung" : "Ladungen"}`;
