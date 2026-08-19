@@ -20,5 +20,16 @@
     "steuern": 8.5,
     "gesamt_inkl_ust": 85.37,
     "rechnungsnummer": "3102601397400"
+  },
+  {
+    "rechnungsdatum": "2026-08-09",
+    "zeitraum_von": "2026-07-01",
+    "zeitraum_bis": "2026-07-31",
+    "kwh": 327.87,
+    "energiekosten": 44.97,
+    "netzgebuehren": 31.11,
+    "steuern": 8.89,
+    "gesamt_inkl_ust": 89.24,
+    "rechnungsnummer": "3102601558720"
   }
 ]
