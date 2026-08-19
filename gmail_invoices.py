@@ -2,17 +2,22 @@
 """
 gmail_invoices.py — Verbund-Stromrechnungen aus Gmail herunterladen
 
-Verbindet sich per IMAP mit Gmail, sucht UNSEEN E-Mails im Label "Rechnungen",
-lädt PDF-Anhänge in iCloud Drive herunter und ruft extract_verbund.py auf.
+Verbindet sich per IMAP mit Gmail, durchsucht die letzten LOOKBACK_DAYS Tage im
+Label "Rechnungen", lädt Verbund-PDF-Anhänge herunter und ruft extract_verbund.py auf.
+
+WICHTIG: Das Postfach wird von einem zweiten Tool (finance-dashboard) mitgenutzt,
+das UNSEEN als Warteschlange verwendet. Dieses Skript arbeitet deshalb strikt
+read-only — es setzt keine Flags und verändert nichts am Postfach.
 """
 
 import imaplib
 import email
 import os
+import re
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.header import decode_header
 from pathlib import Path
 
@@ -24,13 +29,34 @@ GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
 GMAIL_LABEL        = "Rechnungen"              # exakter Label-Name in Gmail
 PDF_TEMP_DIR       = Path(tempfile.mkdtemp())
 
+# Wie weit zurück gesucht wird. Der Cron läuft täglich; 14 Tage überbrücken
+# ausgefallene Läufe, ohne das ganze Postfach zu durchsuchen.
+LOOKBACK_DAYS      = 14
+
+# Das Postfach teilen wir uns mit dem finance-dashboard, das UNSEEN als
+# Warteschlange nutzt. Niemals auf True setzen, solange das so ist — sonst
+# verschwinden dort Rechnungen, bevor sie verarbeitet wurden.
+MARK_AS_READ       = False
+
 EXTRACT_SCRIPT     = SCRIPT_DIR / "extract_verbund.py"
 
 # Exit-Codes von extract_verbund.py
-EXTRACT_OK          = 0   # Rechnung verarbeitet
+EXTRACT_OK          = 0   # Rechnung neu übernommen
 EXTRACT_ERROR       = 1   # Verbund-Rechnung, aber Extraktion fehlgeschlagen
 EXTRACT_NOT_VERBUND = 2   # Gar keine Verbund-Rechnung
+EXTRACT_DUPLIKAT    = 3   # Verbund-Rechnung, war aber schon bekannt
 # ───────────────────────────────────────────────────────────────────────────────
+
+# IMAP-Datumsformat ist immer englisch — strftime("%b") wäre locale-abhängig.
+IMAP_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+# Dateinamen der Verbund-Rechnungen:
+#   31216855_3004883222_31072026_3102601558720_10_2026_R_2437.pdf
+#   Kund:innen-Nr _ Anlagen-Nr _ Datum _ Rechnungs-Nr _ Monat _ Jahr _ R _ lfd. Nr.
+RE_VERBUND_ATTACHMENT = re.compile(
+    r"\d{6,}_\d{6,}_\d{8}_\d{6,}_\d{1,2}_\d{4}_R_\d+\.pdf", re.IGNORECASE
+)
 
 MONTH_NAMES = {
     1: "01_Januar", 2: "02_Februar", 3: "03_März",    4: "04_April",
@@ -65,9 +91,42 @@ def list_labels(mail: imaplib.IMAP4_SSL) -> None:
         print(" ", label.decode())
 
 
+def imap_date(dt: datetime) -> str:
+    """datetime → IMAP-Datum (z. B. '05-Aug-2026')."""
+    return f"{dt.day:02d}-{IMAP_MONTHS[dt.month - 1]}-{dt.year}"
+
+
+def has_pdf_attachment(bodystructure: str) -> bool:
+    """Erkennt PDF-Anhänge an der BODYSTRUCTURE — ohne die Mail zu laden."""
+    bs = bodystructure.lower()
+    return "application/pdf" in bs or '"pdf"' in bs or ".pdf" in bs
+
+
+def looks_like_verbund(subject: str, sender: str, bodystructure: str) -> bool:
+    """
+    Grober Vorfilter, damit im gemeinsam genutzten Postfach nicht hunderte
+    fremde Rechnungen heruntergeladen werden. Bewusst als ODER über mehrere
+    unabhängige Signale — fällt eines aus, greifen die anderen:
+
+      1. Absender/Betreff der Original-Mail von VERBUND
+         ("VERBUND <...@verbund.at>", "Ihre Energierechnung ist da!",
+          weitergeleitet: "WG: Ihre Energierechnung ist da!")
+      2. Dateiname des Anhangs im Verbund-Schema
+         (bleibt auch bei Weiterleitung und Portal-Download erhalten)
+
+    Die endgültige Entscheidung trifft immer extract_verbund.py am Zählpunkt
+    im PDF — hier wird nur vorsortiert.
+    """
+    haystack = f"{subject} {sender}".lower()
+    if "verbund" in haystack or "energierechnung" in haystack:
+        return True
+    return bool(RE_VERBUND_ATTACHMENT.search(bodystructure))
+
+
 def download_pdfs(mail: imaplib.IMAP4_SSL, msg_id: bytes) -> list[Path]:
     """Alle PDF-Anhänge einer E-Mail herunterladen. Gibt Liste der Pfade zurück."""
-    _, msg_data = mail.fetch(msg_id, "(RFC822)")
+    # BODY.PEEK statt RFC822: der Server setzt dabei kein \Seen-Flag.
+    _, msg_data = mail.fetch(msg_id, "(BODY.PEEK[])")
     raw = msg_data[0][1]
     msg = email.message_from_bytes(raw)
 
@@ -145,7 +204,7 @@ def run_extract(pdf_path: Path) -> int:
     )
     if result.stdout:
         print(result.stdout.rstrip())
-    if result.returncode not in (EXTRACT_OK, EXTRACT_NOT_VERBUND) and result.stderr:
+    if result.returncode not in (EXTRACT_OK, EXTRACT_NOT_VERBUND, EXTRACT_DUPLIKAT) and result.stderr:
         print(f"  FEHLER bei Extraktion: {result.stderr.rstrip()}")
     return result.returncode
 
@@ -162,8 +221,9 @@ def main() -> None:
         print("Tipp: App-Passwort prüfen und IMAP in Gmail aktivieren.")
         sys.exit(1)
 
-    # Label auswählen
-    status, _ = mail.select(f'"{GMAIL_LABEL}"')
+    # Label auswählen — read-only, solange wir uns das Postfach mit dem
+    # finance-dashboard teilen (siehe MARK_AS_READ).
+    status, _ = mail.select(f'"{GMAIL_LABEL}"', readonly=not MARK_AS_READ)
     if status != "OK":
         print(f"FEHLER: Label '{GMAIL_LABEL}' nicht gefunden.")
         print("Verfügbare Labels:")
@@ -171,47 +231,72 @@ def main() -> None:
         mail.logout()
         sys.exit(1)
 
-    # Ungelesene E-Mails suchen
-    _, msg_ids_raw = mail.search(None, "UNSEEN")
+    # Zeitfenster statt UNSEEN: das finance-dashboard markiert Mails im selben
+    # Postfach als gelesen — mit UNSEEN würden wir Rechnungen verpassen, je
+    # nachdem wer zuerst läuft.
+    since = imap_date(datetime.now() - timedelta(days=LOOKBACK_DAYS))
+    _, msg_ids_raw = mail.search(None, "SINCE", since)
     msg_ids = msg_ids_raw[0].split()
 
     if not msg_ids:
-        print("Keine neuen E-Mails gefunden.")
+        print(f"Keine E-Mails seit {since} gefunden.")
         mail.logout()
         return
 
-    print(f"{len(msg_ids)} neue E-Mail(s) gefunden.")
-    total_pdfs = 0
+    print(f"{len(msg_ids)} E-Mail(s) seit {since} im Label '{GMAIL_LABEL}'.")
+    total_pdfs   = 0   # neu übernommene Rechnungen
+    bekannt      = 0   # bereits bekannte Rechnungen
+    geprueft     = 0
+    vorsortiert  = 0
 
     for msg_id in msg_ids:
-        _, hdr_data = mail.fetch(msg_id, "(BODY[HEADER.FIELDS (SUBJECT FROM)])")
-        hdr_msg  = email.message_from_bytes(hdr_data[0][1])
-        subject  = decode_str(hdr_msg.get("Subject", ""))
+        # Kopfdaten und Anhang-Struktur holen — beides ohne die Mail zu laden.
+        # BODY.PEEK, damit der Server kein \Seen-Flag setzt.
+        _, meta = mail.fetch(
+            msg_id, "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM)] BODYSTRUCTURE)"
+        )
+        raw_header    = next((part[1] for part in meta if isinstance(part, tuple)), b"")
+        bodystructure = " ".join(
+            part.decode(errors="replace") if isinstance(part, bytes) else
+            part[0].decode(errors="replace")
+            for part in meta
+        )
 
-        # Betreff und Absender sagen nichts Verlässliches aus (weitergeleitete oder
-        # selbst betitelte Mails). Entscheidend ist der PDF-Inhalt — jede E-Mail im
-        # Label wird deshalb geöffnet und ihre PDFs an extract_verbund.py übergeben.
-        print(f"\nVerarbeite E-Mail ID {msg_id.decode()} — {subject[:70]}")
-        saved = download_pdfs(mail, msg_id)
+        hdr_msg = email.message_from_bytes(raw_header)
+        subject = decode_str(hdr_msg.get("Subject", ""))
+        sender  = decode_str(hdr_msg.get("From", ""))
 
-        if not saved:
-            print("  Kein PDF-Anhang — als gelesen markiert.")
-            mail.store(msg_id, "+FLAGS", "\\Seen")
+        if not has_pdf_attachment(bodystructure):
+            continue   # Fremde Mail ohne PDF — nicht einmal erwähnenswert
+
+        geprueft += 1
+
+        # Vorsortieren, damit die hunderten Fremdrechnungen im Postfach nicht
+        # heruntergeladen und geparst werden. Entscheidend bleibt der Zählpunkt
+        # im PDF — der Vorfilter spart nur Downloads.
+        if not looks_like_verbund(subject, sender, bodystructure):
+            vorsortiert += 1
             continue
 
-        # Extraktion für jedes PDF
+        print(f"\nVerarbeite E-Mail — {subject[:70]}")
+        saved = download_pdfs(mail, msg_id)
+        if not saved:
+            continue
+
         codes = [run_extract(pdf_path) for pdf_path in saved]
         total_pdfs += sum(1 for c in codes if c == EXTRACT_OK)
+        bekannt    += sum(1 for c in codes if c == EXTRACT_DUPLIKAT)
 
-        if EXTRACT_ERROR in codes:
-            # Verbund-Rechnung, die (noch) nicht verarbeitet werden konnte —
-            # ungelesen lassen, damit der nächste Lauf es erneut versucht.
-            print("  E-Mail bleibt ungelesen (Extraktion fehlgeschlagen).")
-        else:
+        if MARK_AS_READ and EXTRACT_ERROR not in codes:
             mail.store(msg_id, "+FLAGS", "\\Seen")
 
     mail.logout()
-    print(f"\nFertig. {total_pdfs} PDF(s) verarbeitet.")
+    print(f"\n{geprueft} Mail(s) mit PDF-Anhang geprüft, "
+          f"{vorsortiert} als fremde Rechnung übersprungen.")
+    print(f"Fertig. {total_pdfs} neue Rechnung(en) übernommen, "
+          f"{bekannt} bereits bekannt.")
+    if not MARK_AS_READ:
+        print("Postfach unverändert (read-only, keine Flags gesetzt).")
 
 
 if __name__ == "__main__":
