@@ -65,14 +65,73 @@ ZAEHLPUNKTE = {
 
 ## gmail_invoices.py — Spezifikation
 
+**⚠ Das Postfach wird geteilt.** `manuel.rechnungen@gmail.com` versorgt auch das
+**finance-dashboard**, das hunderte Fremdrechnungen im selben Label `Rechnungen`
+verarbeitet und dabei `UNSEEN` als Warteschlange verwendet. Daraus folgen zwei
+harte Regeln für dieses Skript:
+
+1. **Read-only.** `mail.select(..., readonly=True)`, Vollabruf per `BODY.PEEK[]`
+   statt `RFC822` (das setzt serverseitig `\Seen`), kein `mail.store`. Würde der
+   Sync Mails als gelesen markieren, verschwänden sie aus der Warteschlange des
+   finance-dashboards, bevor es sie gesehen hat.
+   Schalter: `MARK_AS_READ = False` — nicht ändern, solange das Postfach geteilt ist.
+2. **Kein `UNSEEN` als Suchkriterium.** Das finance-dashboard markiert Mails
+   selbst als gelesen; je nachdem wer zuerst läuft, wäre die Verbund-Rechnung
+   sonst schon `Seen` und würde nie gefunden. Gesucht wird stattdessen über ein
+   Zeitfenster: `SINCE <heute − LOOKBACK_DAYS>` (Standard 14 Tage).
+
 **Was es tut:**
-- Verbindet sich per IMAP mit Gmail (manuel.rechnungen@gmail.com)
-- Sucht nur nach `UNSEEN` E-Mails im konfigurierten Label
-- Lädt alle PDF-Anhänge in iCloud Drive herunter
+- Verbindet sich per IMAP mit Gmail (manuel.rechnungen@gmail.com), read-only
+- Durchsucht die letzten `LOOKBACK_DAYS` Tage im Label (nicht `UNSEEN`)
+- Sortiert vor, ohne Mails zu laden (siehe unten) — spart hunderte Downloads
+- Lädt die PDF-Anhänge der verbliebenen Mails per `BODY.PEEK[]` herunter
 - Benennt um: `YYYY-MM-DD_Absender_Originalname.pdf`
-- Legt ab in: `iCloud/Invoices/YYYY/MM_Monat/`
-- Markiert E-Mail danach als gelesen (`mail.store Seen`)
-- Ruft danach automatisch `extract_verbund.py` für jedes neue PDF auf
+- Ruft `extract_verbund.py` für jedes PDF auf
+- Verändert **nichts** am Postfach
+
+**Zweistufige Erkennung.** Der Betreff allein taugt nicht (die Aspang-Rechnung
+„rechnung aspang juli 2026" wurde deshalb monatelang verworfen), ein Vollabruf
+aller Mails aber auch nicht — dafür liegen zu viele Fremdrechnungen im Label.
+Deshalb:
+
+*Stufe 1 — Vorfilter (`looks_like_verbund()`, ohne Download).* Nur Kopfzeilen und
+`BODYSTRUCTURE`. Mehrere unabhängige Signale, ODER-verknüpft:
+- Absender oder Betreff enthält „verbund" / „energierechnung" — greift bei der
+  Original-Mail von VERBUND („Ihre Energierechnung ist da!", `@verbund.at`) und
+  auch bei Weiterleitungen („WG: …")
+- Dateiname des Anhangs im Verbund-Schema
+  `<Kund:innen-Nr>_<Anlagen-Nr>_<Datum>_<Rechnungs-Nr>_<Monat>_<Jahr>_R_<Nr>.pdf`
+  (`RE_VERBUND_ATTACHMENT`) — greift auch bei selbst getipptem Betreff
+- Absender ist das Postfach selbst (`SELF_SENT_IS_VERBUND`) — dann sind Betreff
+  *und* Dateiname egal. Deckt den Portal-Download ab, den man sich selbst schickt;
+  die Fremdrechnungen des finance-dashboards kommen von externen Absendern
+
+*Stufe 2 — Inhalt entscheidet.* Erst `extract_verbund.py` bestimmt am **Zählpunkt
+auf Seite 2**, ob es wirklich eine Verbund-Rechnung ist und zu welchem Haushalt
+sie gehört. Der Vorfilter spart nur Downloads, er trifft keine Zuordnung.
+
+**Exit-Codes von `extract_verbund.py`:**
+
+| Exit | Bedeutung |
+|------|-----------|
+| `0` | Rechnung neu übernommen |
+| `1` | Verbund-Rechnung, aber Extraktion fehlgeschlagen (z. B. unbekannter Zählpunkt) |
+| `2` | keine Verbund-Rechnung (kein Zählpunkt, kein „Verbund" im Text) |
+| `3` | Verbund-Rechnung, war aber schon bekannt (Duplikat) |
+
+Ohne `\Seen`-Flag sieht der Sync dieselbe Mail bis zu `LOOKBACK_DAYS` lang erneut.
+Das ist unkritisch — Duplikate fängt der Rechnungsnummern-Check ab (Exit `3`), und
+ein bereits vollständiges Firestore-Dokument (`hasPdf`) wird nicht neu geschrieben.
+
+**Rechnungen älter als `LOOKBACK_DAYS`** werden nicht mehr gefunden. Nachtragen
+von Hand: `python3 extract_verbund.py /pfad/zur/rechnung.pdf`
+
+**Bevorzugter Weg, wie Rechnungen ins Postfach kommen:** VERBUND verschickt die
+Rechnung selbst als E-Mail mit PDF-Anhang. Am robustesten ist es, in *Mein VERBUND*
+`manuel.rechnungen@gmail.com` als Rechnungsadresse zu hinterlegen — dann trägt die
+Mail Absender `@verbund.at` und einen sprechenden Betreff. Portal-Download mit
+selbst getipptem Betreff funktioniert dank Dateinamen-Signal ebenfalls, ist aber
+die fragilste Variante.
 
 **Konfiguration:**
 ```python
@@ -304,6 +363,22 @@ anonymisierte Zahlen und sind bedenkenlos public.
 
 **Zählpunkt wird nicht erkannt**
 → PDF manuell öffnen, Seite 2, Zeile „Zählpunkt" → Nummer in ZAEHLPUNKTE eintragen
+
+**Rechnung liegt im Postfach, taucht aber nicht im Log auf**
+→ Älter als `LOOKBACK_DAYS`? Dann von Hand nachtragen (siehe oben).
+→ Sonst am Vorfilter gescheitert: Betreff/Absender ohne „verbund"/„energierechnung",
+   Anhang nicht im Verbund-Dateinamen-Schema (z. B. umbenanntes PDF) *und* von einer
+   fremden Adresse geschickt (nicht von `GMAIL_USER` selbst).
+   Log-Zeile „N als fremde Rechnung übersprungen" zeigt, wie viele es traf.
+   Schnellste Abhilfe: Mail mit „Verbund" im Betreff nochmal senden.
+
+**Log sagt „Übersprungen (kein Verbund)"**
+→ Veraltete Version: der alte Betreff-Filter (`VERBUND_KEYWORDS`) prüfte nur
+   Betreff und Absender und verwarf alles andere. `gmail_invoices.py` aktualisieren.
+
+**Rechnungen fehlen plötzlich im finance-dashboard**
+→ Prüfen, ob `MARK_AS_READ` in `gmail_invoices.py` auf `True` steht oder irgendwo
+   `mail.store(..., "\\Seen")` aufgerufen wird. Dieses Skript muss read-only bleiben.
 
 **Dashboard zeigt Demo-Daten**
 → `data/rennweg.json` und `data/aspangstrasse.json` existieren noch nicht

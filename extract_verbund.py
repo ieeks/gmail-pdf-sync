@@ -76,6 +76,12 @@ ZAEHLPUNKTE = {
 
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR   = SCRIPT_DIR / "data"
+
+# Exit-Codes (werden von gmail_invoices.py ausgewertet)
+EXIT_OK          = 0   # Rechnung neu übernommen
+EXIT_ERROR       = 1   # Verbund-Rechnung, aber Extraktion fehlgeschlagen
+EXIT_NOT_VERBUND = 2   # Gar keine Verbund-Rechnung — nichts zu tun
+EXIT_DUPLIKAT    = 3   # Verbund-Rechnung, war aber schon bekannt
 # ───────────────────────────────────────────────────────────────────────────────
 
 # Regex-Muster (Seite 1)
@@ -174,10 +180,15 @@ def save_json(path: Path, data: list) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def process_pdf(pdf_path: Path) -> bool:
+def is_verbund_pdf(text: str) -> bool:
+    """Erkennt eine Verbund-Rechnung am Inhalt (nicht am Dateinamen/Betreff)."""
+    return "verbund" in text.lower()
+
+
+def process_pdf(pdf_path: Path) -> int:
     """
     PDF verarbeiten und Daten in die entsprechende JSON-Datei schreiben.
-    Gibt True zurück wenn erfolgreich, False wenn übersprungen oder fehlerhaft.
+    Gibt einen der EXIT_*-Codes zurück.
     """
     print(f"Verarbeite: {pdf_path.name}")
 
@@ -185,7 +196,7 @@ def process_pdf(pdf_path: Path) -> bool:
         text_p1, text_p2 = extract_text(pdf_path)
     except Exception as exc:
         print(f"  FEHLER beim Lesen des PDFs: {exc}")
-        return False
+        return EXIT_ERROR
 
     # Zählpunkt und Haushalt bestimmen
     zaehlpunkt = find_zaehlpunkt(text_p2)
@@ -194,14 +205,17 @@ def process_pdf(pdf_path: Path) -> bool:
         zaehlpunkt = find_zaehlpunkt(text_p1)
 
     if not zaehlpunkt:
-        print("  FEHLER: Kein Zählpunkt gefunden. Seite 2 prüfen.")
-        return False
+        if is_verbund_pdf(text_p1 + text_p2):
+            print("  FEHLER: Verbund-Rechnung, aber kein Zählpunkt gefunden. Seite 2 prüfen.")
+            return EXIT_ERROR
+        print("  Keine Verbund-Rechnung (kein Zählpunkt) — übersprungen.")
+        return EXIT_NOT_VERBUND
 
     haushalt = find_haushalt(zaehlpunkt)
     if not haushalt:
         print(f"  FEHLER: Unbekannter Zählpunkt '{zaehlpunkt}'.")
         print(f"  Bitte in ZAEHLPUNKTE in extract_verbund.py eintragen.")
-        return False
+        return EXIT_ERROR
 
     # Felder extrahieren
     data = extract_fields(text_p1)
@@ -213,7 +227,7 @@ def process_pdf(pdf_path: Path) -> bool:
 
     if "rechnungsnummer" not in data:
         print("  FEHLER: Rechnungsnummer nicht gefunden, Eintrag wird übersprungen.")
-        return False
+        return EXIT_ERROR
 
     rechnungsnummer = data["rechnungsnummer"]
 
@@ -222,9 +236,9 @@ def process_pdf(pdf_path: Path) -> bool:
     entries   = load_json(json_path)
 
     existing = [e.get("rechnungsnummer") for e in entries]
-    if rechnungsnummer in existing:
-        # JSON nicht duplizieren, aber Firestore/PDF trotzdem sicherstellen (Backfill bestehender Rechnungen)
-        print(f"  Bereits in JSON (Rechnungsnummer {rechnungsnummer}) — JSON unverändert, Firestore/PDF wird sichergestellt.")
+    schon_bekannt = rechnungsnummer in existing
+    if schon_bekannt:
+        print(f"  Bereits in JSON (Rechnungsnummer {rechnungsnummer}) — JSON unverändert.")
     else:
         entries.append(data)
         save_json(json_path, entries)
@@ -233,13 +247,22 @@ def process_pdf(pdf_path: Path) -> bool:
     db = get_firestore_db()
     if db:
         try:
-            doc = {**data, "location": haushalt}
-            # Original-PDF privat als Base64 in invoice_pdfs/ ablegen (Option A, ohne Storage/Blaze).
-            # hasPdf landet nur in Firestore, nicht in den öffentlichen data/*.json.
-            if store_pdf_in_firestore(db, pdf_path, rechnungsnummer):
-                doc["hasPdf"] = True
-            db.collection("invoices").document(rechnungsnummer).set(doc)
-            print(f"  Firestore: invoices/{rechnungsnummer} geschrieben.")
+            ref = db.collection("invoices").document(rechnungsnummer)
+            # gmail_invoices.py sieht dieselbe Mail mehrere Tage lang (kein
+            # \Seen-Flag im geteilten Postfach). Ein bereits vollständiges
+            # Dokument wird deshalb nicht täglich neu geschrieben — ein
+            # unvollständiges dagegen schon (Backfill bestehender Rechnungen).
+            snap = ref.get() if schon_bekannt else None
+            if snap is not None and snap.exists and snap.to_dict().get("hasPdf"):
+                print(f"  Firestore: invoices/{rechnungsnummer} bereits vollständig — nichts zu tun.")
+            else:
+                doc = {**data, "location": haushalt}
+                # Original-PDF privat als Base64 in invoice_pdfs/ ablegen (Option A, ohne Storage/Blaze).
+                # hasPdf landet nur in Firestore, nicht in den öffentlichen data/*.json.
+                if store_pdf_in_firestore(db, pdf_path, rechnungsnummer):
+                    doc["hasPdf"] = True
+                ref.set(doc)
+                print(f"  Firestore: invoices/{rechnungsnummer} geschrieben.")
         except Exception as exc:
             print(f"  Firestore-Fehler (nicht kritisch): {exc}")
 
@@ -248,7 +271,7 @@ def process_pdf(pdf_path: Path) -> bool:
     print(f"  Verbrauch: {data.get('kwh', '?')} kWh")
     print(f"  Gesamt:    {data.get('gesamt_inkl_ust', '?')} €")
     print(f"  Gespeichert in: {json_path}")
-    return True
+    return EXIT_DUPLIKAT if schon_bekannt else EXIT_OK
 
 
 def main() -> None:
@@ -266,8 +289,7 @@ def main() -> None:
         print(f"FEHLER: Keine PDF-Datei: {pdf_path}")
         sys.exit(1)
 
-    success = process_pdf(pdf_path)
-    sys.exit(0 if success else 1)
+    sys.exit(process_pdf(pdf_path))
 
 
 if __name__ == "__main__":
