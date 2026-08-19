@@ -26,8 +26,10 @@ PDF_TEMP_DIR       = Path(tempfile.mkdtemp())
 
 EXTRACT_SCRIPT     = SCRIPT_DIR / "extract_verbund.py"
 
-# E-Mails werden nur verarbeitet wenn Subject oder Absender einen dieser Begriffe enthält
-VERBUND_KEYWORDS   = ["verbund", "energierechnung"]
+# Exit-Codes von extract_verbund.py
+EXTRACT_OK          = 0   # Rechnung verarbeitet
+EXTRACT_ERROR       = 1   # Verbund-Rechnung, aber Extraktion fehlgeschlagen
+EXTRACT_NOT_VERBUND = 2   # Gar keine Verbund-Rechnung
 # ───────────────────────────────────────────────────────────────────────────────
 
 MONTH_NAMES = {
@@ -53,12 +55,6 @@ def safe_filename(name: str) -> str:
     """Sonderzeichen aus Dateinamen entfernen."""
     keep = " ._-"
     return "".join(c if (c.isalnum() or c in keep) else "_" for c in name).strip()
-
-
-def is_verbund_email(subject: str, sender: str) -> bool:
-    """Prüft ob Subject oder Absender auf eine Verbund-Rechnung hinweist."""
-    combined = (subject + " " + sender).lower()
-    return any(kw in combined for kw in VERBUND_KEYWORDS)
 
 
 def list_labels(mail: imaplib.IMAP4_SSL) -> None:
@@ -136,11 +132,11 @@ def download_pdfs(mail: imaplib.IMAP4_SSL, msg_id: bytes) -> list[Path]:
     return saved_paths
 
 
-def run_extract(pdf_path: Path) -> None:
-    """extract_verbund.py für ein PDF aufrufen."""
+def run_extract(pdf_path: Path) -> int:
+    """extract_verbund.py für ein PDF aufrufen. Gibt den Exit-Code zurück."""
     if not EXTRACT_SCRIPT.exists():
         print(f"  WARNUNG: {EXTRACT_SCRIPT} nicht gefunden, Extraktion übersprungen.")
-        return
+        return EXTRACT_ERROR
     print(f"  Extrahiere Daten aus: {pdf_path.name}")
     result = subprocess.run(
         [sys.executable, str(EXTRACT_SCRIPT), str(pdf_path)],
@@ -149,8 +145,9 @@ def run_extract(pdf_path: Path) -> None:
     )
     if result.stdout:
         print(result.stdout.rstrip())
-    if result.returncode != 0 and result.stderr:
+    if result.returncode not in (EXTRACT_OK, EXTRACT_NOT_VERBUND) and result.stderr:
         print(f"  FEHLER bei Extraktion: {result.stderr.rstrip()}")
+    return result.returncode
 
 
 def main() -> None:
@@ -187,26 +184,31 @@ def main() -> None:
     total_pdfs = 0
 
     for msg_id in msg_ids:
-        # Erst nur Header laden und auf Verbund-Keywords prüfen
         _, hdr_data = mail.fetch(msg_id, "(BODY[HEADER.FIELDS (SUBJECT FROM)])")
         hdr_msg  = email.message_from_bytes(hdr_data[0][1])
         subject  = decode_str(hdr_msg.get("Subject", ""))
-        sender   = decode_str(hdr_msg.get("From", ""))
 
-        if not is_verbund_email(subject, sender):
-            print(f"  Übersprungen (kein Verbund): {subject[:70]}")
-            continue
-
+        # Betreff und Absender sagen nichts Verlässliches aus (weitergeleitete oder
+        # selbst betitelte Mails). Entscheidend ist der PDF-Inhalt — jede E-Mail im
+        # Label wird deshalb geöffnet und ihre PDFs an extract_verbund.py übergeben.
         print(f"\nVerarbeite E-Mail ID {msg_id.decode()} — {subject[:70]}")
         saved = download_pdfs(mail, msg_id)
 
-        # E-Mail als gelesen markieren
-        mail.store(msg_id, "+FLAGS", "\\Seen")
+        if not saved:
+            print("  Kein PDF-Anhang — als gelesen markiert.")
+            mail.store(msg_id, "+FLAGS", "\\Seen")
+            continue
 
-        # Extraktion für jedes neue PDF
-        for pdf_path in saved:
-            run_extract(pdf_path)
-            total_pdfs += 1
+        # Extraktion für jedes PDF
+        codes = [run_extract(pdf_path) for pdf_path in saved]
+        total_pdfs += sum(1 for c in codes if c == EXTRACT_OK)
+
+        if EXTRACT_ERROR in codes:
+            # Verbund-Rechnung, die (noch) nicht verarbeitet werden konnte —
+            # ungelesen lassen, damit der nächste Lauf es erneut versucht.
+            print("  E-Mail bleibt ungelesen (Extraktion fehlgeschlagen).")
+        else:
+            mail.store(msg_id, "+FLAGS", "\\Seen")
 
     mail.logout()
     print(f"\nFertig. {total_pdfs} PDF(s) verarbeitet.")

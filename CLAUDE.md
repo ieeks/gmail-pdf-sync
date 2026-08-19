@@ -71,8 +71,26 @@ ZAEHLPUNKTE = {
 - Lädt alle PDF-Anhänge in iCloud Drive herunter
 - Benennt um: `YYYY-MM-DD_Absender_Originalname.pdf`
 - Legt ab in: `iCloud/Invoices/YYYY/MM_Monat/`
-- Markiert E-Mail danach als gelesen (`mail.store Seen`)
-- Ruft danach automatisch `extract_verbund.py` für jedes neue PDF auf
+- Ruft `extract_verbund.py` für jedes PDF auf
+- Markiert die E-Mail danach als gelesen (`mail.store Seen`)
+
+**Erkennung: der PDF-Inhalt entscheidet, nicht der Betreff.**
+Es gibt *keinen* Betreff-/Absender-Filter mehr. Jede ungelesene Mail im Label
+wird geöffnet und ihre PDFs werden an `extract_verbund.py` übergeben — nur der
+Zählpunkt im PDF bestimmt, ob es eine Verbund-Rechnung ist und zu welchem
+Haushalt sie gehört. Grund: weitergeleitete oder selbst betitelte Mails
+(z. B. „rechnung aspang juli 2026") enthalten das Wort „Verbund" nirgends und
+wurden früher komplett übersprungen.
+
+**Wann eine Mail als gelesen markiert wird** (Exit-Code von `extract_verbund.py`):
+
+| Exit | Bedeutung | Mail |
+|------|-----------|------|
+| `0` | Rechnung verarbeitet | als gelesen markiert |
+| `2` | keine Verbund-Rechnung (kein Zählpunkt, kein „Verbund" im Text) | als gelesen markiert |
+| `1` | Verbund-Rechnung, aber Extraktion fehlgeschlagen (z. B. unbekannter Zählpunkt) | bleibt **ungelesen** → nächster Lauf versucht es erneut |
+
+Mails ohne PDF-Anhang werden ebenfalls als gelesen markiert.
 
 **Konfiguration:**
 ```python
@@ -304,6 +322,10 @@ anonymisierte Zahlen und sind bedenkenlos public.
 
 **Zählpunkt wird nicht erkannt**
 → PDF manuell öffnen, Seite 2, Zeile „Zählpunkt" → Nummer in ZAEHLPUNKTE eintragen
+
+**Log sagt „Übersprungen (kein Verbund)"**
+→ Veraltete Version: der Betreff-Filter (`VERBUND_KEYWORDS`) wurde entfernt.
+   `gmail_invoices.py` auf aktuellen Stand bringen — der PDF-Inhalt entscheidet.
 
 **Dashboard zeigt Demo-Daten**
 → `data/rennweg.json` und `data/aspangstrasse.json` existieren noch nicht
