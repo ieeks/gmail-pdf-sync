@@ -33,6 +33,12 @@ PDF_TEMP_DIR       = Path(tempfile.mkdtemp())
 # ausgefallene Läufe, ohne das ganze Postfach zu durchsuchen.
 LOOKBACK_DAYS      = 14
 
+# Mails, die vom Postfach-Inhaber selbst kommen (Portal-Download an sich selbst
+# geschickt, manuelle Weiterleitung), werden immer geprüft — Betreff und
+# Dateiname sind dann egal. Die Fremdrechnungen des finance-dashboards kommen
+# von externen Absendern und bleiben davon unberührt.
+SELF_SENT_IS_VERBUND = True
+
 # Das Postfach teilen wir uns mit dem finance-dashboard, das UNSEEN als
 # Warteschlange nutzt. Niemals auf True setzen, solange das so ist — sonst
 # verschwinden dort Rechnungen, bevor sie verarbeitet wurden.
@@ -113,12 +119,16 @@ def looks_like_verbund(subject: str, sender: str, bodystructure: str) -> bool:
           weitergeleitet: "WG: Ihre Energierechnung ist da!")
       2. Dateiname des Anhangs im Verbund-Schema
          (bleibt auch bei Weiterleitung und Portal-Download erhalten)
+      3. Absender ist das Postfach selbst — dann sind Betreff und Dateiname
+         egal (Portal-Download, den man sich selbst schickt)
 
     Die endgültige Entscheidung trifft immer extract_verbund.py am Zählpunkt
     im PDF — hier wird nur vorsortiert.
     """
     haystack = f"{subject} {sender}".lower()
     if "verbund" in haystack or "energierechnung" in haystack:
+        return True
+    if SELF_SENT_IS_VERBUND and GMAIL_USER.lower() in sender.lower():
         return True
     return bool(RE_VERBUND_ATTACHMENT.search(bodystructure))
 

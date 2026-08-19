@@ -102,6 +102,9 @@ Deshalb:
 - Dateiname des Anhangs im Verbund-Schema
   `<Kund:innen-Nr>_<Anlagen-Nr>_<Datum>_<Rechnungs-Nr>_<Monat>_<Jahr>_R_<Nr>.pdf`
   (`RE_VERBUND_ATTACHMENT`) — greift auch bei selbst getipptem Betreff
+- Absender ist das Postfach selbst (`SELF_SENT_IS_VERBUND`) — dann sind Betreff
+  *und* Dateiname egal. Deckt den Portal-Download ab, den man sich selbst schickt;
+  die Fremdrechnungen des finance-dashboards kommen von externen Absendern
 
 *Stufe 2 — Inhalt entscheidet.* Erst `extract_verbund.py` bestimmt am **Zählpunkt
 auf Seite 2**, ob es wirklich eine Verbund-Rechnung ist und zu welchem Haushalt
@@ -363,8 +366,9 @@ anonymisierte Zahlen und sind bedenkenlos public.
 
 **Rechnung liegt im Postfach, taucht aber nicht im Log auf**
 → Älter als `LOOKBACK_DAYS`? Dann von Hand nachtragen (siehe oben).
-→ Sonst am Vorfilter gescheitert: Betreff/Absender ohne „verbund"/„energierechnung"
-   *und* Anhang nicht im Verbund-Dateinamen-Schema (z. B. umbenanntes PDF).
+→ Sonst am Vorfilter gescheitert: Betreff/Absender ohne „verbund"/„energierechnung",
+   Anhang nicht im Verbund-Dateinamen-Schema (z. B. umbenanntes PDF) *und* von einer
+   fremden Adresse geschickt (nicht von `GMAIL_USER` selbst).
    Log-Zeile „N als fremde Rechnung übersprungen" zeigt, wie viele es traf.
    Schnellste Abhilfe: Mail mit „Verbund" im Betreff nochmal senden.
 
