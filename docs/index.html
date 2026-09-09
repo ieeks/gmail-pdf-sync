@@ -295,6 +295,12 @@
                 </select>
               </div>
               <div class="archive-filter-group">
+                <span class="sl">Monat</span>
+                <select id="archiveMonth" class="archive-select" aria-label="Verbrauchsmonat filtern">
+                  <option value="all">Alle Monate</option>
+                </select>
+              </div>
+              <div class="archive-filter-group">
                 <span class="sl">Location</span>
                 <select id="archiveLocation" class="archive-select" aria-label="Standort filtern">
                   <option value="all">Alle Orte</option>
@@ -316,6 +322,7 @@
               <span class="archive-th">Open</span>
             </div>
             <div id="archiveTableBody"></div>
+            <div class="archive-table-foot hidden" id="archiveSummary"></div>
             <div class="archive-empty hidden" id="archiveEmpty">Keine Rechnungen für diesen Filter.</div>
           </div>
 
