@@ -222,6 +222,22 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
   - `.archive-card-numbers`: kWh · Energiekosten · Gesamt in einer Zeile
   - `.btn-pdf` (Open-Button) auf Mobile ausgeblendet
 
+**Billing Archive — Filter & Summe:**
+- Vier Filter: Suche · Zeitraum (Rechnungsjahr / 12M / 24M) · **Monat** (Verbrauchsmonat) · Location
+- Der Monatsfilter nutzt `entryMonthKey()` → `representativeMonth()`, also **denselben**
+  Monat, dem `buildMonthlySeries()` die Rechnung im Insights-Chart zuordnet (Mitte des
+  Abrechnungszeitraums). Eine Rechnung 30.04.–31.05. liegt komplett im Mai.
+- ⚠ `entry.year` ist das **Rechnungs**jahr, der Monatsfilter der **Verbrauchs**monat — die
+  können auseinanderfallen (Jänner-Rechnung für Dezember-Verbrauch). Deshalb baut
+  `renderArchiveMonthOptions()` die Monatsliste aus den bereits nach Jahr + Location
+  gefilterten Rechnungen (`matchesArchiveScope()`) und setzt den Monat auf `all` zurück,
+  wenn er dort nicht mehr vorkommt. So gibt es keine leeren Filterkombinationen.
+- `#archiveSummary` (`renderArchiveSummary()`) zeigt unter der Tabelle Summe kWh · Energie ·
+  Gesamt · ⌀ ct/kWh der **gefilterten** Rechnungen. Bei leerem Filter ausgeblendet.
+- Die Zeilen-Wrapper `.archive-card-top` / `.archive-card-numbers` / `.archive-foot-numbers`
+  sind `display:contents` — nur so landen die Zellen auf Desktop unter ihren
+  Spaltenüberschriften; im Mobile-Media-Query werden sie wieder `flex`.
+
 **GitHub Pages aktivieren:**
 → GitHub Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
 
@@ -275,7 +291,7 @@ const state = {
     yearly: null,             // buildYearBuckets() — einmalig nach loadData()
     monthly: null,            // buildMonthlySeries() — einmalig nach loadData()
   },
-  archive: { search, year, location },
+  archive: { search, year, month, location },
   settings: { ... },          // geladen via loadSettings() aus Firestore
 };
 ```

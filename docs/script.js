@@ -147,6 +147,7 @@ const state = {
   archive: {
     search: "",
     year: "all",
+    month: "all",
     location: "all",
   },
   settings: { ...DEFAULT_SETTINGS }, // overwritten in init() after Firestore load
@@ -1565,6 +1566,47 @@ function renderArchiveFilters() {
     ...years.map((y) => `<option value="${y}">${y}</option>`),
   ].join("");
   select.value = validValues.includes(String(current)) ? current : "all";
+  if (select.value !== String(current)) state.archive.year = select.value;
+  renderArchiveMonthOptions();
+}
+
+function formatMonthOption(key) {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("de-AT", { month: "long", year: "numeric" });
+}
+
+// Monatsliste folgt der Jahr-/Standort-Auswahl, damit keine leeren Kombinationen
+// angeboten werden (das Rechnungsjahr kann vom Verbrauchsmonat abweichen:
+// Jänner-Rechnung für Dezember-Verbrauch).
+function renderArchiveMonthOptions() {
+  const select = document.getElementById("archiveMonth");
+  const months = [...new Set(state.data.entries.filter(matchesArchiveScope).map(entryMonthKey))]
+    .sort((a, b) => b.localeCompare(a));
+  select.innerHTML = [
+    `<option value="all">Alle Monate</option>`,
+    ...months.map((key) => `<option value="${key}">${formatMonthOption(key)}</option>`),
+  ].join("");
+  if (!months.includes(state.archive.month)) state.archive.month = "all";
+  select.value = state.archive.month;
+}
+
+// Der Verbrauchsmonat einer Rechnung — derselbe Monat, dem buildMonthlySeries()
+// sie zuordnet (Mitte des Abrechnungszeitraums). Damit zeigt der Monatsfilter im
+// Archive exakt die Rechnungen, die im Insights-Chart auf diesem Monat sitzen.
+function entryMonthKey(entry) {
+  return monthKey(representativeMonth(entry.fromDate, entry.toDate));
+}
+
+// Jahr + Standort (ohne Suche, ohne Monat) — Basis für die Monatsliste im Filter.
+function matchesArchiveScope(entry) {
+  const now = Date.now();
+  const matchesYear =
+    state.archive.year === "all" ? true :
+    state.archive.year === "12m" ? entry.invoiceDate >= new Date(now - 365 * 24 * 60 * 60 * 1000) :
+    state.archive.year === "24m" ? entry.invoiceDate >= new Date(now - 2 * 365 * 24 * 60 * 60 * 1000) :
+    String(entry.year) === String(state.archive.year);
+  const matchesLocation = state.archive.location === "all" || entry.location === state.archive.location;
+  return matchesYear && matchesLocation;
 }
 
 function getFilteredArchiveEntries() {
@@ -1577,14 +1619,8 @@ function getFilteredArchiveEntries() {
       formatDate(entry.zeitraumVon),
       formatDate(entry.zeitraumBis),
     ].join(" ").toLowerCase().includes(term);
-    const now = Date.now();
-    const matchesYear =
-      state.archive.year === "all" ? true :
-      state.archive.year === "12m" ? entry.invoiceDate >= new Date(now - 365 * 24 * 60 * 60 * 1000) :
-      state.archive.year === "24m" ? entry.invoiceDate >= new Date(now - 2 * 365 * 24 * 60 * 60 * 1000) :
-      String(entry.year) === String(state.archive.year);
-    const matchesLocation = state.archive.location === "all" || entry.location === state.archive.location;
-    return matchesSearch && matchesYear && matchesLocation;
+    const matchesMonth = state.archive.month === "all" || entryMonthKey(entry) === state.archive.month;
+    return matchesSearch && matchesMonth && matchesArchiveScope(entry);
   });
 }
 
@@ -1626,6 +1662,37 @@ function renderArchiveTable() {
   `).join("");
 
   empty.classList.toggle("hidden", entries.length !== 0);
+  renderArchiveSummary(entries);
+}
+
+// Summe der aktuell gefilterten Rechnungen — beantwortet "wie viel kWh hatte
+// Standort X in Monat/Jahr Y", ohne dass man die Zeilen im Kopf addieren muss.
+function renderArchiveSummary(entries) {
+  const foot = document.getElementById("archiveSummary");
+  foot.classList.toggle("hidden", entries.length === 0);
+  if (entries.length === 0) return;
+
+  const kwh = sumEntries(entries, "kwh");
+  const energie = sumEntries(entries, "energiekosten");
+  const gesamt = sumEntries(entries, "gesamt_inkl_ust");
+  const ct = kwh > 0 ? (gesamt / kwh) * 100 : 0;
+  const scope = [
+    state.archive.location === "all" ? "Alle Orte" : locationLabel(state.archive.location),
+    state.archive.month !== "all" ? formatMonthOption(state.archive.month) : null,
+  ].filter(Boolean).join(" · ");
+
+  foot.innerHTML = `
+    <div class="archive-foot-label">
+      <span class="archive-foot-title">Summe</span>
+      <span class="archive-foot-scope">${scope} · ${entries.length} ${entries.length === 1 ? "Rechnung" : "Rechnungen"}</span>
+    </div>
+    <div class="archive-foot-numbers">
+      <span class="archive-foot-kwh">${formatNumber(kwh, 1)} kWh</span>
+      <span class="archive-foot-net">${formatCurrency(energie)}</span>
+      <span class="archive-foot-total">${formatCurrency(gesamt)}</span>
+    </div>
+    <div class="archive-foot-ct">${formatNumber(ct, 1)} ct/kWh</div>
+  `;
 }
 
 function renderSettings() {
@@ -1852,11 +1919,18 @@ function attachEvents() {
 
   document.getElementById("archiveYear").addEventListener("change", (event) => {
     state.archive.year = event.target.value;
+    renderArchiveMonthOptions();
+    renderArchiveTable();
+  });
+
+  document.getElementById("archiveMonth").addEventListener("change", (event) => {
+    state.archive.month = event.target.value;
     renderArchiveTable();
   });
 
   document.getElementById("archiveLocation").addEventListener("change", (event) => {
     state.archive.location = event.target.value;
+    renderArchiveMonthOptions();
     renderArchiveTable();
   });
 

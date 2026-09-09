@@ -450,7 +450,7 @@ input,select,textarea{font-family:inherit}
 
 /* ── Archive screen ────────────────────────────────────────────── */
 .archive-filters-panel{padding:14px 16px}
-.archive-filters{display:flex;gap:12px}
+.archive-filters{display:flex;gap:12px;flex-wrap:wrap}
 .archive-filter-group{flex:1;display:flex;flex-direction:column;gap:5px}
 .archive-filter-group.wide{flex:2}
 .archive-search-wrap{
@@ -491,12 +491,33 @@ input,select,textarea{font-family:inherit}
 .btn-pdf-as{border:1px solid var(--amber);background:rgba(245,158,11,0.06);color:var(--amber-dk)}
 .archive-empty{padding:32px;text-align:center;font-size:13px;color:var(--slate-l)}
 
+/* Zeilen-Wrapper existieren nur fürs Mobile-Card-Layout — auf Desktop lösen sie
+   sich auf, damit die Zellen wieder unter ihren Spaltenüberschriften sitzen. */
+.archive-card-top,
+.archive-card-numbers,
+.archive-foot-numbers{display:contents}
+.archive-table-row .loc-badge{justify-self:start}
+
+/* Summenzeile der gefilterten Rechnungen */
+.archive-table-foot{
+  display:grid;grid-template-columns:2fr 1.2fr 2fr 1fr 1.2fr 1.2fr 1fr;
+  padding:12px 16px;align-items:center;
+  border-top:1px solid #e4e9f0;background:#fafbfc;
+}
+.archive-foot-label{grid-column:1 / 4;display:flex;flex-direction:column;gap:2px}
+.archive-foot-title{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate-l)}
+.archive-foot-scope{font-size:11px;color:var(--slate)}
+.archive-foot-kwh{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--ink)}
+.archive-foot-net{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--slate)}
+.archive-foot-total{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:800;color:var(--ink)}
+.archive-foot-ct{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate-l)}
+
 /* ── Archive: Mobile Card Layout (< 768px) ─────────────────────── */
 @media (max-width:767px){
   .archive-table-head{display:none}
 
   .archive-table-row{
-    display:flex;flex-direction:column;
+    display:flex;flex-direction:column;align-items:stretch;
     gap:6px;padding:12px 14px;
     border-bottom:1px solid #f0f3f7;
     border-radius:0;text-align:left;
@@ -517,6 +538,20 @@ input,select,textarea{font-family:inherit}
   .archive-card-numbers .archive-row-net::after {content:"·";margin-left:10px;color:#cbd5e1}
 
   .btn-pdf{display:none}
+
+  .archive-filter-group{flex:1 1 calc(50% - 6px)}
+  .archive-filter-group.wide{flex:1 1 100%}
+
+  .archive-table-foot{
+    display:flex;flex-direction:column;align-items:stretch;
+    gap:6px;padding:12px 14px;
+  }
+  .archive-foot-numbers{
+    display:flex;align-items:baseline;
+    gap:10px;flex-wrap:wrap;
+  }
+  .archive-foot-numbers .archive-foot-kwh::after{content:"·";margin-left:10px;color:#cbd5e1}
+  .archive-foot-numbers .archive-foot-net::after{content:"·";margin-left:10px;color:#cbd5e1}
 }
 
 /* ── Settings screen ───────────────────────────────────────────── */
