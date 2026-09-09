@@ -238,6 +238,18 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
   sind `display:contents` — nur so landen die Zellen auf Desktop unter ihren
   Spaltenüberschriften; im Mobile-Media-Query werden sie wieder `flex`.
 
+**Wallbox-Kostenanteil:**
+`wallboxCostShare(entry, wallboxKwh)` = `gesamt_inkl_ust * (wallboxKwh / entry.kwh)`.
+Angezeigt im Mobile-Glance-Card (`renderMobileGlance()`) und im Overview-Tag
+(`renderWallboxKennzahl()`) als „71% des Verbrauchs · ≈ 105 EUR".
+
+⚠ Das ist eine **Aufteilung der Rechnung**, keine Mehrkosten-Rechnung. Die Rechnung
+enthält Fixanteile (Messentgelt, Netzbereitstellung), die auch ohne Wallbox anfielen —
+in den Aspang-Daten rund 15–16 EUR/Monat, der Grenzpreis liegt bei ~22,5 ct/kWh statt
+der ~25,3 ct/kWh Durchschnitt. Der Betrag überschätzt die tatsächlichen Mehrkosten
+deshalb um ~10 %; darum das „≈" und die Rundung auf ganze EUR. Für echte Mehrkosten
+müsste `extract_verbund.py` den Grundpreis separat extrahieren.
+
 **GitHub Pages aktivieren:**
 → GitHub Repo → Settings → Pages → Source: Branch `main`, Folder `/docs`
 

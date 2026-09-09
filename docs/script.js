@@ -594,6 +594,16 @@ function wallboxUnbilled(afterDate) {
   return { kwh, count, firstDate };
 }
 
+// Kostenanteil der Wallbox an einer Rechnung: die Gesamtkosten gleichmäßig über alle
+// kWh verteilt, davon der Wallbox-Anteil. Bewusst eine AUFTEILUNG der Rechnung, keine
+// Mehrkosten-Rechnung — die Rechnung enthält Fixanteile (Messentgelt, Netzbereit-
+// stellung), die auch ohne Wallbox anfielen. Der Betrag liegt deshalb etwas über dem,
+// was das Laden zusätzlich kostet, und wird im UI mit „≈" ausgewiesen.
+function wallboxCostShare(entry, wallboxKwh) {
+  if (!entry || !(entry.kwh > 0) || !(wallboxKwh > 0)) return 0;
+  return entry.gesamt_inkl_ust * Math.min(1, wallboxKwh / entry.kwh);
+}
+
 // Label des tatsächlich abgerechneten Zeitraums — NICHT des heutigen Monats.
 // Die Overview-Zahlen stammen aus den letzten Rechnungen beider Standorte; deren
 // Zeitraum endet typischerweise Wochen vor dem Rechnungs- und Anzeigedatum
@@ -827,7 +837,9 @@ function renderWallboxKennzahl() {
 
   const tags = [];
   if (billedKwh > 0) {
-    tags.push(`<span class="tag tag-teal">⚡ ${formatNumber(billedKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Verbrauchs` : ""}</span>`);
+    const cost = wallboxCostShare(latestAspang, billedKwh);
+    const costPart = cost > 0 ? ` · ≈ ${formatNumber(cost, 0)} EUR` : "";
+    tags.push(`<span class="tag tag-teal">⚡ ${formatNumber(billedKwh, 1)} kWh via Wallbox${pct > 0 ? ` · ${pct}% des Verbrauchs` : ""}${costPart}</span>`);
   }
   if (unbilled.kwh > 0) {
     const ladungen = `${unbilled.count} ${unbilled.count === 1 ? "Ladung" : "Ladungen"}`;
@@ -2105,12 +2117,13 @@ function renderMobileGlance() {
     if (billedKwh > 0 || unbilled.kwh > 0) {
       const periodConsumption = summary.latestAspang.kwh > 0 ? summary.latestAspang.kwh : 1;
       const pct = Math.min(100, Math.round((billedKwh / periodConsumption) * 100));
+      const billedCost = wallboxCostShare(summary.latestAspang, billedKwh);
       const billedBlock = billedKwh > 0 ? `
         <div class="m-progress-track">
           <div class="m-progress-fill" style="width:${pct}%"></div>
         </div>
         <div class="m-progress-labels">
-          <span class="m-prog-label">${pct}% des Verbrauchs</span>
+          <span class="m-prog-label">${pct}% des Verbrauchs${billedCost > 0 ? ` · ≈ ${formatNumber(billedCost, 0)} EUR` : ""}</span>
           <span class="m-prog-val">BYD Seal U</span>
         </div>` : "";
       const ladungen = `${unbilled.count} ${unbilled.count === 1 ? "Ladung" : "Ladungen"}`;
