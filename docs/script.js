@@ -1457,14 +1457,29 @@ function renderConsumptionBreakdown() {
     { label: canSplit ? "Aspang · Haushalt" : "Aspang · gesamt", value: as.length ? asKwh - (canSplit ? wbKwh : 0) : null, color: "amber" },
     { label: "Wallbox · Aspang", value: canSplit ? wbKwh : null, color: "wallbox" },
   ];
+  // Anteile einzeln runden und die Gesamtzeile aus genau diesen gerundeten Werten bilden.
+  // Sonst zeigen die Balken 316 + 165 + 414 = 895, die Gesamtzeile darunter aber 896.
+  // Bewusst NICHT umgekehrt (Rundungsdifferenz auf einen Balken verteilen): die kWh einer
+  // einzelnen Rechnung müssen überall dieselben sein — die 579 kWh der Aspang-Rechnung
+  // dürfen hier nicht als 580 erscheinen, nur weil die Summe sonst nicht aufgeht.
+  rows.forEach(row => { row.value = row.value == null ? null : Math.round(row.value); });
+  const totalKwh = rows.reduce((sum, row) => sum + (row.value ?? 0), 0);
   const max = Math.max(1, ...rows.map(row => row.value || 0));
   const periodLabel = e => [e.fromDate, e.toDate].map(date => date.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })).join(" – ");
   const periods = [...new Set(entries.map(periodLabel))];
   const periodText = periods.length === 1 ? periods[0] : "Abrechnungszeiträume je Standort siehe unten";
   const details = periods.length > 1 ? entries.map(e => `${locationLabel(e.location)}: ${periodLabel(e)}`).join(" · ") : "";
-  const note = inconsistent ? "Lade- und Rechnungsdaten passen nicht zusammen. Eine Aufteilung ist derzeit nicht möglich."
+  // Ein Standort ohne Rechnung im Monat ist kein Datenproblem — im April 2026 etwa gibt
+  // es nur eine Rennweg-Rechnung. Das zuerst benennen, sonst behauptet der Hinweis zur
+  // Ladedaten-Zuordnung einen Mangel, den es nicht gibt, und "Aspang wird als
+  // Gesamtverbrauch angezeigt", obwohl dort gar nichts angezeigt wird.
+  const missing = [rw.length === 0 ? "Rennweg" : null, as.length === 0 ? "Aspangstraße" : null].filter(Boolean);
+  const missingNote = missing.length ? `Für diesen Monat liegt keine Rechnung für ${missing.join(" und ")} vor.` : "";
+  const splitNote = as.length === 0 ? ""
+    : inconsistent ? "Lade- und Rechnungsdaten passen nicht zusammen. Eine Aufteilung ist derzeit nicht möglich."
     : !canSplit ? "Keine vollständige Zuordnung der Ladedaten möglich. Aspang wird als Gesamtverbrauch angezeigt."
     : "Aufteilung anhand der erfassten Wallbox-Ladungen.";
+  const note = [missingNote, splitNote].filter(Boolean).join(" ");
   container.innerHTML = `
     <div class="chart-sub consumption-period">${periodText}</div>
     ${rows.map(row => `
@@ -1472,7 +1487,7 @@ function renderConsumptionBreakdown() {
         <div class="consumption-label"><span>${row.label}</span><span class="consumption-value">${row.value == null ? "—" : formatNumber(row.value, 0) + " kWh"}</span></div>
         <div class="cmp-bar-bg" aria-hidden="true"><div class="cmp-bar ${row.color}" style="width:${row.value == null ? 0 : Math.max(0, row.value) / max * 100}%"></div></div>
       </div>`).join("")}
-    <div class="consumption-total"><span>${rw.length && as.length ? "Beide Standorte gesamt" : "Erfasster Standort gesamt"}</span><span class="consumption-value">${formatNumber(rwKwh + asKwh, 0)} kWh</span></div>
+    <div class="consumption-total"><span>${rw.length && as.length ? "Beide Standorte gesamt" : "Erfasster Standort gesamt"}</span><span class="consumption-value">${formatNumber(totalKwh, 0)} kWh</span></div>
     <div class="chart-sub consumption-note">${note}${details ? "<br>" + details : ""}</div>`;
 }
 
