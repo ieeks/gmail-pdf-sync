@@ -989,83 +989,6 @@ function renderDetailCharts() {
   const monthly = state.computed.monthly;
   const options = baseChartOptions();
 
-  createChart("detailTrendChart", {
-    type: "bar",
-    data: {
-      labels: monthly.map((bucket) => formatMonthLabel(bucket.label)),
-      datasets: [
-        {
-          type: "line",
-          label: "Rennweg",
-          data: monthly.map((bucket) => bucket.rennwegKwh),
-          borderColor: "rgba(0,194,168,0.88)",
-          backgroundColor: "rgba(0,194,168,0.10)",
-          fill: true,
-          tension: 0.38,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          order: 0,
-        },
-        {
-          label: "Aspangstr. Haushalt",
-          data: monthly.map((bucket) => Math.max(0, bucket.aspangKwh - bucket.aspangWallboxKwh)),
-          backgroundColor: "rgba(245,158,11,0.70)",
-          borderRadius: 0,
-          stack: "aspang",
-          order: 1,
-        },
-        {
-          label: "Aspangstr. Wallbox",
-          data: monthly.map((bucket) => bucket.aspangWallboxKwh),
-          backgroundColor: "rgba(109,212,200,0.75)",
-          borderRadius: 4,
-          stack: "aspang",
-          order: 1,
-        },
-      ],
-    },
-    options: {
-      ...options,
-      plugins: {
-        ...options.plugins,
-        tooltip: {
-          ...options.plugins.tooltip,
-          filter(item) {
-            return item.dataset.label !== "Aspangstr. Haushalt";
-          },
-          callbacks: {
-            label(context) {
-              if (context.dataset.label === "Aspangstr. Wallbox") {
-                const bucket = monthly[context.dataIndex];
-                const wbKwh = bucket.aspangWallboxKwh;
-                const hausKwh = Math.max(0, bucket.aspangKwh - wbKwh);
-                if (wbKwh > 0) {
-                  return `Aspangstr.: ${formatNumber(wbKwh)} kWh Wallbox · ${formatNumber(hausKwh)} kWh Haushalt · ${formatNumber(bucket.aspangKwh)} kWh gesamt`;
-                }
-                return `Aspangstrasse: ${formatNumber(bucket.aspangKwh)} kWh`;
-              }
-              return `${context.dataset.label}: ${formatNumber(context.parsed.y, 0)} kWh`;
-            },
-          },
-        },
-      },
-      scales: {
-        ...options.scales,
-        x: { ...options.scales.x, stacked: true },
-        y: {
-          ...options.scales.y,
-          stacked: true,
-          ticks: {
-            ...options.scales.y.ticks,
-            callback(value) {
-              return `${formatNumber(value)} kWh`;
-            },
-          },
-        },
-      },
-    },
-  });
-
   createChart("detailCostTrendChart", {
     type: "bar",
     data: {
@@ -1142,7 +1065,7 @@ function updateChartsForActiveScreen() {
     renderChartWhenVisible("overviewConsumptionChart", renderOverviewCharts);
   }
   if (state.activeScreen === "detail") {
-    renderChartWhenVisible("detailTrendChart", renderDetailCharts);
+    renderChartWhenVisible("detailCostTrendChart", renderDetailCharts);
   }
 }
 
@@ -1505,7 +1428,56 @@ function renderOverview() {
   `;
 }
 
+
+// Verbrauchsaufteilung für die Rechnungen eines ausgewählten Verbrauchsmonats.
+// Fehlende Ladungen sind unbekannt: dann bleibt Aspang als Gesamtverbrauch stehen.
+function renderConsumptionBreakdown() {
+  const select = document.getElementById("consumptionMonth");
+  const months = [...new Set(state.data.entries.map(entryMonthKey))].sort().reverse();
+  const selected = months.includes(select.value) ? select.value : months[0];
+  select.innerHTML = months.map(key => `<option value="${key}">${formatMonthOption(key)}</option>`).join("");
+  select.value = selected || "";
+  select.disabled = months.length === 0;
+  const container = document.getElementById("consumptionBreakdown");
+  if (!selected) {
+    container.innerHTML = '<div class="chart-sub">Noch keine Rechnungsdaten vorhanden.</div>';
+    return;
+  }
+  const entries = state.data.entries.filter(e => entryMonthKey(e) === selected);
+  const rw = entries.filter(e => e.location === "rennweg");
+  const as = entries.filter(e => e.location === "aspangstrasse");
+  const rwKwh = sumEntries(rw, "kwh");
+  const asKwh = sumEntries(as, "kwh");
+  const wb = as.map(e => wallboxKwhInPeriod(e.fromDate, e.toDate));
+  const wbKwh = wb.reduce((sum, value) => sum + value, 0);
+  const inconsistent = as.some((e, i) => wb[i] > e.kwh || !Number.isFinite(wb[i]));
+  const canSplit = as.length > 0 && wb.every(value => value > 0) && !inconsistent;
+  const rows = [
+    { label: "Rennweg", value: rw.length ? rwKwh : null, color: "teal" },
+    { label: canSplit ? "Aspang · Haushalt" : "Aspang · gesamt", value: as.length ? asKwh - (canSplit ? wbKwh : 0) : null, color: "amber" },
+    { label: "Wallbox · Aspang", value: canSplit ? wbKwh : null, color: "wallbox" },
+  ];
+  const max = Math.max(1, ...rows.map(row => row.value || 0));
+  const periodLabel = e => [e.fromDate, e.toDate].map(date => date.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" })).join(" – ");
+  const periods = [...new Set(entries.map(periodLabel))];
+  const periodText = periods.length === 1 ? periods[0] : "Abrechnungszeiträume je Standort siehe unten";
+  const details = periods.length > 1 ? entries.map(e => `${locationLabel(e.location)}: ${periodLabel(e)}`).join(" · ") : "";
+  const note = inconsistent ? "Lade- und Rechnungsdaten passen nicht zusammen. Eine Aufteilung ist derzeit nicht möglich."
+    : !canSplit ? "Keine vollständige Zuordnung der Ladedaten möglich. Aspang wird als Gesamtverbrauch angezeigt."
+    : "Aufteilung anhand der erfassten Wallbox-Ladungen.";
+  container.innerHTML = `
+    <div class="chart-sub consumption-period">${periodText}</div>
+    ${rows.map(row => `
+      <div class="consumption-row">
+        <div class="consumption-label"><span>${row.label}</span><span class="consumption-value">${row.value == null ? "—" : formatNumber(row.value, 0) + " kWh"}</span></div>
+        <div class="cmp-bar-bg" aria-hidden="true"><div class="cmp-bar ${row.color}" style="width:${row.value == null ? 0 : Math.max(0, row.value) / max * 100}%"></div></div>
+      </div>`).join("")}
+    <div class="consumption-total"><span>${rw.length && as.length ? "Beide Standorte gesamt" : "Erfasster Standort gesamt"}</span><span class="consumption-value">${formatNumber(rwKwh + asKwh, 0)} kWh</span></div>
+    <div class="chart-sub consumption-note">${note}${details ? "<br>" + details : ""}</div>`;
+}
+
 function renderDetail() {
+  renderConsumptionBreakdown();
   const locations = [
     { key: "rennweg", entries: state.data.rennweg, badge: "Residential" },
     { key: "aspangstrasse", entries: state.data.aspangstrasse, badge: "Wallbox" },
@@ -1975,6 +1947,7 @@ function initSidebarToggle() {
 }
 
 function attachEvents() {
+  document.getElementById("consumptionMonth").addEventListener("change", renderConsumptionBreakdown);
   domCache.screens = Array.from(document.querySelectorAll("[data-screen]"));
   domCache.navButtons = Array.from(document.querySelectorAll("[data-screen-target]"));
 
@@ -2245,7 +2218,7 @@ function renderApp() {
 // - STORAGE_KEYS: kein Konflikt, voltmetric-onboarding-done ist neu
 // - init()-Hook: nach renderApp(), bevor User-Interaktion möglich ist
 // - ESC schließt ohne localStorage zu setzen (zeigt beim nächsten Besuch wieder)
-// - Step 3 um Wallbox-Hinweis erweitert: loadWallboxData() existiert + detailTrendChart zeigt Wallbox-Daten
+// - Step 3 um Wallbox-Hinweis erweitert: loadWallboxData() liefert die Ladungen für die monatliche Verbrauchsaufteilung
 // - Settings-Button: statisches HTML in index.html (prototype-note Panel), nicht in renderSettings()
 
 const ONBOARDING_KEY = "voltmetric-onboarding-done";
@@ -2269,7 +2242,7 @@ const ONBOARDING_STEPS_DATA = [
   {
     icon: "📈",
     title: "Insights — Trends & Verläufe",
-    text: "Im Insights-Tab siehst du monatliche Verbrauchskurven, Kostenverlauf und den direkten Vergleich zwischen Rennweg und Aspangstraße über 18 Monate — inklusive Wallbox-Ladedaten vom E-Auto.",
+    text: "Im Insights-Tab siehst du, wie sich der Stromverbrauch auf Rennweg, den Haushalt in Aspangstraße und die Wallbox verteilt. Wähle den Verbrauchsmonat aus; darunter findest du den Kostenverlauf.",
     badge: null,
     info: null,
   },

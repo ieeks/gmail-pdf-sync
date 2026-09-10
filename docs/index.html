@@ -223,24 +223,17 @@
 
           <div class="detail-loc-grid" id="detailLocationCards"></div>
 
-          <div class="panel monthly-chart-panel">
-            <div class="monthly-chart-header">
+          <div class="panel monthly-chart-panel consumption-panel">
+            <div class="monthly-chart-header consumption-header">
               <div>
-                <span class="sl">Monthly trend</span>
-                <div class="chart-title">Consumption runway · 18 months</div>
+                <span class="sl">Stromverbrauch</span>
+                <div class="chart-title">Wofür verbrauchen wir Strom?</div>
               </div>
-              <div class="monthly-chart-legend">
-                <div class="chart-legend-item">
-                  <span class="chart-legend-dot" style="background:rgba(0,194,168,0.88)"></span>Rennweg
-                </div>
-                <div class="chart-legend-item">
-                  <span class="chart-legend-dot" style="background:rgba(245,158,11,0.82)"></span>Aspangstr.
-                </div>
-              </div>
+              <label class="consumption-picker">Verbrauchsmonat
+                <select id="consumptionMonth" class="archive-select"></select>
+              </label>
             </div>
-            <div class="chart-canvas-wrap" style="min-height:220px">
-              <canvas id="detailTrendChart"></canvas>
-            </div>
+            <div id="consumptionBreakdown" aria-live="polite"></div>
           </div>
 
           <div class="panel monthly-chart-panel">

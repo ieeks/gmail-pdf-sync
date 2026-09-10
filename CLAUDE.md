@@ -496,3 +496,20 @@ smartmeter/
   für Viertelstundenwerte. Details in `smartmeter/README.md`.
 - Dashboard-Anbindung (`smartmeter_daily` → VoltMetric Insights) ist ein **separater
   Task** und noch nicht umgesetzt.
+
+
+## Verbrauchsaufteilung im Insights-Tab
+
+Die frühere Consumption-runway-Grafik wurde durch `renderConsumptionBreakdown()` ersetzt.
+Vorhandene Panel-, Typografie- und Balkenklassen bleiben erhalten; Rennweg türkis,
+Aspang orange, Wallbox im bisherigen Hellgrün. Keine neue UI-Abhängigkeit.
+
+- Monatsauswahl aus den Rechnungen via `entryMonthKey()`, neuester Monat vorausgewählt.
+- Drei direkt beschriftete Balken: Rennweg, Aspang-Haushalt, Wallbox; gemeinsame Skala.
+- Haushalt = Rechnungsverbrauch minus erfasste Ladungen im jeweiligen Abrechnungszeitraum.
+- Fehlende Ladungen werden nicht als null angenommen: dann Aspang gesamt, Wallbox ohne Wert.
+- Bei Wallbox > Rechnungsverbrauch keine Aufteilung, sichtbarer Datenhinweis.
+- Abweichende Abrechnungszeiträume werden pro Standort genannt. Monatszuordnung wie im Archiv.
+- Gesamt wird aus ungerundeten Rechnungswerten gebildet; Rundungsdifferenzen zu Einzelanzeigen möglich.
+- Lazy-Initialisierung des verbleibenden Kosten-Charts hängt an `detailCostTrendChart`.
+- Regression: `node tests/consumption-breakdown.cjs`. Browser-/Mobile-Sichtprüfung noch offen.
