@@ -1636,12 +1636,34 @@ function getFilteredArchiveEntries() {
   });
 }
 
+// Wallbox-Infos im Archive nur zeigen, wenn explizit auf Aspangstraße gefiltert ist —
+// nur dort hängt eine Wallbox. Bei "Alle Orte" stünde die Zeile neben Rennweg-Rechnungen,
+// die gar keine haben können, und die Summe würde zwei Standorte vermischen.
+function archiveShowsWallbox() {
+  return state.archive.location === "aspangstrasse";
+}
+
+// Wallbox-Anteil einer Archiv-Rechnung. kWh aus genau ihrem Abrechnungszeitraum,
+// Kosten anteilig über wallboxCostShare(). Gibt null zurück, wenn für den Zeitraum
+// keine Ladungen vorliegen (z. B. Rechnung älter als die Firestore-Daten) — dann
+// wird bewusst NICHTS gezeigt statt "0 kWh", was nach "nie geladen" aussähe.
+function archiveWallboxInfo(entry) {
+  if (!archiveShowsWallbox()) return null;
+  const kwh = wallboxKwhInPeriod(entry.fromDate, entry.toDate);
+  if (!(kwh > 0)) return null;
+  return { kwh, cost: wallboxCostShare(entry, kwh) };
+}
+
 function renderArchiveTable() {
   const entries = getFilteredArchiveEntries();
   const container = document.getElementById("archiveTableBody");
   const empty = document.getElementById("archiveEmpty");
 
-  container.innerHTML = entries.map((entry) => `
+  container.innerHTML = entries.map((entry) => {
+    const wb = archiveWallboxInfo(entry);
+    const wbRow = wb ? `
+      <div class="archive-row-wallbox">⚡ ${formatNumber(wb.kwh, 1)} kWh Wallbox · ≈ ${formatNumber(wb.cost, 0)} EUR</div>` : "";
+    return `
     <div class="archive-table-row" data-entry-id="${entry.id}">
 
       <!-- Desktop: Spalten 1+2 | Mobile: Zeile 1 (ID links, Badge rechts) -->
@@ -1666,12 +1688,14 @@ function renderArchiveTable() {
       </div>
 
       <!-- Desktop: Spalte 7 | Mobile: display:none via CSS -->
-      <div>
+      <div class="archive-row-actions">
         <button class="btn-pdf ${entry.location === "rennweg" ? "btn-pdf-rw" : "btn-pdf-as"}" type="button">Open</button>
       </div>
 
+      ${wbRow}
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   empty.classList.toggle("hidden", entries.length !== 0);
   renderArchiveSummary(entries);
@@ -1693,6 +1717,18 @@ function renderArchiveSummary(entries) {
     state.archive.month !== "all" ? formatMonthOption(state.archive.month) : null,
   ].filter(Boolean).join(" · ");
 
+  // Wallbox-Summe über dieselben Rechnungen — nur wenn auf Aspangstraße gefiltert
+  // ist und für den Zeitraum überhaupt Ladungen vorliegen.
+  const wbTotals = entries.reduce((acc, entry) => {
+    const wb = archiveWallboxInfo(entry);
+    return wb ? { kwh: acc.kwh + wb.kwh, cost: acc.cost + wb.cost } : acc;
+  }, { kwh: 0, cost: 0 });
+  const wbShare = kwh > 0 ? Math.round((wbTotals.kwh / kwh) * 100) : 0;
+  const wbRow = wbTotals.kwh > 0 ? `
+    <div class="archive-foot-wallbox">
+      ⚡ davon Wallbox: ${formatNumber(wbTotals.kwh, 1)} kWh · ≈ ${formatNumber(wbTotals.cost, 0)} EUR${wbShare > 0 ? ` · ${wbShare}%` : ""}
+    </div>` : "";
+
   foot.innerHTML = `
     <div class="archive-foot-label">
       <span class="archive-foot-title">Summe</span>
@@ -1704,6 +1740,7 @@ function renderArchiveSummary(entries) {
       <span class="archive-foot-total">${formatCurrency(gesamt)}</span>
     </div>
     <div class="archive-foot-ct">${formatNumber(ct, 1)} ct/kWh</div>
+    ${wbRow}
   `;
 }
 
