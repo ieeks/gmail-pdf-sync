@@ -220,7 +220,7 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
   - `.archive-table-row` wird `flex-direction: column` Card
   - `.archive-card-top`: Rechnungsnummer links, Location Badge rechts
   - `.archive-card-numbers`: kWh · Energiekosten · Gesamt in einer Zeile
-  - `.btn-pdf` (Open-Button) auf Mobile ausgeblendet
+  - `.archive-row-actions` (Zelle mit dem Open-Button) auf Mobile ausgeblendet
 
 **Billing Archive — Filter & Summe:**
 - Vier Filter: Suche · Zeitraum (Rechnungsjahr / 12M / 24M) · **Monat** (Verbrauchsmonat) · Location
@@ -237,6 +237,27 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
 - Die Zeilen-Wrapper `.archive-card-top` / `.archive-card-numbers` / `.archive-foot-numbers`
   sind `display:contents` — nur so landen die Zellen auf Desktop unter ihren
   Spaltenüberschriften; im Mobile-Media-Query werden sie wieder `flex`.
+
+**Wallbox im Billing Archive:**
+- Nur sichtbar, wenn `state.archive.location === "aspangstrasse"` (`archiveShowsWallbox()`).
+  Bei „Alle Orte" stünde die Zeile neben Rennweg-Rechnungen, die keine Wallbox haben
+  können, und die Summe würde zwei Standorte vermischen.
+- Pro Rechnung: `.archive-row-wallbox` → „⚡ 414,0 kWh Wallbox · ≈ 105 EUR",
+  kWh aus `wallboxKwhInPeriod(entry.fromDate, entry.toDate)`, Kosten via `wallboxCostShare()`.
+- In der Summenzeile: `.archive-foot-wallbox` → „⚡ Erfasste Wallbox-Ladungen: … kWh · ≈ … EUR (inkl. Fixkostenanteil)".
+- Haben ausgewählte Rechnungen keine Ladedaten, wird deren Anzahl genannt und kein
+  Prozentwert ausgegeben. Vorhandene Ladungen beweisen keine vollständige Historie;
+  die Anzeige spricht deshalb immer von **erfassten** Wallbox-Ladungen.
+- Übersteigen Ladungen den Rechnungsverbrauch (oder ist dieser nicht positiv),
+  wird die Abweichung in Einzelzeile und Summe genannt. Dann entfallen Kostenbetrag
+  und Prozentwert der Summe, statt unplausible Kosten still zu deckeln.
+- Regressionstests ohne externe Dienste: `node tests/archive-wallbox.cjs`.
+- `archiveWallboxInfo()` gibt `null` zurück, wenn im Zeitraum keine Ladungen vorliegen
+  (Rechnung älter als die Firestore-Daten) — dann wird bewusst **nichts** gezeigt statt
+  „0 kWh", was nach „nie geladen" aussähe.
+- Beide Zeilen liegen im Desktop-Grid auf `grid-column: 4 / -1`, also in einer zweiten
+  Grid-Zeile unter den Zahlen. Deshalb muss `${wbRow}` im Markup **nach** der Button-Zelle
+  stehen — sonst rutscht der Open-Button in die zweite Zeile.
 
 **Wallbox-Kostenanteil:**
 `wallboxCostShare(entry, wallboxKwh)` = `gesamt_inkl_ust * (wallboxKwh / entry.kwh)`.

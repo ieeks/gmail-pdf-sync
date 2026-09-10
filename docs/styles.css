@@ -512,6 +512,15 @@ input,select,textarea{font-family:inherit}
 .archive-foot-total{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:800;color:var(--ink)}
 .archive-foot-ct{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate-l)}
 
+/* Wallbox-Zeile: eigene Grid-Zeile ab Spalte 4, also unter den Zahlen */
+.archive-row-wallbox,
+.archive-foot-wallbox{
+  grid-column:4 / -1;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--teal-dk);margin-top:3px;
+}
+.archive-foot-wallbox{font-size:11px;font-weight:600;margin-top:5px}
+
 /* ── Archive: Mobile Card Layout (< 768px) ─────────────────────── */
 @media (max-width:767px){
   .archive-table-head{display:none}
@@ -537,7 +546,7 @@ input,select,textarea{font-family:inherit}
   .archive-card-numbers .archive-row-kwh::after{content:"·";margin-left:10px;color:#cbd5e1}
   .archive-card-numbers .archive-row-net::after {content:"·";margin-left:10px;color:#cbd5e1}
 
-  .btn-pdf{display:none}
+  .archive-row-actions{display:none}
 
   .archive-filter-group{flex:1 1 calc(50% - 6px)}
   .archive-filter-group.wide{flex:1 1 100%}
@@ -552,6 +561,9 @@ input,select,textarea{font-family:inherit}
   }
   .archive-foot-numbers .archive-foot-kwh::after{content:"·";margin-left:10px;color:#cbd5e1}
   .archive-foot-numbers .archive-foot-net::after{content:"·";margin-left:10px;color:#cbd5e1}
+
+  .archive-row-wallbox,
+  .archive-foot-wallbox{margin-top:0}
 }
 
 /* ── Settings screen ───────────────────────────────────────────── */
