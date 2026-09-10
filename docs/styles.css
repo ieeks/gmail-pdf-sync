@@ -520,6 +520,11 @@ input,select,textarea{font-family:inherit}
   color:var(--teal-dk);margin-top:3px;
 }
 .archive-foot-wallbox{font-size:11px;font-weight:600;margin-top:5px}
+.archive-foot-wallbox-note{
+  grid-column:4 / -1;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;
+  color:var(--slate-l);margin-top:2px;
+}
 
 /* ── Archive: Mobile Card Layout (< 768px) ─────────────────────── */
 @media (max-width:767px){
@@ -563,7 +568,8 @@ input,select,textarea{font-family:inherit}
   .archive-foot-numbers .archive-foot-net::after{content:"·";margin-left:10px;color:#cbd5e1}
 
   .archive-row-wallbox,
-  .archive-foot-wallbox{margin-top:0}
+  .archive-foot-wallbox,
+  .archive-foot-wallbox-note{margin-top:0}
 }
 
 /* ── Settings screen ───────────────────────────────────────────── */
