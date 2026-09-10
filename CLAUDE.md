@@ -221,6 +221,12 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
   - `.archive-card-top`: Rechnungsnummer links, Location Badge rechts
   - `.archive-card-numbers`: kWh · Energiekosten · Gesamt in einer Zeile
   - `.archive-row-actions` (Zelle mit dem Open-Button) auf Mobile ausgeblendet
+- **Insights auf Mobile:** `.detail-loc-grid` steht untereinander (`flex-direction:column`).
+  Nebeneinander passen die beiden Standort-Cards nicht: die Kopfzeile (Badge · Name ·
+  ct/kWh) bricht nicht um, mit `min-width:auto` schrumpfen die Cards nicht unter ihre
+  Mindestbreite, und das Grid lief um gut 240px über — die Seite ließ sich seitlich
+  wegschieben. `.detail-loc-name` steht dort auf 16px, sonst rutscht der ct/kWh-Wert bei
+  „Aspangstrasse" in eine zweite Zeile; `flex-wrap` auf `.detail-loc-header` bleibt als Netz.
 
 **Billing Archive — Filter & Summe:**
 - Vier Filter: Suche · Zeitraum (Rechnungsjahr / 12M / 24M) · **Monat** (Verbrauchsmonat) · Location
@@ -512,4 +518,9 @@ Aspang orange, Wallbox im bisherigen Hellgrün. Keine neue UI-Abhängigkeit.
 - Abweichende Abrechnungszeiträume werden pro Standort genannt. Monatszuordnung wie im Archiv.
 - Gesamt wird aus ungerundeten Rechnungswerten gebildet; Rundungsdifferenzen zu Einzelanzeigen möglich.
 - Lazy-Initialisierung des verbleibenden Kosten-Charts hängt an `detailCostTrendChart`.
-- Regression: `node tests/consumption-breakdown.cjs`. Browser-/Mobile-Sichtprüfung noch offen.
+- Regression: `node tests/consumption-breakdown.cjs`. Browser-Sichtprüfung auf 390px und
+  1440px erfolgt (Chart.js und Google Fonts sind in der Agent-Umgebung geblockt — die
+  Charts selbst und exakte Textbreiten lassen sich dort nicht prüfen).
+- Der Monatswähler nutzt `.sl` als Label und `.archive-select` unverändert, damit er wie
+  die Archive-Filter aussieht. **Kein eigener `font-size` auf dem Select** — die frühere
+  16px-Variante (gegen iOS-Zoom) fiel neben den 12px-Selects im Archive auf.
