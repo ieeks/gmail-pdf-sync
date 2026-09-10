@@ -244,13 +244,21 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
   können, und die Summe würde zwei Standorte vermischen.
 - Pro Rechnung: `.archive-row-wallbox` → „⚡ 414,0 kWh Wallbox · ≈ 105 EUR",
   kWh aus `wallboxKwhInPeriod(entry.fromDate, entry.toDate)`, Kosten via `wallboxCostShare()`.
-- In der Summenzeile: `.archive-foot-wallbox` → „⚡ Erfasste Wallbox-Ladungen: … kWh · ≈ … EUR (inkl. Fixkostenanteil)".
-- Haben ausgewählte Rechnungen keine Ladedaten, wird deren Anzahl genannt und kein
-  Prozentwert ausgegeben. Vorhandene Ladungen beweisen keine vollständige Historie;
-  die Anzeige spricht deshalb immer von **erfassten** Wallbox-Ladungen.
-- Übersteigen Ladungen den Rechnungsverbrauch (oder ist dieser nicht positiv),
-  wird die Abweichung in Einzelzeile und Summe genannt. Dann entfallen Kostenbetrag
-  und Prozentwert der Summe, statt unplausible Kosten still zu deckeln.
+- In der Summenzeile: `.archive-foot-wallbox` → „⚡ Wallbox: … kWh · ≈ … EUR · 71%".
+- ⚠ **Die Zahlenzeilen tragen keine Einschränkungen.** Alle Vorbehalte stehen in einer
+  eigenen, leiseren Fußnote `.archive-foot-wallbox-note` unter der Summe, zusammengesetzt
+  aus bis zu drei Teilen: „Nur erfasste Ladungen" (immer) · „Kosten anteilig, inkl.
+  Fixkosten" (wenn ein Betrag steht) · „N von M Rechnungen ohne Ladedaten" (wenn welche
+  fehlen). Vorher stand „(inkl. Fixkostenanteil)" in **jeder** Zeile — auf 390px brach
+  damit jede Zeile um. Neuen Hinweistext deshalb in die Fußnote geben, nicht in die
+  Zahlenzeile.
+- Haben ausgewählte Rechnungen keine Ladedaten, nennt die Fußnote deren Anzahl und die
+  Summe gibt **keinen** Prozentwert aus (Zähler und Nenner kämen sonst aus verschieden
+  vielen Rechnungen). Vorhandene Ladungen beweisen keine vollständige Historie — daher
+  „Nur erfasste Ladungen".
+- Übersteigen Ladungen den Rechnungsverbrauch (oder ist dieser nicht positiv), steht in
+  Einzelzeile und Summe `WB_INCONSISTENT` („passt nicht zum Rechnungsverbrauch"). Dann
+  entfallen Kostenbetrag und Prozentwert, statt unplausible Kosten still zu deckeln.
 - Regressionstests ohne externe Dienste: `node tests/archive-wallbox.cjs`.
 - `archiveWallboxInfo()` gibt `null` zurück, wenn im Zeitraum keine Ladungen vorliegen
   (Rechnung älter als die Firestore-Daten) — dann wird bewusst **nichts** gezeigt statt

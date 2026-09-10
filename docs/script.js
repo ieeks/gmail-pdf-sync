@@ -1643,6 +1643,11 @@ function archiveShowsWallbox() {
   return state.archive.location === "aspangstrasse";
 }
 
+// Deckt beide Widerspruchsfälle ab: mehr Ladung als Rechnungsverbrauch, und
+// eine Rechnung ohne positiven Verbrauch. In beiden lässt sich der Anteil nicht
+// bilden, deshalb steht hier ein Hinweis statt einer Zahl.
+const WB_INCONSISTENT = "passt nicht zum Rechnungsverbrauch";
+
 // Wallbox-Anteil einer Archiv-Rechnung. kWh aus genau ihrem Abrechnungszeitraum,
 // Kosten anteilig über wallboxCostShare(). Gibt null zurück, wenn für den Zeitraum
 // keine Ladungen vorliegen (z. B. Rechnung älter als die Firestore-Daten) — dann
@@ -1663,8 +1668,10 @@ function renderArchiveTable() {
 
   container.innerHTML = entries.map((entry) => {
     const wb = archiveWallboxInfo(entry);
+    // "inkl. Fixkosten" steht bewusst NICHT in jeder Zeile, sondern einmal als
+    // Fußnote unter der Summe — viermal wiederholt brach die Zeile auf Mobile um.
     const wbRow = wb ? `
-      <div class="archive-row-wallbox">⚡ ${formatNumber(wb.kwh, 1)} kWh Wallbox${wb.inconsistent ? " · Lade- und Rechnungsdaten passen nicht zusammen" : ` · ≈ ${formatNumber(wb.cost, 0)} EUR (inkl. Fixkostenanteil)`}</div>` : "";
+      <div class="archive-row-wallbox">⚡ ${formatNumber(wb.kwh, 1)} kWh Wallbox · ${wb.inconsistent ? WB_INCONSISTENT : `≈ ${formatNumber(wb.cost, 0)} EUR`}</div>` : "";
     return `
     <div class="archive-table-row" data-entry-id="${entry.id}">
 
@@ -1733,17 +1740,23 @@ function renderArchiveSummary(entries) {
   }, { kwh: 0, cost: 0, withData: 0, inconsistent: false });
   const missing = entries.length - wbTotals.withData;
   const wbShare = kwh > 0 ? Math.round((wbTotals.kwh / kwh) * 100) : 0;
-  const wbCostPart = wbTotals.inconsistent
-    ? " · Lade- und Rechnungsdaten passen nicht zusammen"
-    : ` · ≈ ${formatNumber(wbTotals.cost, 0)} EUR (inkl. Fixkostenanteil)`;
-  const wbSharePart = !missing && !wbTotals.inconsistent && wbShare > 0 ? ` · ${wbShare}%` : "";
-  const wbMissingPart = missing > 0
-    ? ` · Für ${missing} ${missing === 1 ? "Rechnung fehlen" : "Rechnungen fehlen"} Ladedaten`
-    : "";
+  const showCost = !wbTotals.inconsistent;
+  const wbCostPart = showCost ? `≈ ${formatNumber(wbTotals.cost, 0)} EUR` : WB_INCONSISTENT;
+  const wbSharePart = !missing && showCost && wbShare > 0 ? ` · ${wbShare}%` : "";
+
+  // Alle Einschränkungen stehen in einer eigenen, leiseren Fußnotenzeile statt in
+  // der Zahlenzeile: "nur erfasste Ladungen" (vorhandene Ladungen belegen keine
+  // vollständige Historie), die Fixkosten-Näherung, und wie vielen Rechnungen
+  // Ladedaten fehlen. So bleibt die Zahlenzeile auch auf Mobile einzeilig.
+  const wbNote = [
+    "Nur erfasste Ladungen",
+    showCost ? "Kosten anteilig, inkl. Fixkosten" : null,
+    missing > 0 ? `${missing} von ${entries.length} Rechnungen ohne Ladedaten` : null,
+  ].filter(Boolean).join(" · ");
+
   const wbRow = wbTotals.kwh > 0 ? `
-    <div class="archive-foot-wallbox">
-      ⚡ Erfasste Wallbox-Ladungen: ${formatNumber(wbTotals.kwh, 1)} kWh${wbCostPart}${wbSharePart}${wbMissingPart}
-    </div>` : "";
+    <div class="archive-foot-wallbox">⚡ Wallbox: ${formatNumber(wbTotals.kwh, 1)} kWh · ${wbCostPart}${wbSharePart}</div>
+    <div class="archive-foot-wallbox-note">${wbNote}</div>` : "";
 
   foot.innerHTML = `
     <div class="archive-foot-label">
