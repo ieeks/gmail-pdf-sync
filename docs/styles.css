@@ -570,6 +570,19 @@ input,select,textarea{font-family:inherit}
   .archive-row-wallbox,
   .archive-foot-wallbox,
   .archive-foot-wallbox-note{margin-top:0}
+
+  /* Die Standort-Cards im Insights-Tab sind ein Desktop-Layout, das auf Mobile über
+     body.m-desktop-screen mitläuft. Nebeneinander passen sie nicht: die Kopfzeile
+     (Badge · Name · ct/kWh) kann nicht umbrechen, mit min-width:auto schrumpfen die
+     Cards nicht unter ihre Mindestbreite, und das Grid lief um gut 240px über — die
+     Seite ließ sich seitlich wegschieben. Deshalb hier untereinander. */
+  .detail-loc-grid{flex-direction:column}
+  .detail-loc-card{min-width:0}
+  /* 18px liessen "Aspangstrasse" mit Badge und ct/kWh nicht in eine Zeile: die Zahl
+     rutschte um und machte die Card gut 40px hoeher als die von Rennweg. 16px passt.
+     flex-wrap bleibt als Netz, falls die Schrift woanders breiter faellt. */
+  .detail-loc-name{font-size:16px}
+  .detail-loc-header{flex-wrap:wrap}
 }
 
 /* ── Settings screen ───────────────────────────────────────────── */
@@ -930,8 +943,12 @@ input,select,textarea{font-family:inherit}
 
 /* Verbrauchsaufteilung — bestehende Panel-, Schrift- und Standortfarben. */
 .consumption-header{justify-content:space-between;gap:14px;flex-wrap:wrap}
-.consumption-picker{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--slate)}
-.consumption-picker select{max-width:100%;font-size:16px}
+/* Label und Select folgen den Archive-Filtern: .sl als Label, .archive-select mit
+   seinen 12px. Vorher trug das Label 11px in Normalschrift und der Select 16px —
+   beides wich von jedem anderen Feld der App ab und wirkte deshalb unstimmig. */
+.consumption-picker{display:flex;flex-direction:column;gap:5px;min-width:150px}
+.consumption-picker .sl{margin-bottom:0}
+.consumption-picker select{max-width:100%}
 .consumption-period{margin:0 0 20px}
 .consumption-row{margin-bottom:22px}
 .consumption-label,.consumption-total{display:flex;justify-content:space-between;align-items:baseline;gap:14px;font-size:12px;color:var(--ink)}
