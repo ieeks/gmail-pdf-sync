@@ -1651,7 +1651,9 @@ function archiveWallboxInfo(entry) {
   if (!archiveShowsWallbox()) return null;
   const kwh = wallboxKwhInPeriod(entry.fromDate, entry.toDate);
   if (!(kwh > 0)) return null;
-  return { kwh, cost: wallboxCostShare(entry, kwh) };
+  // Bei widersprüchlichen Daten keinen gedeckelten Betrag als Kosten ausgeben.
+  const inconsistent = !(entry.kwh > 0) || kwh > entry.kwh;
+  return { kwh, cost: inconsistent ? null : wallboxCostShare(entry, kwh), inconsistent };
 }
 
 function renderArchiveTable() {
@@ -1662,7 +1664,7 @@ function renderArchiveTable() {
   container.innerHTML = entries.map((entry) => {
     const wb = archiveWallboxInfo(entry);
     const wbRow = wb ? `
-      <div class="archive-row-wallbox">⚡ ${formatNumber(wb.kwh, 1)} kWh Wallbox · ≈ ${formatNumber(wb.cost, 0)} EUR</div>` : "";
+      <div class="archive-row-wallbox">⚡ ${formatNumber(wb.kwh, 1)} kWh Wallbox${wb.inconsistent ? " · Lade- und Rechnungsdaten passen nicht zusammen" : ` · ≈ ${formatNumber(wb.cost, 0)} EUR (inkl. Fixkostenanteil)`}</div>` : "";
     return `
     <div class="archive-table-row" data-entry-id="${entry.id}">
 
@@ -1717,16 +1719,30 @@ function renderArchiveSummary(entries) {
     state.archive.month !== "all" ? formatMonthOption(state.archive.month) : null,
   ].filter(Boolean).join(" · ");
 
-  // Wallbox-Summe über dieselben Rechnungen — nur wenn auf Aspangstraße gefiltert
-  // ist und für den Zeitraum überhaupt Ladungen vorliegen.
+  // Fehlende Ladungen sind unbekannt, nicht automatisch null Verbrauch.
+  // Auch vorhandene Ladungen belegen keine vollständige Historie: deshalb
+  // ausdrücklich "erfasste" Ladungen; bei Rechnungen ohne Daten kein Prozentwert.
   const wbTotals = entries.reduce((acc, entry) => {
     const wb = archiveWallboxInfo(entry);
-    return wb ? { kwh: acc.kwh + wb.kwh, cost: acc.cost + wb.cost } : acc;
-  }, { kwh: 0, cost: 0 });
+    if (!wb) return acc;
+    acc.kwh += wb.kwh;
+    acc.cost += wb.cost ?? 0;
+    acc.withData += 1;
+    acc.inconsistent ||= wb.inconsistent;
+    return acc;
+  }, { kwh: 0, cost: 0, withData: 0, inconsistent: false });
+  const missing = entries.length - wbTotals.withData;
   const wbShare = kwh > 0 ? Math.round((wbTotals.kwh / kwh) * 100) : 0;
+  const wbCostPart = wbTotals.inconsistent
+    ? " · Lade- und Rechnungsdaten passen nicht zusammen"
+    : ` · ≈ ${formatNumber(wbTotals.cost, 0)} EUR (inkl. Fixkostenanteil)`;
+  const wbSharePart = !missing && !wbTotals.inconsistent && wbShare > 0 ? ` · ${wbShare}%` : "";
+  const wbMissingPart = missing > 0
+    ? ` · Für ${missing} ${missing === 1 ? "Rechnung fehlen" : "Rechnungen fehlen"} Ladedaten`
+    : "";
   const wbRow = wbTotals.kwh > 0 ? `
     <div class="archive-foot-wallbox">
-      ⚡ davon Wallbox: ${formatNumber(wbTotals.kwh, 1)} kWh · ≈ ${formatNumber(wbTotals.cost, 0)} EUR${wbShare > 0 ? ` · ${wbShare}%` : ""}
+      ⚡ Erfasste Wallbox-Ladungen: ${formatNumber(wbTotals.kwh, 1)} kWh${wbCostPart}${wbSharePart}${wbMissingPart}
     </div>` : "";
 
   foot.innerHTML = `

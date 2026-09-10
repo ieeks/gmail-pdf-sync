@@ -244,7 +244,14 @@ Right-Panel hat `#insightsList` (dynamisch via `renderInsights()`) + `#topKennza
   können, und die Summe würde zwei Standorte vermischen.
 - Pro Rechnung: `.archive-row-wallbox` → „⚡ 414,0 kWh Wallbox · ≈ 105 EUR",
   kWh aus `wallboxKwhInPeriod(entry.fromDate, entry.toDate)`, Kosten via `wallboxCostShare()`.
-- In der Summenzeile: `.archive-foot-wallbox` → „⚡ davon Wallbox: … kWh · ≈ … EUR · 58%".
+- In der Summenzeile: `.archive-foot-wallbox` → „⚡ Erfasste Wallbox-Ladungen: … kWh · ≈ … EUR (inkl. Fixkostenanteil)".
+- Haben ausgewählte Rechnungen keine Ladedaten, wird deren Anzahl genannt und kein
+  Prozentwert ausgegeben. Vorhandene Ladungen beweisen keine vollständige Historie;
+  die Anzeige spricht deshalb immer von **erfassten** Wallbox-Ladungen.
+- Übersteigen Ladungen den Rechnungsverbrauch (oder ist dieser nicht positiv),
+  wird die Abweichung in Einzelzeile und Summe genannt. Dann entfallen Kostenbetrag
+  und Prozentwert der Summe, statt unplausible Kosten still zu deckeln.
+- Regressionstests ohne externe Dienste: `node tests/archive-wallbox.cjs`.
 - `archiveWallboxInfo()` gibt `null` zurück, wenn im Zeitraum keine Ladungen vorliegen
   (Rechnung älter als die Firestore-Daten) — dann wird bewusst **nichts** gezeigt statt
   „0 kWh", was nach „nie geladen" aussähe.
